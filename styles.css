@@ -794,7 +794,7 @@ th.amount {
 @media (max-width: 760px) {
   body {
     background: linear-gradient(180deg, #f7fbfb 0%, #fbf7fd 100%);
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .app-shell {
@@ -805,21 +805,22 @@ th.amount {
     position: sticky;
     top: 0;
     z-index: 5;
-    padding: 14px;
-    gap: 12px;
+    padding: 8px 10px;
+    gap: 7px;
   }
 
   .brand-mark {
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
   }
 
   .brand h1 {
-    font-size: 19px;
+    font-size: 17px;
   }
 
   .brand p {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .brand {
@@ -840,32 +841,41 @@ th.amount {
   }
 
   .nav-tab {
-    min-width: 82px;
-    height: 38px;
-    padding: 0 10px;
+    min-width: 72px;
+    height: 32px;
+    padding: 0 8px;
     text-align: center;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .month-control {
     margin-top: 0;
-    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr);
     align-items: center;
+    gap: 6px;
+  }
+
+  .month-control label {
+    font-size: 12px;
   }
 
   .main {
-    padding: 14px;
+    padding: 10px;
   }
 
   .page-header {
     align-items: flex-start;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 7px;
+    margin-bottom: 9px;
   }
 
   .page-header h2 {
-    font-size: 24px;
+    font-size: 21px;
+  }
+
+  .page-header p {
+    font-size: 12px;
   }
 
   .header-actions {
@@ -881,8 +891,8 @@ th.amount {
   .entry-form select,
   .setting-editor input,
   .cloud-tools input {
-    height: 44px;
-    border-radius: 12px;
+    height: 38px;
+    border-radius: 10px;
   }
 
   .summary-grid,
@@ -897,71 +907,94 @@ th.amount {
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: 7px;
+    margin-bottom: 7px;
   }
 
   .summary-card {
-    padding: 11px;
-    min-height: 76px;
+    padding: 8px 9px;
+    min-height: 58px;
   }
 
   .summary-card span {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .summary-card strong {
-    font-size: 17px;
+    margin-top: 4px;
+    font-size: 15px;
     overflow-wrap: anywhere;
   }
 
   .target-mini-grid {
     display: flex;
     overflow-x: auto;
-    gap: 8px;
-    margin: 0 -14px 14px;
-    padding: 0 14px 2px;
+    gap: 6px;
+    margin: 0 -10px 9px;
+    padding: 0 10px 2px;
     scrollbar-width: none;
   }
 
   .target-mini-card {
-    min-width: 118px;
-    min-height: 44px;
+    min-width: 96px;
+    min-height: 34px;
     flex: 0 0 auto;
+    padding: 6px 8px;
+  }
+
+  .target-mini-card span {
+    font-size: 10px;
+  }
+
+  .target-mini-card strong {
+    font-size: 13px;
   }
 
   .dashboard-layout,
   .analysis-layout {
-    gap: 12px;
+    gap: 8px;
   }
 
   .panel {
-    padding: 13px;
+    padding: 10px;
     border-radius: 10px;
   }
 
+  .panel-title {
+    margin-bottom: 8px;
+  }
+
+  .panel-title h3 {
+    font-size: 16px;
+  }
+
   .chart-wrap {
-    min-height: 240px;
+    min-height: 180px;
     overflow: hidden;
   }
 
   #categoryChart {
     width: 100%;
-    max-width: 360px;
+    max-width: 300px;
     height: auto;
   }
 
+  .method-list {
+    gap: 7px;
+  }
+
   .method-row {
-    grid-template-columns: 86px minmax(70px, 1fr) 98px;
-    gap: 8px;
-    font-size: 13px;
+    grid-template-columns: 78px minmax(56px, 1fr) 86px;
+    gap: 7px;
+    font-size: 12px;
   }
 
   .method-row .amount {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .bar {
-    height: 8px;
+    height: 7px;
   }
 
   .view-switch {
@@ -971,8 +1004,8 @@ th.amount {
   }
 
   .switch-button {
-    height: 38px;
-    font-size: 13px;
+    height: 34px;
+    font-size: 12px;
     padding: 0 8px;
   }
 
@@ -981,8 +1014,8 @@ th.amount {
   }
 
   .table-scroll {
-    margin: 0 -13px;
-    padding: 0 13px;
+    margin: 0 -10px;
+    padding: 0 10px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -993,8 +1026,8 @@ th.amount {
 
   th,
   td {
-    padding: 9px 10px;
-    font-size: 13px;
+    padding: 8px 9px;
+    font-size: 12px;
   }
 
   .analysis-strip {
@@ -1020,9 +1053,11 @@ th.amount {
   }
 
   .settings-tab {
-    min-width: 84px;
+    min-width: 76px;
     flex: 0 0 auto;
     padding: 0 10px;
+    height: 32px;
+    font-size: 12px;
   }
 
   .payment-editor {
@@ -1040,28 +1075,23 @@ th.amount {
 
   .edit-button,
   .delete-button {
-    min-width: 44px;
-    height: 32px;
+    min-width: 40px;
+    height: 28px;
     border-radius: 9px;
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
 @media (max-width: 420px) {
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
-
   .header-actions {
     grid-template-columns: 1fr;
   }
 
   .method-row {
-    grid-template-columns: 1fr;
-    align-items: start;
+    grid-template-columns: 74px minmax(44px, 1fr) 82px;
   }
 
   .method-row .amount {
-    text-align: left;
+    text-align: right;
   }
 }

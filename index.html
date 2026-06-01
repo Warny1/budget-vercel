@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7fbfb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="가계부" />
+    <title>가계부</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./config.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">₩</div>
+          <div>
+            <h1>가계부</h1>
+            <p id="todayLabel"></p>
+          </div>
+        </div>
+        <nav class="nav-tabs" aria-label="화면 전환">
+          <button class="nav-tab active" data-view="dashboard" type="button">현재상태</button>
+          <button class="nav-tab" data-view="expenses" type="button">입력</button>
+          <button class="nav-tab" data-view="income" type="button">수입</button>
+          <button class="nav-tab" data-view="analysis" type="button">월별분석</button>
+          <button class="nav-tab" data-view="settings" type="button">설정</button>
+        </nav>
+        <div class="month-control">
+          <label for="monthPicker">조회월</label>
+          <input id="monthPicker" type="month" />
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="view active" id="dashboardView" aria-labelledby="dashboardTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="dashboardTitle">현재상태</h2>
+              <p id="dashboardMonth"></p>
+            </div>
+            <div class="header-actions">
+              <button id="exportJson" class="ghost-button" type="button">내보내기</button>
+              <label class="ghost-button file-button">
+                가져오기
+                <input id="importJson" type="file" accept="application/json" />
+              </label>
+            </div>
+          </div>
+
+          <div class="summary-grid" id="summaryCards"></div>
+          <div class="target-mini-grid" id="cardTargetMini"></div>
+
+          <div class="dashboard-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>지출 분포</h3>
+                <span id="topCategoryLabel"></span>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="categoryChart" width="420" height="300"></canvas>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h3>결제수단</h3>
+                <span>월 합계</span>
+              </div>
+              <div class="method-list" id="methodList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="expensesView" aria-labelledby="expensesTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="expensesTitle">입력</h2>
+              <p>지출 내역</p>
+            </div>
+            <div class="header-actions">
+              <button class="ghost-button" id="clearExpenses" type="button">전체 삭제</button>
+              <button class="ghost-button hidden" id="cancelExpenseEdit" type="button">취소</button>
+              <button class="primary-button" id="addExpense" type="button">추가</button>
+            </div>
+          </div>
+          <form class="entry-form" id="expenseForm">
+            <input id="expenseDate" type="date" required />
+            <select id="expenseCategory" required></select>
+            <input id="expenseAmount" type="number" min="0" step="1" placeholder="금액" required />
+            <select id="expenseMethod" required></select>
+            <select id="expenseCard" required></select>
+            <input id="expenseMemo" type="text" placeholder="메모" />
+          </form>
+          <div class="view-switch" aria-label="입력 보기 방식">
+            <button class="switch-button active" data-expense-view="all" type="button">전체</button>
+            <button class="switch-button" data-expense-view="date" type="button">날짜별</button>
+            <button class="switch-button" data-expense-view="category" type="button">카테고리별</button>
+            <button class="switch-button" data-expense-view="method" type="button">결제수단별</button>
+          </div>
+          <div class="expense-filters" aria-label="지출 필터">
+            <select id="expenseFilterCategory" aria-label="카테고리 필터"></select>
+            <select id="expenseFilterMethod" aria-label="결제수단 필터"></select>
+            <select id="expenseFilterPayment" aria-label="상세수단 필터"></select>
+            <button class="ghost-button" id="clearExpenseFilters" type="button">필터 해제</button>
+          </div>
+          <section class="panel table-panel">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>카테고리</th>
+                    <th>금액</th>
+                    <th>결제수단</th>
+                    <th>상세수단</th>
+                    <th>메모</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+                <tbody id="expenseRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="incomeView" aria-labelledby="incomeTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="incomeTitle">수입</h2>
+              <p>들어온 돈</p>
+            </div>
+            <div class="header-actions">
+              <button class="ghost-button" id="clearIncomes" type="button">전체 삭제</button>
+              <button class="ghost-button hidden" id="cancelIncomeEdit" type="button">취소</button>
+              <button class="primary-button" id="addIncome" type="button">추가</button>
+            </div>
+          </div>
+          <form class="entry-form income-form" id="incomeForm">
+            <input id="incomeDate" type="date" required />
+            <input id="incomeAmount" type="number" min="0" step="1" placeholder="금액" required />
+            <select id="incomeType" required></select>
+            <input id="incomeMemo" type="text" placeholder="메모" />
+          </form>
+          <section class="panel table-panel">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>금액</th>
+                    <th>수입항목</th>
+                    <th>메모</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+                <tbody id="incomeRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="analysisView" aria-labelledby="analysisTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="analysisTitle">월별분석</h2>
+              <p id="analysisMonth"></p>
+            </div>
+          </div>
+          <section class="panel">
+            <div class="analysis-strip" id="analysisStrip"></div>
+          </section>
+          <div class="analysis-layout">
+            <section class="panel">
+              <div class="panel-title">
+                <h3>카테고리별 지출</h3>
+                <span id="categoryCount"></span>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>카테고리</th>
+                      <th>금액</th>
+                      <th>비율</th>
+                    </tr>
+                  </thead>
+                  <tbody id="categoryRows"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-title">
+                <h3>그룹별 합계</h3>
+                <span>지출 합계</span>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>그룹</th>
+                      <th>금액</th>
+                    </tr>
+                  </thead>
+                  <tbody id="groupRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="settingsView" aria-labelledby="settingsTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="settingsTitle">설정</h2>
+              <p>카테고리와 결제 항목</p>
+            </div>
+            <div class="header-actions">
+              <button class="ghost-button" id="restoreBackup" type="button">백업 복구</button>
+              <button class="ghost-button" id="resetSample" type="button">샘플 복구</button>
+            </div>
+          </div>
+          <div class="settings-tabs" aria-label="설정 구분">
+            <button class="settings-tab active" data-settings-tab="import" type="button">가져오기</button>
+            <button class="settings-tab" data-settings-tab="cloud" type="button">클라우드</button>
+            <button class="settings-tab" data-settings-tab="payment" type="button">결제</button>
+            <button class="settings-tab" data-settings-tab="category" type="button">카테고리</button>
+            <button class="settings-tab" data-settings-tab="income" type="button">수입</button>
+          </div>
+          <div class="settings-grid">
+            <section class="panel import-panel settings-panel active" data-settings-panel="import">
+              <div class="panel-title">
+                <h3>구글시트 가져오기</h3>
+                <span>복사 후 붙여넣기</span>
+              </div>
+              <div class="import-tools">
+                <select id="importTarget">
+                  <option value="expenses">입력</option>
+                  <option value="incomes">수입</option>
+                </select>
+                <button class="primary-button" id="importSheetData" type="button">가져오기</button>
+              </div>
+              <textarea id="sheetPasteArea" placeholder="구글 스프레드시트에서 헤더 포함 범위를 복사해서 여기에 붙여넣기"></textarea>
+            </section>
+            <section class="panel import-panel settings-panel" data-settings-panel="cloud">
+              <div class="panel-title">
+                <h3>클라우드 저장</h3>
+                <span id="cloudStatus">설정 확인 중</span>
+              </div>
+              <div class="cloud-tools">
+                <input id="cloudEmail" type="email" placeholder="이메일" />
+                <button class="primary-button" id="sendLoginLink" type="button">로그인 링크 받기</button>
+                <button class="ghost-button" id="syncCloudNow" type="button">지금 동기화</button>
+                <button class="ghost-button" id="signOutCloud" type="button">로그아웃</button>
+              </div>
+              <p class="settings-note">PC, 안드로이드, 맥에서 같은 계정으로 로그인하면 같은 가계부 데이터를 불러와요.</p>
+            </section>
+            <section class="panel settings-panel" data-settings-panel="category">
+              <div class="panel-title">
+                <h3>카테고리</h3>
+              </div>
+              <div class="setting-editor">
+                <input id="newCategory" type="text" placeholder="새 카테고리" />
+                <button class="primary-button" id="addCategory" type="button">추가</button>
+              </div>
+              <div class="chips" id="categoryChips"></div>
+            </section>
+            <section class="panel settings-panel" data-settings-panel="payment">
+              <div class="panel-title">
+                <h3>결제수단</h3>
+              </div>
+              <div class="setting-editor payment-editor">
+                <select id="newPaymentMethod">
+                  <option value="카드(원)">카드(원)</option>
+                  <option value="카드(수)">카드(수)</option>
+                  <option value="현금">현금</option>
+                  <option value="계좌이체">계좌이체</option>
+                </select>
+                <input id="newPaymentGroup" type="text" placeholder="결제그룹" />
+                <input id="newPaymentName" type="text" placeholder="상세 결제수단" />
+                <button class="primary-button" id="addPaymentItem" type="button">추가</button>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>결제수단</th>
+                      <th>결제그룹</th>
+                      <th>상세 결제수단</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="paymentSettingRows"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel settings-panel" data-settings-panel="income">
+              <div class="panel-title">
+                <h3>수입항목</h3>
+              </div>
+              <div class="setting-editor">
+                <input id="newIncomeType" type="text" placeholder="새 수입항목" />
+                <button class="primary-button" id="addIncomeType" type="button">추가</button>
+              </div>
+              <div class="chips" id="incomeTypeChips"></div>
+            </section>
+            <section class="panel card-target-panel settings-panel" data-settings-panel="payment">
+              <div class="panel-title">
+                <h3>카드 실적 목표</h3>
+                <span>1차 / 2차</span>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>카드명</th>
+                      <th>1차 목표금액</th>
+                      <th>2차 목표금액</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cardTargetRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

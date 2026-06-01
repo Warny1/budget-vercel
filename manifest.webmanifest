@@ -1,0 +1,19 @@
+{
+  "name": "가계부",
+  "short_name": "가계부",
+  "description": "월별 수입, 지출, 카드 실적을 관리하는 가계부",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7fbfb",
+  "theme_color": "#f7fbfb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

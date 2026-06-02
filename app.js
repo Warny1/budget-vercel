@@ -120,6 +120,11 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 });
 
+function on(selector, eventName, handler) {
+  const element = $(selector);
+  if (element) element.addEventListener(eventName, handler);
+}
+
 let state = loadState();
 let expenseViewMode = "all";
 let expenseGroupFilter = null;
@@ -1014,43 +1019,43 @@ $$(".settings-tab").forEach((button) => {
   });
 });
 
-$("#monthPicker").addEventListener("change", () => {
+on("#monthPicker", "change", () => {
   setDefaultDates();
   renderAll();
 });
-$("#expenseFilterCategory").addEventListener("change", (event) => {
+on("#expenseFilterCategory", "change", (event) => {
   expenseFilters.category = event.target.value;
   expenseGroupFilter = null;
   renderExpenses();
 });
-$("#expenseFilterMethod").addEventListener("change", (event) => {
+on("#expenseFilterMethod", "change", (event) => {
   expenseFilters.method = event.target.value;
   expenseGroupFilter = null;
   renderExpenseFilters();
   renderExpenses();
 });
-$("#expenseFilterPayment").addEventListener("change", (event) => {
+on("#expenseFilterPayment", "change", (event) => {
   expenseFilters.payment = event.target.value;
   expenseGroupFilter = null;
   renderExpenses();
 });
-$("#clearExpenseFilters").addEventListener("click", () => {
+on("#clearExpenseFilters", "click", () => {
   expenseFilters = { category: "", method: "", payment: "" };
   expenseGroupFilter = null;
   renderExpenseFilters();
   renderExpenses();
 });
-$("#addExpense").addEventListener("click", () => $("#expenseForm").requestSubmit());
-$("#addIncome").addEventListener("click", () => $("#incomeForm").requestSubmit());
-$("#cancelExpenseEdit").addEventListener("click", () => {
+on("#addExpense", "click", () => $("#expenseForm").requestSubmit());
+on("#addIncome", "click", () => $("#incomeForm").requestSubmit());
+on("#cancelExpenseEdit", "click", () => {
   resetExpenseForm();
   renderSelectors();
 });
-$("#cancelIncomeEdit").addEventListener("click", () => {
+on("#cancelIncomeEdit", "click", () => {
   resetIncomeForm();
   renderSelectors();
 });
-$("#clearExpenses").addEventListener("click", () => {
+on("#clearExpenses", "click", () => {
   if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
   const month = currentMonth();
   state.expenses = state.expenses.filter((row) => !inMonth(row, month));
@@ -1058,7 +1063,7 @@ $("#clearExpenses").addEventListener("click", () => {
   saveState();
   renderAll();
 });
-$("#clearIncomes").addEventListener("click", () => {
+on("#clearIncomes", "click", () => {
   if (!confirm("현재 조회월의 수입 내역을 모두 삭제할까요?")) return;
   const month = currentMonth();
   state.incomes = state.incomes.filter((row) => !inMonth(row, month));
@@ -1066,16 +1071,16 @@ $("#clearIncomes").addEventListener("click", () => {
   saveState();
   renderAll();
 });
-$("#expenseForm").addEventListener("submit", (event) => {
+on("#expenseForm", "submit", (event) => {
   event.preventDefault();
   addExpense();
 });
-$("#incomeForm").addEventListener("submit", (event) => {
+on("#incomeForm", "submit", (event) => {
   event.preventDefault();
   addIncome();
 });
-$("#exportJson").addEventListener("click", downloadJson);
-$("#importJson").addEventListener("change", async (event) => {
+on("#exportJson", "click", downloadJson);
+on("#importJson", "change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
   const imported = normalizeState(JSON.parse(await file.text()));
@@ -1088,35 +1093,35 @@ $("#importJson").addEventListener("change", async (event) => {
   alert("가져오기 완료. 해당 월로 이동했어요.");
   event.target.value = "";
 });
-$("#resetSample").addEventListener("click", () => {
+on("#resetSample", "click", () => {
   if (!confirm("샘플 데이터로 되돌릴까요? 현재 저장 내용은 백업으로 남겨둘게요.")) return;
   state = clone(sampleState);
   saveState();
   boot();
 });
-$("#restoreBackup").addEventListener("click", restoreBackup);
-$("#sendLoginLink").addEventListener("click", sendCloudLoginLink);
-$("#signOutCloud").addEventListener("click", signOutCloud);
-$("#syncCloudNow").addEventListener("click", async () => {
+on("#restoreBackup", "click", restoreBackup);
+on("#sendLoginLink", "click", sendCloudLoginLink);
+on("#signOutCloud", "click", signOutCloud);
+on("#syncCloudNow", "click", async () => {
   if (!cloudUser) {
     renderCloudStatus("로그인 필요");
     return;
   }
   await saveCloudState(true);
 });
-$("#addCategory").addEventListener("click", () => {
+on("#addCategory", "click", () => {
   addUnique(state.settings.categories, $("#newCategory").value);
   $("#newCategory").value = "";
   saveState();
   renderAll();
 });
-$("#addIncomeType").addEventListener("click", () => {
+on("#addIncomeType", "click", () => {
   addUnique(state.settings.incomeTypes, $("#newIncomeType").value);
   $("#newIncomeType").value = "";
   saveState();
   renderAll();
 });
-$("#addPaymentItem").addEventListener("click", () => {
+on("#addPaymentItem", "click", () => {
   const method = $("#newPaymentMethod").value;
   const group = $("#newPaymentGroup").value.trim();
   const name = $("#newPaymentName").value.trim();
@@ -1128,7 +1133,7 @@ $("#addPaymentItem").addEventListener("click", () => {
   saveState();
   renderAll();
 });
-$("#importSheetData").addEventListener("click", importSheetData);
+on("#importSheetData", "click", importSheetData);
 document.addEventListener("click", (event) => {
   const groupFilter = event.target.closest("[data-group-filter]")?.dataset.groupFilter;
   const clearGroupFilter = event.target.closest("[data-clear-group-filter]");
@@ -1184,10 +1189,10 @@ document.addEventListener("change", (event) => {
   renderCardTargetMini();
   renderMethodList();
 });
-$("#expenseMethod").addEventListener("change", () => {
+on("#expenseMethod", "change", () => {
   updatePaymentOptions();
 });
-$("#expenseCard").addEventListener("change", () => {
+on("#expenseCard", "change", () => {
   const item = getPaymentItem($("#expenseCard").value);
   if (item) $("#expenseMethod").value = item.method;
   updateExpenseGroup();

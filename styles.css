@@ -952,15 +952,19 @@ th.amount {
   }
 
   .app-shell {
-    grid-template-columns: 1fr;
+    display: block;
+    min-height: 100vh;
   }
 
   .sidebar {
     position: sticky;
     top: 0;
     z-index: 5;
-    padding: 6px 8px;
-    gap: 5px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 128px;
+    align-items: center;
+    padding: 5px 8px;
+    gap: 4px 8px;
   }
 
   .brand-mark {
@@ -979,13 +983,15 @@ th.amount {
 
   .brand {
     justify-content: space-between;
-    min-height: 28px;
+    min-height: 26px;
+    min-width: 0;
   }
 
   .nav-tabs {
+    grid-column: 1 / -1;
     display: flex;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-bottom: 0;
     scrollbar-width: none;
   }
 
@@ -996,26 +1002,28 @@ th.amount {
   }
 
   .nav-tab {
-    min-width: 66px;
-    height: 29px;
-    padding: 0 7px;
+    min-width: 62px;
+    height: 27px;
+    padding: 0 6px;
     text-align: center;
-    font-size: 11px;
+    font-size: 10.5px;
   }
 
   .month-control {
+    grid-column: 2;
+    grid-row: 1;
     margin-top: 0;
-    grid-template-columns: 46px minmax(0, 1fr);
+    grid-template-columns: 1fr;
     align-items: center;
-    gap: 5px;
+    gap: 2px;
   }
 
   .month-control label {
-    font-size: 11px;
+    display: none;
   }
 
   .main {
-    padding: 10px;
+    padding: 8px;
   }
 
   .page-header {
@@ -1037,10 +1045,10 @@ th.amount {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-height: 0;
-    padding: 10px 11px;
-    border-radius: 16px 8px 16px 8px;
+    padding: 8px 9px;
+    border-radius: 14px 8px 14px 8px;
   }
 
   .dashboard-hero::after {
@@ -1048,17 +1056,17 @@ th.amount {
   }
 
   .dashboard-hero h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .dashboard-hero p {
     max-width: 100%;
     font-size: 11px;
-    line-height: 1.35;
+    line-height: 1.25;
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
   }
 
   .dashboard-hero .header-actions {
@@ -1066,7 +1074,13 @@ th.amount {
   }
 
   .dashboard-hero > div:first-child {
-    gap: 4px;
+    gap: 3px;
+  }
+
+  .eyebrow {
+    min-height: 21px;
+    padding: 0 8px;
+    font-size: 10px;
   }
 
   .hero-balance {
@@ -1075,11 +1089,11 @@ th.amount {
   }
 
   .hero-balance span {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .hero-balance strong {
-    font-size: 20px;
+    font-size: 18px;
     overflow-wrap: anywhere;
     text-align: right;
   }
@@ -1102,8 +1116,9 @@ th.amount {
   }
 
   .month-control input {
-    height: 30px;
-    font-size: 12px;
+    height: 27px;
+    padding: 0 7px;
+    font-size: 11px;
   }
 
   .summary-grid,
@@ -1117,9 +1132,12 @@ th.amount {
   }
 
   .summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    margin-bottom: 6px;
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    margin: 0 -8px 6px;
+    padding: 0 8px 1px;
+    scrollbar-width: none;
   }
 
   .summary-card-4 {
@@ -1127,42 +1145,43 @@ th.amount {
   }
 
   .summary-card {
-    padding: 7px 8px 7px 10px;
-    min-height: 46px;
+    flex: 0 0 118px;
+    padding: 6px 7px 6px 9px;
+    min-height: 42px;
   }
 
   .summary-card span {
-    font-size: 10px;
+    font-size: 9.5px;
   }
 
   .summary-card strong {
-    margin-top: 3px;
-    font-size: 13px;
+    margin-top: 2px;
+    font-size: 12px;
     overflow-wrap: anywhere;
   }
 
   .target-mini-grid {
     display: flex;
     overflow-x: auto;
-    gap: 6px;
-    margin: 0 -10px 9px;
-    padding: 0 10px 2px;
+    gap: 5px;
+    margin: 0 -8px 7px;
+    padding: 0 8px 1px;
     scrollbar-width: none;
   }
 
   .target-mini-card {
-    min-width: 112px;
-    min-height: 44px;
+    min-width: 100px;
+    min-height: 39px;
     flex: 0 0 auto;
-    padding: 5px 7px;
+    padding: 4px 6px;
   }
 
   .target-mini-card span {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .target-mini-card strong {
-    font-size: 13px;
+    font-size: 11.5px;
   }
 
   .target-mini-card > div:first-child {
@@ -1172,54 +1191,59 @@ th.amount {
   }
 
   .mini-progress {
-    height: 5px;
+    height: 4px;
   }
 
   .dashboard-layout,
   .analysis-layout {
-    gap: 8px;
+    gap: 7px;
   }
 
   .panel {
-    padding: 10px;
+    padding: 9px;
     border-radius: 10px;
   }
 
   .panel-title {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .panel-title h3 {
-    font-size: 16px;
+    font-size: 15px;
+  }
+
+  .panel-title span {
+    font-size: 11px;
   }
 
   .chart-wrap {
-    min-height: 180px;
+    min-height: 126px;
+    max-height: 142px;
     overflow: hidden;
   }
 
   #categoryChart {
     width: 100%;
-    max-width: 300px;
+    max-width: 210px;
     height: auto;
   }
 
   .method-list {
-    gap: 7px;
+    gap: 5px;
   }
 
   .method-row {
-    grid-template-columns: 78px minmax(56px, 1fr) 86px;
-    gap: 7px;
-    font-size: 12px;
+    grid-template-columns: 78px minmax(48px, 1fr) 82px;
+    gap: 6px;
+    font-size: 11.5px;
   }
 
   .method-row .amount {
-    font-size: 12px;
+    font-size: 11.5px;
   }
 
   .bar {
-    height: 7px;
+    height: 6px;
   }
 
   .view-switch {

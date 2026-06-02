@@ -491,6 +491,16 @@ function monthlyData() {
   };
 }
 
+function dashboardInsight(data, targetEntries) {
+  const topCategory = data.topCategory[0] === "-" ? "지출" : data.topCategory[0];
+  const topRatio = data.expenseTotal && data.topCategory[1] ? Math.round((data.topCategory[1] / data.expenseTotal) * 100) : 0;
+  const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
+  if (!data.expenseTotal) return "아직 조용한 달이에요. 첫 지출을 남겨볼까요?";
+  if (data.balance < 0) return `${topCategory} 지출이 ${topRatio}%예요. 이번 달은 조금 숨 고르기 모드.`;
+  if (nextTarget) return `${topCategory} 지출이 제일 크고, ${nextTarget.name}은 ${nextTarget.phase} ${nextTarget.rate}%까지 왔어요.`;
+  return `${topCategory} 지출이 제일 큰 달이에요. 카드 실적은 다 채웠으니 아껴쓰세요~`;
+}
+
 function optionList(select, values, selected) {
   select.innerHTML = values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
   if (selected) select.value = selected;
@@ -570,6 +580,9 @@ function renderSummary() {
   $("#dashboardMonth").textContent = monthLabel(data.month);
   $("#analysisMonth").textContent = monthLabel(data.month);
   $("#topCategoryLabel").textContent = `이번달 최다 지출: ${data.topCategory[0]}`;
+  $("#monthlyInsight").textContent = dashboardInsight(data, targetEntries);
+  $("#heroBalance").textContent = won.format(data.balance);
+  $("#heroBalance").classList.toggle("negative", data.balance < 0);
   const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
   const recommended = !targetEntries.length
     ? "목표 없음"
@@ -585,8 +598,8 @@ function renderSummary() {
     ["추천 카드", recommended],
   ];
 
-  $("#summaryCards").innerHTML = cards.map(([label, value, negative]) => `
-    <article class="summary-card ${negative ? "negative" : ""}">
+  $("#summaryCards").innerHTML = cards.map(([label, value, negative], index) => `
+    <article class="summary-card summary-card-${index + 1} ${negative ? "negative" : ""}">
       <span>${label}</span>
       <strong>${value}</strong>
     </article>
@@ -613,8 +626,11 @@ function renderCardTargetMini() {
   const entries = cardTargetEntries();
   $("#cardTargetMini").innerHTML = entries.map(({ name, phase, rate }) => `
     <div class="target-mini-card">
-      <span>${escapeHtml(name)}</span>
-      <strong>${phase} ${rate}%</strong>
+      <div>
+        <span>${escapeHtml(name)}</span>
+        <strong>${phase} ${rate}%</strong>
+      </div>
+      <div class="mini-progress" aria-hidden="true"><span style="width:${rate}%"></span></div>
     </div>
   `).join("");
 }

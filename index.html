@@ -6,21 +6,21 @@
     <meta name="theme-color" content="#f7fbfb" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="가계부" />
-    <title>가계부</title>
+    <meta name="apple-mobile-web-app-title" content="원수살림" />
+    <title>원수살림</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20260603-2" />
-    <script defer src="./config.js?v=20260603-2"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260603-4" />
+    <script defer src="./config.js?v=20260603-4"></script>
   </head>
   <body>
     <div class="error-banner hidden" id="errorBanner"></div>
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-mark">₩</div>
+          <div class="brand-mark">원수</div>
           <div>
-            <h1>가계부</h1>
+            <h1>원수살림</h1>
             <p id="todayLabel"></p>
           </div>
         </div>
@@ -39,10 +39,15 @@
 
       <main class="main">
         <section class="view active" id="dashboardView" aria-labelledby="dashboardTitle">
-          <div class="page-header">
+          <div class="page-header dashboard-hero">
             <div>
-              <h2 id="dashboardTitle">현재상태</h2>
-              <p id="dashboardMonth"></p>
+              <span class="eyebrow" id="dashboardMonth"></span>
+              <h2 id="dashboardTitle">우리집 이번 달</h2>
+              <p id="monthlyInsight"></p>
+            </div>
+            <div class="hero-balance">
+              <span>현재 잔액</span>
+              <strong id="heroBalance"></strong>
             </div>
             <div class="header-actions">
               <button id="exportJson" class="ghost-button" type="button">내보내기</button>
@@ -80,7 +85,7 @@
           <div class="page-header">
             <div>
               <h2 id="expensesTitle">입력</h2>
-              <p>지출 내역</p>
+              <p>오늘 쓴 돈을 빠르게 남기기</p>
             </div>
             <div class="header-actions">
               <button class="ghost-button" id="clearExpenses" type="button">전체 삭제</button>
@@ -132,7 +137,7 @@
           <div class="page-header">
             <div>
               <h2 id="incomeTitle">수입</h2>
-              <p>들어온 돈</p>
+              <p>이번 달 들어온 돈</p>
             </div>
             <div class="header-actions">
               <button class="ghost-button" id="clearIncomes" type="button">전체 삭제</button>
@@ -330,6 +335,6 @@
         </section>
       </main>
     </div>
-    <script defer src="./app.js?v=20260603-2"></script>
+    <script defer src="./app.js?v=20260603-4"></script>
   </body>
 </html>

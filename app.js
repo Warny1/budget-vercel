@@ -161,8 +161,9 @@ function loadState() {
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  if (!window.isSecureContext) return;
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+    .catch(() => {});
 }
 
 function cloudConfigured() {
@@ -989,6 +990,26 @@ function restoreBackup() {
   boot();
 }
 
+function activateView(viewName) {
+  const view = $(`#${viewName}View`);
+  if (!view) return;
+  $$(".nav-tab").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
+  $$(".view").forEach((item) => item.classList.toggle("active", item === view));
+  renderChart();
+}
+
+function activateExpenseView(viewName) {
+  expenseViewMode = viewName;
+  expenseGroupFilter = null;
+  $$(".switch-button").forEach((button) => button.classList.toggle("active", button.dataset.expenseView === viewName));
+  renderExpenses();
+}
+
+function activateSettingsTab(tabName) {
+  $$(".settings-tab").forEach((button) => button.classList.toggle("active", button.dataset.settingsTab === tabName));
+  $$(".settings-panel").forEach((panel) => panel.classList.toggle("active", panel.dataset.settingsPanel === tabName));
+}
+
 function boot() {
   const today = new Date();
   const defaultMonth = state.expenses[0]?.date?.slice(0, 7) || today.toISOString().slice(0, 7);
@@ -1000,29 +1021,128 @@ function boot() {
   setupCloud();
 }
 
+document.addEventListener("click", (event) => {
+  const navTab = event.target.closest("[data-view]");
+  if (navTab) {
+    event.stopImmediatePropagation();
+    activateView(navTab.dataset.view);
+    return;
+  }
+
+  const switchButton = event.target.closest("[data-expense-view]");
+  if (switchButton) {
+    event.stopImmediatePropagation();
+    activateExpenseView(switchButton.dataset.expenseView);
+    return;
+  }
+
+  const settingsTab = event.target.closest("[data-settings-tab]");
+  if (settingsTab) {
+    event.stopImmediatePropagation();
+    activateSettingsTab(settingsTab.dataset.settingsTab);
+    return;
+  }
+
+  const button = event.target.closest("button");
+  if (!button) return;
+  const actions = {
+    clearExpenseFilters: () => {
+      expenseFilters = { category: "", method: "", payment: "" };
+      expenseGroupFilter = null;
+      renderExpenseFilters();
+      renderExpenses();
+    },
+    addExpense: () => $("#expenseForm")?.requestSubmit(),
+    addIncome: () => $("#incomeForm")?.requestSubmit(),
+    cancelExpenseEdit: () => {
+      resetExpenseForm();
+      renderSelectors();
+    },
+    cancelIncomeEdit: () => {
+      resetIncomeForm();
+      renderSelectors();
+    },
+    clearExpenses: () => {
+      if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
+      const month = currentMonth();
+      state.expenses = state.expenses.filter((row) => !inMonth(row, month));
+      resetExpenseForm();
+      saveState();
+      renderAll();
+    },
+    clearIncomes: () => {
+      if (!confirm("현재 조회월의 수입 내역을 모두 삭제할까요?")) return;
+      const month = currentMonth();
+      state.incomes = state.incomes.filter((row) => !inMonth(row, month));
+      resetIncomeForm();
+      saveState();
+      renderAll();
+    },
+    exportJson: downloadJson,
+    resetSample: () => {
+      if (!confirm("샘플 데이터로 되돌릴까요? 현재 저장 내용은 백업으로 남겨둘게요.")) return;
+      state = clone(sampleState);
+      saveState();
+      boot();
+    },
+    restoreBackup,
+    sendLoginLink: sendCloudLoginLink,
+    signOutCloud,
+    syncCloudNow: async () => {
+      if (!cloudUser) {
+        renderCloudStatus("로그인 필요");
+        return;
+      }
+      await saveCloudState(true);
+    },
+    addCategory: () => {
+      addUnique(state.settings.categories, $("#newCategory").value);
+      $("#newCategory").value = "";
+      saveState();
+      renderAll();
+    },
+    addIncomeType: () => {
+      addUnique(state.settings.incomeTypes, $("#newIncomeType").value);
+      $("#newIncomeType").value = "";
+      saveState();
+      renderAll();
+    },
+    addPaymentItem: () => {
+      const method = $("#newPaymentMethod").value;
+      const group = $("#newPaymentGroup").value.trim();
+      const name = $("#newPaymentName").value.trim();
+      if (!group || !name || state.settings.paymentItems.some((item) => item.name === name)) return;
+      state.settings.paymentItems.push({ method, group, name });
+      if (method.startsWith("카드") && state.settings.cardTargets[name] === undefined) state.settings.cardTargets[name] = { primary: 0, secondary: 0 };
+      $("#newPaymentGroup").value = "";
+      $("#newPaymentName").value = "";
+      saveState();
+      renderAll();
+    },
+    importSheetData,
+  };
+  const action = actions[button.id];
+  if (!action) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  Promise.resolve(action()).catch((error) => showError(`버튼 실행 오류: ${error.message}`));
+}, true);
+
 $$(".nav-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
-    $$(".nav-tab").forEach((button) => button.classList.toggle("active", button === tab));
-    $$(".view").forEach((view) => view.classList.remove("active"));
-    $(`#${tab.dataset.view}View`).classList.add("active");
-    renderChart();
+    activateView(tab.dataset.view);
   });
 });
 
 $$(".switch-button").forEach((button) => {
   button.addEventListener("click", () => {
-    expenseViewMode = button.dataset.expenseView;
-    expenseGroupFilter = null;
-    $$(".switch-button").forEach((item) => item.classList.toggle("active", item === button));
-    renderExpenses();
+    activateExpenseView(button.dataset.expenseView);
   });
 });
 
 $$(".settings-tab").forEach((button) => {
   button.addEventListener("click", () => {
-    const tab = button.dataset.settingsTab;
-    $$(".settings-tab").forEach((item) => item.classList.toggle("active", item === button));
-    $$(".settings-panel").forEach((panel) => panel.classList.toggle("active", panel.dataset.settingsPanel === tab));
+    activateSettingsTab(button.dataset.settingsTab);
   });
 });
 

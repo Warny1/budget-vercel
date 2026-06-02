@@ -115,11 +115,14 @@ const sampleState = {
     type,
     memo,
   })),
+  events: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 });
+const lunarFormatter = new Intl.DateTimeFormat("ko-KR-u-ca-chinese", { month: "numeric", day: "numeric" });
+const lunarDateCache = new Map();
 
 function on(selector, eventName, handler) {
   const element = $(selector);
@@ -143,6 +146,7 @@ let expenseGroupFilter = null;
 let expenseFilters = { category: "", method: "", payment: "" };
 let editingExpenseId = null;
 let editingIncomeId = null;
+let editingEventId = null;
 let filePersistenceReady = false;
 let cloudClient = null;
 let cloudUser = null;
@@ -341,7 +345,28 @@ function normalizeState(source) {
     const method = row.method === "카드" && item?.method ? item.method : row.method;
     return { ...row, method, payment: paymentName };
   });
+  next.events = (next.events || []).map(normalizeEvent).filter((event) => event.title);
   return next;
+}
+
+function normalizeEvent(event) {
+  const calendar = event.calendar === "lunar" ? "lunar" : "solar";
+  const repeat = ["once", "yearly", "monthly"].includes(event.repeat) ? event.repeat : "once";
+  const date = event.date || "";
+  const month = Number(event.month || date.slice(5, 7) || 0);
+  const day = Number(event.day || date.slice(8, 10) || 0);
+  const year = Number(event.year || date.slice(0, 4) || 0);
+  return {
+    id: event.id || newId("event"),
+    title: String(event.title || "").trim(),
+    calendar,
+    repeat,
+    date,
+    year,
+    month,
+    day,
+    memo: String(event.memo || "").trim(),
+  };
 }
 
 function normalizeCardTarget(target) {
@@ -389,6 +414,33 @@ async function syncFileState() {
 
 function currentMonth() {
   return $("#monthPicker").value;
+}
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function dateKey(year, month, day) {
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+function parseDateKey(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toDateKey(date) {
+  return dateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
 }
 
 function monthLabel(month) {
@@ -464,6 +516,96 @@ function totalForPaymentLabel(data, label) {
   if (label === "수연 계좌이체") return sum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "수연"));
   if (label === "원 용돈" || label === "수연이 용돈") return sum(data.expenses.filter((row) => row.payment === label));
   return data.groupTotals[label] || 0;
+}
+
+function lunarParts(date) {
+  const parts = lunarFormatter.formatToParts(date);
+  const month = Number((parts.find((part) => part.type === "month")?.value || "").replace(/\D/g, ""));
+  const day = Number((parts.find((part) => part.type === "day")?.value || "").replace(/\D/g, ""));
+  return { month, day };
+}
+
+function solarDateForLunar(year, lunarMonth, lunarDay) {
+  const key = `${year}-${lunarMonth}-${lunarDay}`;
+  if (lunarDateCache.has(key)) return lunarDateCache.get(key);
+  let found = "";
+  for (let date = new Date(year, 0, 1); date.getFullYear() === year; date = addDays(date, 1)) {
+    const lunar = lunarParts(date);
+    if (lunar.month === lunarMonth && lunar.day === lunarDay) {
+      found = toDateKey(date);
+      break;
+    }
+  }
+  lunarDateCache.set(key, found);
+  return found;
+}
+
+function eventDateLabel(event) {
+  const prefix = event.calendar === "lunar" ? "음력 " : "";
+  if (event.repeat === "monthly") return `${prefix}매달 ${event.day}일`;
+  if (event.repeat === "yearly") return `${prefix}매년 ${event.month}월 ${event.day}일`;
+  if (event.calendar === "lunar") return `음력 ${event.year}년 ${event.month}월 ${event.day}일`;
+  return event.date;
+}
+
+function repeatLabel(event) {
+  const labels = { once: "일회성", yearly: "매년", monthly: "매달" };
+  return `${event.calendar === "lunar" ? "음력 · " : "양력 · "}${labels[event.repeat]}`;
+}
+
+function shortDateLabel(value) {
+  const today = new Date();
+  const year = Number(value.slice(0, 4));
+  const monthDay = value.slice(5).replace("-", "/");
+  return year === today.getFullYear() ? monthDay : `${year} ${monthDay}`;
+}
+
+function eventOccurrenceDate(event, year, month) {
+  if (event.repeat === "once") {
+    if (event.calendar === "lunar") {
+      const solar = solarDateForLunar(event.year || year, event.month, event.day);
+      return solar?.startsWith(`${year}-${pad2(month)}`) ? solar : "";
+    }
+    return event.date?.startsWith(`${year}-${pad2(month)}`) ? event.date : "";
+  }
+  if (event.repeat === "yearly") {
+    const solar = event.calendar === "lunar"
+      ? solarDateForLunar(year, event.month, event.day)
+      : event.day <= daysInMonth(year, event.month) ? dateKey(year, event.month, event.day) : "";
+    return solar?.startsWith(`${year}-${pad2(month)}`) ? solar : "";
+  }
+  if (event.calendar === "lunar") {
+    for (let day = 1; day <= daysInMonth(year, month); day += 1) {
+      const solar = dateKey(year, month, day);
+      const lunar = lunarParts(parseDateKey(solar));
+      if (lunar.day === event.day) return solar;
+    }
+    return "";
+  }
+  return event.day <= daysInMonth(year, month) ? dateKey(year, month, event.day) : "";
+}
+
+function eventOccurrencesForMonth(monthValue = currentMonth()) {
+  const [year, month] = monthValue.split("-").map(Number);
+  return state.events
+    .map((event) => ({ event, date: eventOccurrenceDate(event, year, month) }))
+    .filter((item) => item.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function upcomingEvents(limit = 5) {
+  const today = new Date();
+  const todayKey = toDateKey(today);
+  const monthKeys = [];
+  for (let index = 0; index < 14; index += 1) {
+    const date = new Date(today.getFullYear(), today.getMonth() + index, 1);
+    monthKeys.push(dateKey(date.getFullYear(), date.getMonth() + 1, 1).slice(0, 7));
+  }
+  return monthKeys
+    .flatMap((month) => eventOccurrencesForMonth(month))
+    .filter((item) => item.date >= todayKey)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, limit);
 }
 
 function monthlyData() {
@@ -794,6 +936,78 @@ function renderAnalysis() {
   `).join("");
 }
 
+function renderEventAlert() {
+  const events = upcomingEvents(3);
+  $("#eventAlertPanel").innerHTML = events.length ? `
+    <div>
+      <strong>다가오는 집안행사</strong>
+      <span>${events.map(({ event, date }) => `${shortDateLabel(date)} ${escapeHtml(event.title)}`).join(" · ")}</span>
+    </div>
+  ` : `
+    <div>
+      <strong>다가오는 집안행사</strong>
+      <span>등록된 일정이 없어요.</span>
+    </div>
+  `;
+}
+
+function renderCalendar() {
+  const month = currentMonth();
+  const [year, monthNo] = month.split("-").map(Number);
+  const events = eventOccurrencesForMonth(month);
+  const byDate = events.reduce((map, item) => {
+    if (!map[item.date]) map[item.date] = [];
+    map[item.date].push(item.event);
+    return map;
+  }, {});
+  const firstDay = new Date(year, monthNo - 1, 1).getDay();
+  const cells = [];
+  for (let index = 0; index < firstDay; index += 1) cells.push(`<div class="calendar-cell muted"></div>`);
+  for (let day = 1; day <= daysInMonth(year, monthNo); day += 1) {
+    const key = dateKey(year, monthNo, day);
+    const lunar = lunarParts(parseDateKey(key));
+    const dayEvents = byDate[key] || [];
+    cells.push(`
+      <div class="calendar-cell ${dayEvents.length ? "has-event" : ""}">
+        <div class="calendar-day"><strong>${day}</strong><span>음 ${lunar.month}.${lunar.day}</span></div>
+        ${dayEvents.map((event) => `<div class="calendar-event-dot ${event.calendar === "lunar" ? "lunar" : ""}">${escapeHtml(event.title)}</div>`).join("")}
+      </div>
+    `);
+  }
+  $("#calendarMonthLabel").textContent = monthLabel(month);
+  $("#calendarCount").textContent = `${events.length}개 일정`;
+  $("#calendarGrid").innerHTML = `
+    ${["일", "월", "화", "수", "목", "금", "토"].map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}
+    ${cells.join("")}
+  `;
+
+  const upcoming = upcomingEvents(8);
+  $("#upcomingEventList").innerHTML = upcoming.length ? upcoming.map(({ event, date }) => `
+    <div class="event-item">
+      <div>
+        <strong>${escapeHtml(event.title)}</strong>
+        <span>${shortDateLabel(date)} · ${eventDateLabel(event)}</span>
+      </div>
+      <em class="${event.calendar === "lunar" ? "lunar" : ""}">${event.calendar === "lunar" ? "음력" : "양력"}</em>
+    </div>
+  `).join("") : `<p class="empty">다가오는 일정 없음</p>`;
+
+  $("#eventRows").innerHTML = state.events.length ? state.events.map((event) => `
+    <tr>
+      <td>${escapeHtml(event.title)}</td>
+      <td><span class="soft-badge ${event.calendar === "lunar" ? "lunar-badge" : ""}">${repeatLabel(event)}</span></td>
+      <td>${eventDateLabel(event)}</td>
+      <td>${escapeHtml(event.memo)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="edit-button" data-edit-event="${event.id}" type="button">수정</button>
+          <button class="delete-button" data-delete-event="${event.id}" type="button">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join("") : `<tr><td class="empty" colspan="5">등록된 일정 없음</td></tr>`;
+}
+
 function renderSettings() {
   $("#categoryChips").innerHTML = state.settings.categories.map((category) => `
     <span class="chip" style="background:${categoryColor(category)}">${escapeHtml(category)}<button data-remove-category="${escapeHtml(category)}" type="button">×</button></span>
@@ -833,6 +1047,8 @@ function renderAll() {
   renderCardTargetMini();
   renderMethodList();
   renderChart();
+  renderEventAlert();
+  renderCalendar();
   renderExpenses();
   renderIncomes();
   renderAnalysis();
@@ -849,6 +1065,11 @@ function setIncomeEditMode(active) {
   $("#cancelIncomeEdit").classList.toggle("hidden", !active);
 }
 
+function setEventEditMode(active) {
+  $("#addEvent").textContent = active ? "저장" : "추가";
+  $("#cancelEventEdit").classList.toggle("hidden", !active);
+}
+
 function resetExpenseForm() {
   editingExpenseId = null;
   $("#expenseForm").reset();
@@ -862,6 +1083,30 @@ function resetIncomeForm() {
   $("#incomeForm").reset();
   $("#incomeDate").value = `${currentMonth()}-01`;
   setIncomeEditMode(false);
+}
+
+function updateEventFields() {
+  const repeat = $("#eventRepeat").value;
+  const calendar = $("#eventCalendarType").value;
+  const isOnceSolar = repeat === "once" && calendar === "solar";
+  $("#eventDate").classList.toggle("hidden", !isOnceSolar);
+  $("#eventMonth").classList.toggle("hidden", repeat === "monthly" || isOnceSolar);
+  $("#eventDay").classList.toggle("hidden", isOnceSolar);
+  $("#eventDate").required = isOnceSolar;
+  $("#eventMonth").required = !isOnceSolar && repeat !== "monthly";
+  $("#eventDay").required = !isOnceSolar;
+}
+
+function resetEventForm() {
+  editingEventId = null;
+  $("#eventForm").reset();
+  $("#eventCalendarType").value = "solar";
+  $("#eventRepeat").value = "once";
+  $("#eventDate").value = `${currentMonth()}-01`;
+  $("#eventMonth").value = Number(currentMonth().slice(5, 7));
+  $("#eventDay").value = 1;
+  updateEventFields();
+  setEventEditMode(false);
 }
 
 function startExpenseEdit(id) {
@@ -891,6 +1136,23 @@ function startIncomeEdit(id) {
   setIncomeEditMode(true);
   $(".nav-tab[data-view='income']").click();
   $("#incomeAmount").focus();
+}
+
+function startEventEdit(id) {
+  const event = state.events.find((item) => item.id === id);
+  if (!event) return;
+  editingEventId = id;
+  $("#eventTitle").value = event.title;
+  $("#eventCalendarType").value = event.calendar;
+  $("#eventRepeat").value = event.repeat;
+  $("#eventDate").value = event.date || `${currentMonth()}-01`;
+  $("#eventMonth").value = event.month || Number(currentMonth().slice(5, 7));
+  $("#eventDay").value = event.day || 1;
+  $("#eventMemo").value = event.memo || "";
+  updateEventFields();
+  setEventEditMode(true);
+  $(".nav-tab[data-view='calendar']").click();
+  $("#eventTitle").focus();
 }
 
 function addExpense() {
@@ -930,6 +1192,35 @@ function addIncome() {
   }
   saveState();
   resetIncomeForm();
+  renderAll();
+}
+
+function addEvent() {
+  const repeat = $("#eventRepeat").value;
+  const calendar = $("#eventCalendarType").value;
+  const date = $("#eventDate").value;
+  const isOnceSolar = repeat === "once" && calendar === "solar";
+  const month = isOnceSolar ? Number(date.slice(5, 7)) : Number($("#eventMonth").value || currentMonth().slice(5, 7));
+  const day = isOnceSolar ? Number(date.slice(8, 10)) : Number($("#eventDay").value || 1);
+  const nextEvent = normalizeEvent({
+    id: editingEventId || newId("event"),
+    title: $("#eventTitle").value,
+    calendar,
+    repeat,
+    date: isOnceSolar ? date : "",
+    year: isOnceSolar ? Number(date.slice(0, 4)) : Number(currentMonth().slice(0, 4)),
+    month,
+    day,
+    memo: $("#eventMemo").value,
+  });
+  if (!nextEvent.title || !nextEvent.day || (!isOnceSolar && repeat !== "monthly" && !nextEvent.month)) return;
+  if (editingEventId) {
+    state.events = state.events.map((event) => event.id === editingEventId ? nextEvent : event);
+  } else {
+    state.events.push(nextEvent);
+  }
+  saveState();
+  resetEventForm();
   renderAll();
 }
 
@@ -1083,6 +1374,7 @@ function boot() {
   $("#todayLabel").textContent = today.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   $("#monthPicker").value = defaultMonth;
   setDefaultDates();
+  resetEventForm();
   renderAll();
   syncFileState();
   setupCloud();
@@ -1121,6 +1413,7 @@ document.addEventListener("click", (event) => {
     },
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),
+    addEvent: () => $("#eventForm")?.requestSubmit(),
     cancelExpenseEdit: () => {
       resetExpenseForm();
       renderSelectors();
@@ -1129,6 +1422,7 @@ document.addEventListener("click", (event) => {
       resetIncomeForm();
       renderSelectors();
     },
+    cancelEventEdit: resetEventForm,
     clearExpenses: () => {
       if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
       const month = currentMonth();
@@ -1273,6 +1567,14 @@ on("#incomeForm", "submit", (event) => {
   event.preventDefault();
   addIncome();
 });
+on("#eventForm", "submit", (event) => {
+  event.preventDefault();
+  addEvent();
+});
+on("#eventCalendarType", "change", updateEventFields);
+on("#eventRepeat", "change", updateEventFields);
+on("#addEvent", "click", () => $("#eventForm").requestSubmit());
+on("#cancelEventEdit", "click", resetEventForm);
 on("#exportJson", "click", downloadJson);
 on("#importJson", "change", async (event) => {
   const file = event.target.files?.[0];
@@ -1343,8 +1645,10 @@ document.addEventListener("click", (event) => {
   }
   const editExpenseId = closestTarget(event, "[data-edit-expense]")?.dataset.editExpense;
   const editIncomeId = closestTarget(event, "[data-edit-income]")?.dataset.editIncome;
+  const editEventId = closestTarget(event, "[data-edit-event]")?.dataset.editEvent;
   const expenseId = closestTarget(event, "[data-delete-expense]")?.dataset.deleteExpense;
   const incomeId = closestTarget(event, "[data-delete-income]")?.dataset.deleteIncome;
+  const eventId = closestTarget(event, "[data-delete-event]")?.dataset.deleteEvent;
   const category = closestTarget(event, "[data-remove-category]")?.dataset.removeCategory;
   const incomeType = closestTarget(event, "[data-remove-income-type]")?.dataset.removeIncomeType;
   const paymentName = closestTarget(event, "[data-remove-payment]")?.dataset.removePayment;
@@ -1356,17 +1660,23 @@ document.addEventListener("click", (event) => {
     startIncomeEdit(editIncomeId);
     return;
   }
+  if (editEventId) {
+    startEventEdit(editEventId);
+    return;
+  }
   if (expenseId) state.expenses = state.expenses.filter((row) => row.id !== expenseId);
   if (incomeId) state.incomes = state.incomes.filter((row) => row.id !== incomeId);
+  if (eventId) state.events = state.events.filter((row) => row.id !== eventId);
   if (category) state.settings.categories = state.settings.categories.filter((item) => item !== category);
   if (incomeType) state.settings.incomeTypes = state.settings.incomeTypes.filter((item) => item !== incomeType);
   if (paymentName) {
     state.settings.paymentItems = state.settings.paymentItems.filter((item) => item.name !== paymentName);
     delete state.settings.cardTargets[paymentName];
   }
-  if (expenseId || incomeId || category || incomeType || paymentName) {
+  if (expenseId || incomeId || eventId || category || incomeType || paymentName) {
     if (expenseId === editingExpenseId) resetExpenseForm();
     if (incomeId === editingIncomeId) resetIncomeForm();
+    if (eventId === editingEventId) resetEventForm();
     saveState();
     renderAll();
   }

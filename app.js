@@ -1,6 +1,7 @@
 const STORAGE_KEY = "household-budget-app-v1";
 const BACKUP_KEY = `${STORAGE_KEY}-backup`;
 const API_STATE_URL = "./api/state";
+const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
 const CATEGORY_COLORS = {
@@ -125,6 +126,10 @@ function on(selector, eventName, handler) {
   if (element) element.addEventListener(eventName, handler);
 }
 
+function closestTarget(event, selector) {
+  return event.target instanceof Element ? event.target.closest(selector) : null;
+}
+
 function showError(message) {
   const banner = $("#errorBanner");
   if (!banner) return;
@@ -143,6 +148,8 @@ let cloudClient = null;
 let cloudUser = null;
 let cloudSaveTimer = null;
 let applyingCloudState = false;
+let cloudSetupPromise = null;
+let supabaseLoadPromise = null;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -166,9 +173,33 @@ function registerServiceWorker() {
     .catch(() => {});
 }
 
-function cloudConfigured() {
+function cloudKeysConfigured() {
   const config = window.BUDGET_CONFIG || {};
-  return Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY && window.supabase?.createClient);
+  return Boolean(config.SUPABASE_URL && config.SUPABASE_ANON_KEY);
+}
+
+function cloudConfigured() {
+  return Boolean(cloudKeysConfigured() && window.supabase?.createClient);
+}
+
+function loadSupabaseClient() {
+  if (window.supabase?.createClient) return Promise.resolve();
+  if (supabaseLoadPromise) return supabaseLoadPromise;
+  supabaseLoadPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${SUPABASE_SCRIPT_URL}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Supabase 파일을 불러오지 못했어요.")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = SUPABASE_SCRIPT_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Supabase 파일을 불러오지 못했어요."));
+    document.head.appendChild(script);
+  });
+  return supabaseLoadPromise;
 }
 
 function renderCloudStatus(message) {
@@ -178,16 +209,35 @@ function renderCloudStatus(message) {
     field.textContent = message;
     return;
   }
-  if (!cloudConfigured()) {
+  if (!cloudKeysConfigured()) {
     field.textContent = "Supabase 설정 필요";
+    return;
+  }
+  if (!cloudConfigured()) {
+    field.textContent = "클라우드 연결 대기";
     return;
   }
   field.textContent = cloudUser ? `${cloudUser.email || "로그인됨"} 동기화 중` : "로그인 필요";
 }
 
 async function setupCloud() {
+  if (cloudClient) return;
+  if (cloudSetupPromise) return cloudSetupPromise;
+  cloudSetupPromise = setupCloudConnection().finally(() => {
+    cloudSetupPromise = null;
+  });
+  return cloudSetupPromise;
+}
+
+async function setupCloudConnection() {
   renderCloudStatus();
-  if (!cloudConfigured()) return;
+  if (!cloudKeysConfigured()) return;
+  try {
+    await loadSupabaseClient();
+  } catch (error) {
+    renderCloudStatus(error.message);
+    return;
+  }
   const config = window.BUDGET_CONFIG;
   cloudClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
   const { data } = await cloudClient.auth.getSession();
@@ -246,6 +296,7 @@ async function saveCloudState(immediate = false) {
 }
 
 async function sendCloudLoginLink() {
+  if (!cloudClient) await setupCloud();
   if (!cloudClient) {
     renderCloudStatus("Supabase 설정 필요");
     return;
@@ -1022,28 +1073,28 @@ function boot() {
 }
 
 document.addEventListener("click", (event) => {
-  const navTab = event.target.closest("[data-view]");
+  const navTab = closestTarget(event, "[data-view]");
   if (navTab) {
     event.stopImmediatePropagation();
     activateView(navTab.dataset.view);
     return;
   }
 
-  const switchButton = event.target.closest("[data-expense-view]");
+  const switchButton = closestTarget(event, "[data-expense-view]");
   if (switchButton) {
     event.stopImmediatePropagation();
     activateExpenseView(switchButton.dataset.expenseView);
     return;
   }
 
-  const settingsTab = event.target.closest("[data-settings-tab]");
+  const settingsTab = closestTarget(event, "[data-settings-tab]");
   if (settingsTab) {
     event.stopImmediatePropagation();
     activateSettingsTab(settingsTab.dataset.settingsTab);
     return;
   }
 
-  const button = event.target.closest("button");
+  const button = closestTarget(event, "button");
   if (!button) return;
   const actions = {
     clearExpenseFilters: () => {
@@ -1262,8 +1313,8 @@ on("#addPaymentItem", "click", () => {
 });
 on("#importSheetData", "click", importSheetData);
 document.addEventListener("click", (event) => {
-  const groupFilter = event.target.closest("[data-group-filter]")?.dataset.groupFilter;
-  const clearGroupFilter = event.target.closest("[data-clear-group-filter]");
+  const groupFilter = closestTarget(event, "[data-group-filter]")?.dataset.groupFilter;
+  const clearGroupFilter = closestTarget(event, "[data-clear-group-filter]");
   if (groupFilter) {
     expenseGroupFilter = groupFilter;
     renderExpenses();
@@ -1274,13 +1325,13 @@ document.addEventListener("click", (event) => {
     renderExpenses();
     return;
   }
-  const editExpenseId = event.target.closest("[data-edit-expense]")?.dataset.editExpense;
-  const editIncomeId = event.target.closest("[data-edit-income]")?.dataset.editIncome;
-  const expenseId = event.target.closest("[data-delete-expense]")?.dataset.deleteExpense;
-  const incomeId = event.target.closest("[data-delete-income]")?.dataset.deleteIncome;
-  const category = event.target.closest("[data-remove-category]")?.dataset.removeCategory;
-  const incomeType = event.target.closest("[data-remove-income-type]")?.dataset.removeIncomeType;
-  const paymentName = event.target.closest("[data-remove-payment]")?.dataset.removePayment;
+  const editExpenseId = closestTarget(event, "[data-edit-expense]")?.dataset.editExpense;
+  const editIncomeId = closestTarget(event, "[data-edit-income]")?.dataset.editIncome;
+  const expenseId = closestTarget(event, "[data-delete-expense]")?.dataset.deleteExpense;
+  const incomeId = closestTarget(event, "[data-delete-income]")?.dataset.deleteIncome;
+  const category = closestTarget(event, "[data-remove-category]")?.dataset.removeCategory;
+  const incomeType = closestTarget(event, "[data-remove-income-type]")?.dataset.removeIncomeType;
+  const paymentName = closestTarget(event, "[data-remove-payment]")?.dataset.removePayment;
   if (editExpenseId) {
     startExpenseEdit(editExpenseId);
     return;
@@ -1305,9 +1356,9 @@ document.addEventListener("click", (event) => {
   }
 });
 document.addEventListener("change", (event) => {
-  const cardName = event.target.closest("[data-card-target]")?.dataset.cardTarget;
+  const cardName = closestTarget(event, "[data-card-target]")?.dataset.cardTarget;
   if (!cardName) return;
-  const level = event.target.closest("[data-card-target]")?.dataset.targetLevel || "primary";
+  const level = closestTarget(event, "[data-card-target]")?.dataset.targetLevel || "primary";
   const target = normalizeCardTarget(state.settings.cardTargets[cardName]);
   target[level] = Number(event.target.value || 0);
   state.settings.cardTargets[cardName] = target;

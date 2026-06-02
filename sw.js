@@ -1,10 +1,10 @@
-const CACHE_NAME = "budget-app-v2";
+const CACHE_NAME = "budget-app-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./config.js",
+  "./styles.css?v=20260602-2",
+  "./app.js?v=20260602-2",
+  "./config.js?v=20260602-2",
   "./manifest.webmanifest",
   "./icon.svg"
 ];
@@ -26,11 +26,26 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.endsWith("/api/state")) return;
   if (event.request.method !== "GET") return;
 
+  if (event.request.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname === "/") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-      return response;
-    }))
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

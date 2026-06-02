@@ -125,6 +125,13 @@ function on(selector, eventName, handler) {
   if (element) element.addEventListener(eventName, handler);
 }
 
+function showError(message) {
+  const banner = $("#errorBanner");
+  if (!banner) return;
+  banner.textContent = message;
+  banner.classList.remove("hidden");
+}
+
 let state = loadState();
 let expenseViewMode = "all";
 let expenseGroupFilter = null;
@@ -1198,5 +1205,9 @@ on("#expenseCard", "change", () => {
   updateExpenseGroup();
 });
 
-boot();
-registerServiceWorker();
+try {
+  boot();
+  registerServiceWorker();
+} catch (error) {
+  showError(`앱 실행 오류: ${error.message}`);
+}

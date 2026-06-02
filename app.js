@@ -1078,9 +1078,15 @@ $("#exportJson").addEventListener("click", downloadJson);
 $("#importJson").addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  state = normalizeState(JSON.parse(await file.text()));
+  const imported = normalizeState(JSON.parse(await file.text()));
+  state = imported;
+  const firstDate = state.expenses[0]?.date || state.incomes[0]?.date;
+  if (firstDate) $("#monthPicker").value = firstDate.slice(0, 7);
+  setDefaultDates();
   saveState();
   renderAll();
+  alert("가져오기 완료. 해당 월로 이동했어요.");
+  event.target.value = "";
 });
 $("#resetSample").addEventListener("click", () => {
   if (!confirm("샘플 데이터로 되돌릴까요? 현재 저장 내용은 백업으로 남겨둘게요.")) return;

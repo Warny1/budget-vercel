@@ -104,6 +104,7 @@ let expenseFilters = { category: "", method: "", payment: "" };
 let editingExpenseId = null;
 let editingIncomeId = null;
 let editingEventId = null;
+let dashboardOverviewOpen = false;
 let filePersistenceReady = false;
 let cloudClient = null;
 let sharedSession = loadSharedSession();
@@ -806,6 +807,38 @@ function renderSummary() {
       <strong>${value}</strong>
     </button>
   `).join("");
+  renderDashboardDrilldown(data, targetEntries);
+}
+
+function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTargetEntries(data)) {
+  const panel = $("#dashboardDrilldown");
+  if (!panel) return;
+  panel.classList.toggle("hidden", !dashboardOverviewOpen);
+  if (!dashboardOverviewOpen) {
+    panel.innerHTML = "";
+    return;
+  }
+  const upcoming = upcomingEvents(2);
+  const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
+  const topCategory = data.topCategory[0] === "-" ? "아직 없음" : data.topCategory[0];
+  panel.innerHTML = `
+    <div class="drilldown-card">
+      <span>이번 달 흐름</span>
+      <strong>${won.format(data.incomeTotal)} 들어오고 ${won.format(data.expenseTotal)} 나갔어요</strong>
+    </div>
+    <button class="drilldown-card" data-dashboard-action="category" data-dashboard-value="${escapeHtml(data.topCategory[0] === "-" ? "" : data.topCategory[0])}" type="button">
+      <span>최다 지출</span>
+      <strong>${escapeHtml(topCategory)}</strong>
+    </button>
+    <button class="drilldown-card" data-dashboard-action="recommended" data-dashboard-value="${escapeHtml(nextTarget?.name || "")}" type="button">
+      <span>다음 카드</span>
+      <strong>${nextTarget ? `${escapeHtml(nextTarget.name)} ${nextTarget.phase} ${nextTarget.rate}%` : "아껴쓰세요~"}</strong>
+    </button>
+    <button class="drilldown-card" data-dashboard-action="calendar" type="button">
+      <span>다가오는 일정</span>
+      <strong>${upcoming.length ? upcoming.map(({ event, date }) => `${shortDateLabel(date)} ${escapeHtml(event.title)}`).join(" · ") : "등록된 일정 없음"}</strong>
+    </button>
+  `;
 }
 
 function renderMethodList() {
@@ -998,7 +1031,9 @@ function renderAnalysis() {
 
 function renderEventAlert() {
   const events = upcomingEvents(3);
-  $("#eventAlertPanel").innerHTML = events.length ? `
+  const panel = $("#eventAlertPanel");
+  panel.dataset.dashboardAction = "calendar";
+  panel.innerHTML = events.length ? `
     <div>
       <strong>다가오는 집안행사</strong>
       <span>${events.map(({ event, date }) => `${shortDateLabel(date)} ${escapeHtml(event.title)}`).join(" · ")}</span>
@@ -1462,6 +1497,15 @@ function openPaymentLabel(label) {
 }
 
 function handleDashboardAction(action, value) {
+  if (action === "toggle-overview") {
+    dashboardOverviewOpen = !dashboardOverviewOpen;
+    renderDashboardDrilldown();
+    return;
+  }
+  if (action === "calendar") {
+    activateView("calendar");
+    return;
+  }
   if (action === "income") {
     activateView("income");
     return;
@@ -1472,6 +1516,11 @@ function handleDashboardAction(action, value) {
   }
   if (action === "expenses") {
     openExpenseList();
+    return;
+  }
+  if (action === "category") {
+    if (value) openExpenseList({ category: value, view: "category", group: value });
+    else openExpenseList({ view: "category" });
     return;
   }
   if (action === "payment" || action === "recommended") {
@@ -1546,6 +1595,9 @@ document.addEventListener("click", (event) => {
 
   const dashboardButton = closestTarget(event, "[data-dashboard-action]");
   if (dashboardButton) {
+    if (dashboardButton.classList.contains("dashboard-hero") && closestTarget(event, "button,label,input")) {
+      return;
+    }
     event.preventDefault();
     event.stopImmediatePropagation();
     handleDashboardAction(dashboardButton.dataset.dashboardAction, dashboardButton.dataset.dashboardValue || "");

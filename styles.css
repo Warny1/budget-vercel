@@ -240,6 +240,7 @@ button {
 
 .dashboard-hero {
   position: relative;
+  cursor: pointer;
   min-height: 156px;
   align-items: stretch;
   padding: 22px;
@@ -250,6 +251,10 @@ button {
     #fff;
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+
+.dashboard-hero:hover {
+  border-color: rgba(117, 185, 189, 0.55);
 }
 
 .dashboard-hero::after {
@@ -393,33 +398,33 @@ button {
 .target-mini-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(90px, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 7px;
+  margin-bottom: 12px;
 }
 
 .target-mini-card {
   width: 100%;
   text-align: left;
   cursor: pointer;
-  min-height: 62px;
+  min-height: 48px;
   display: grid;
-  gap: 8px;
+  gap: 5px;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid var(--line);
   border-radius: 14px 8px 14px 8px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   box-shadow: 0 8px 18px rgba(85, 112, 130, 0.07);
 }
 
 .target-mini-card span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .target-mini-card strong {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .target-mini-card > div:first-child {
@@ -430,7 +435,7 @@ button {
 }
 
 .mini-progress {
-  height: 6px;
+  height: 5px;
   border-radius: 999px;
   background: #edf1f5;
   overflow: hidden;
@@ -445,6 +450,50 @@ button {
 
 .event-alert-panel {
   margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.dashboard-drilldown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: -2px 0 10px;
+}
+
+.drilldown-card {
+  min-width: 0;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 14px 8px 14px 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  padding: 9px 10px;
+  text-align: left;
+  box-shadow: 0 8px 18px rgba(85, 112, 130, 0.07);
+}
+
+.drilldown-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.drilldown-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+button.drilldown-card {
+  cursor: pointer;
+}
+
+button.drilldown-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(117, 185, 189, 0.55);
 }
 
 .event-alert-panel > div {
@@ -1378,6 +1427,27 @@ th.amount {
     overflow-wrap: anywhere;
   }
 
+  .dashboard-drilldown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    margin: -2px 0 7px;
+  }
+
+  .drilldown-card {
+    min-height: 46px;
+    padding: 7px 8px;
+  }
+
+  .drilldown-card span {
+    font-size: 10px;
+  }
+
+  .drilldown-card strong {
+    margin-top: 2px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
   .target-mini-grid {
     display: flex;
     overflow-x: auto;
@@ -1412,18 +1482,19 @@ th.amount {
   }
 
   .target-mini-card {
-    min-width: 100px;
-    min-height: 39px;
+    min-width: 82px;
+    min-height: 32px;
     flex: 0 0 auto;
-    padding: 4px 6px;
+    padding: 4px 5px;
+    gap: 3px;
   }
 
   .target-mini-card span {
-    font-size: 9px;
+    font-size: 8.5px;
   }
 
   .target-mini-card strong {
-    font-size: 11.5px;
+    font-size: 10.5px;
   }
 
   .target-mini-card > div:first-child {

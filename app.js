@@ -200,6 +200,11 @@ function cloudConfigured() {
   return Boolean(cloudKeysConfigured() && window.supabase?.createClient);
 }
 
+function supabaseProjectUrl() {
+  const config = window.BUDGET_CONFIG || {};
+  return String(config.SUPABASE_URL || "").replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/, "");
+}
+
 function bytesToBase64(bytes) {
   const array = new Uint8Array(bytes);
   let binary = "";
@@ -323,7 +328,7 @@ async function setupCloudConnection() {
     return;
   }
   const config = window.BUDGET_CONFIG;
-  cloudClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  cloudClient = window.supabase.createClient(supabaseProjectUrl(), config.SUPABASE_ANON_KEY);
   renderCloudStatus();
   if (sharedSession) await loadCloudState();
 }

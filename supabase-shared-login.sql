@@ -7,6 +7,9 @@ create table if not exists public.shared_budget_states (
 
 alter table public.shared_budget_states enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.shared_budget_states to anon, authenticated;
+
 drop policy if exists "shared budget read" on public.shared_budget_states;
 drop policy if exists "shared budget insert" on public.shared_budget_states;
 drop policy if exists "shared budget update" on public.shared_budget_states;

@@ -297,6 +297,13 @@ function renderCloudStatus(message) {
   field.textContent = sharedSession ? `${sharedSession.householdId} 연결됨` : "공유 로그인 필요";
 }
 
+function cloudErrorMessage(error, fallback) {
+  const message = error?.message || "";
+  if (message.includes("relation") || message.includes("does not exist")) return "공유 테이블 생성 필요";
+  if (message.includes("permission") || message.includes("policy") || message.includes("RLS")) return "공유 테이블 권한 확인 필요";
+  return fallback;
+}
+
 async function setupCloud() {
   if (cloudClient) return;
   if (cloudSetupPromise) return cloudSetupPromise;
@@ -330,7 +337,7 @@ async function loadCloudState() {
     .eq("household_key", sharedSession.lookupKey)
     .maybeSingle();
   if (error) {
-    renderCloudStatus("공유 가계부 불러오기 실패");
+    renderCloudStatus(cloudErrorMessage(error, "공유 가계부 불러오기 실패"));
     return;
   }
   if (data?.payload) {
@@ -363,7 +370,7 @@ async function saveCloudState(immediate = false) {
         payload,
         updated_at: new Date().toISOString(),
       });
-    renderCloudStatus(error ? "공유 저장 실패" : "공유 저장됨");
+    renderCloudStatus(error ? cloudErrorMessage(error, "공유 저장 실패") : "공유 저장됨");
   };
   clearTimeout(cloudSaveTimer);
   if (immediate) {

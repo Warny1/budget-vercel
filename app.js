@@ -793,18 +793,18 @@ function renderSummary() {
       : "아껴쓰세요~";
 
   const cards = [
-    ["전월 이월", won.format(data.carryover), data.carryover < 0],
-    ["이번달 수입", won.format(data.incomeTotal)],
-    ["이번달 지출", won.format(data.expenseTotal)],
-    ["현재 잔액", won.format(data.balance), data.balance < 0],
-    ["추천 카드", recommended],
+    ["전월 이월", won.format(data.carryover), data.carryover < 0, "analysis"],
+    ["이번달 수입", won.format(data.incomeTotal), false, "income"],
+    ["이번달 지출", won.format(data.expenseTotal), false, "expenses"],
+    ["현재 잔액", won.format(data.balance), data.balance < 0, "analysis"],
+    ["추천 카드", recommended, false, "recommended", nextTarget?.name || ""],
   ];
 
-  $("#summaryCards").innerHTML = cards.map(([label, value, negative], index) => `
-    <article class="summary-card summary-card-${index + 1} ${negative ? "negative" : ""}">
+  $("#summaryCards").innerHTML = cards.map(([label, value, negative, action, valueKey], index) => `
+    <button class="summary-card summary-card-${index + 1} ${negative ? "negative" : ""}" data-dashboard-action="${action}" data-dashboard-value="${escapeHtml(valueKey || "")}" type="button">
       <span>${label}</span>
       <strong>${value}</strong>
-    </article>
+    </button>
   `).join("");
 }
 
@@ -815,11 +815,11 @@ function renderMethodList() {
     const value = totalForPaymentLabel(data, group);
     const width = data.expenseTotal ? Math.round((value / data.expenseTotal) * 100) : 0;
     return `
-      <div class="method-row">
+      <button class="method-row" data-dashboard-action="method" data-dashboard-value="${escapeHtml(group)}" type="button">
         <strong>${group}</strong>
         <div class="bar"><span style="width:${width}%"></span></div>
         <span class="amount">${won.format(value)}</span>
-      </div>
+      </button>
     `;
   }).join("");
 }
@@ -827,13 +827,13 @@ function renderMethodList() {
 function renderCardTargetMini() {
   const entries = cardTargetEntries();
   $("#cardTargetMini").innerHTML = entries.map(({ name, phase, rate }) => `
-    <div class="target-mini-card">
+    <button class="target-mini-card" data-dashboard-action="payment" data-dashboard-value="${escapeHtml(name)}" type="button">
       <div>
         <span>${escapeHtml(name)}</span>
         <strong>${phase} ${rate}%</strong>
       </div>
       <div class="mini-progress" aria-hidden="true"><span style="width:${rate}%"></span></div>
-    </div>
+    </button>
   `).join("");
 }
 
@@ -1435,6 +1435,53 @@ function restoreBackup() {
   boot();
 }
 
+function openExpenseList({ view = "all", category = "", method = "", payment = "", group = "" } = {}) {
+  activateView("expenses");
+  expenseFilters = { category, method, payment };
+  expenseViewMode = view;
+  expenseGroupFilter = group;
+  $$(".switch-button").forEach((button) => button.classList.toggle("active", button.dataset.expenseView === view));
+  renderExpenseFilters();
+  renderExpenses();
+}
+
+function openPaymentLabel(label) {
+  if (label === "원 계좌이체") {
+    openExpenseList({ method: "계좌이체", payment: "원" });
+    return;
+  }
+  if (label === "수연 계좌이체") {
+    openExpenseList({ method: "계좌이체", payment: "수연" });
+    return;
+  }
+  if (label === "원 용돈" || label === "수연이 용돈") {
+    openExpenseList({ method: "현금", payment: label });
+    return;
+  }
+  openExpenseList({ method: label, view: "method", group: label });
+}
+
+function handleDashboardAction(action, value) {
+  if (action === "income") {
+    activateView("income");
+    return;
+  }
+  if (action === "analysis") {
+    activateView("analysis");
+    return;
+  }
+  if (action === "expenses") {
+    openExpenseList();
+    return;
+  }
+  if (action === "payment" || action === "recommended") {
+    if (value) openExpenseList({ payment: value });
+    else activateView("analysis");
+    return;
+  }
+  if (action === "method") openPaymentLabel(value);
+}
+
 function activateView(viewName) {
   const view = $(`#${viewName}View`);
   if (!view) return;
@@ -1494,6 +1541,14 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
     setQuickDate(dateButton.dataset.dateTarget, dateButton.dataset.dateAction);
+    return;
+  }
+
+  const dashboardButton = closestTarget(event, "[data-dashboard-action]");
+  if (dashboardButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    handleDashboardAction(dashboardButton.dataset.dashboardAction, dashboardButton.dataset.dashboardValue || "");
     return;
   }
 

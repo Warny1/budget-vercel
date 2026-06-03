@@ -322,6 +322,9 @@ button {
 }
 
 .summary-card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
   border-radius: 14px 8px 14px 8px;
@@ -329,6 +332,20 @@ button {
   box-shadow: var(--soft-shadow);
   position: relative;
   overflow: hidden;
+}
+
+.summary-card:hover,
+.target-mini-card:hover,
+.method-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(117, 185, 189, 0.55);
+}
+
+.summary-card:focus-visible,
+.target-mini-card:focus-visible,
+.method-row:focus-visible {
+  outline: 3px solid rgba(117, 185, 189, 0.3);
+  outline-offset: 2px;
 }
 
 .summary-card::before {
@@ -381,6 +398,9 @@ button {
 }
 
 .target-mini-card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
   min-height: 62px;
   display: grid;
   gap: 8px;
@@ -760,6 +780,13 @@ button {
 }
 
 .method-row {
+  width: 100%;
+  border: 0;
+  border-radius: 10px 6px 10px 6px;
+  background: rgba(255, 255, 255, 0.46);
+  padding: 4px 6px;
+  color: var(--ink);
+  cursor: pointer;
   display: grid;
   grid-template-columns: 95px minmax(0, 1fr) 110px;
   gap: 10px;

@@ -362,7 +362,10 @@ async function connectSharedBudget() {
 async function signOutCloud() {
   sharedSession = null;
   localStorage.removeItem(SHARED_SESSION_KEY);
-  renderCloudStatus();
+  state = clone(sampleState);
+  saveState();
+  renderAll();
+  renderCloudStatus("연결 해제됨");
 }
 
 function normalizeState(source) {

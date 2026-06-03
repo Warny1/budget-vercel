@@ -1,7 +1,9 @@
 const STORAGE_KEY = "household-budget-app-v1";
 const BACKUP_KEY = `${STORAGE_KEY}-backup`;
+const SHARED_SESSION_KEY = `${STORAGE_KEY}-shared-session`;
 const API_STATE_URL = "./api/state";
 const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
 const CATEGORY_COLORS = {
@@ -149,7 +151,7 @@ let editingIncomeId = null;
 let editingEventId = null;
 let filePersistenceReady = false;
 let cloudClient = null;
-let cloudUser = null;
+let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
 let applyingCloudState = false;
 let cloudSetupPromise = null;
@@ -170,6 +172,18 @@ function loadState() {
   }
 }
 
+function loadSharedSession() {
+  const saved = localStorage.getItem(SHARED_SESSION_KEY);
+  if (!saved) return null;
+  try {
+    const parsed = JSON.parse(saved);
+    if (!parsed.householdId || !parsed.lookupKey || !parsed.secret) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   navigator.serviceWorker.getRegistrations()
@@ -184,6 +198,65 @@ function cloudKeysConfigured() {
 
 function cloudConfigured() {
   return Boolean(cloudKeysConfigured() && window.supabase?.createClient);
+}
+
+function bytesToBase64(bytes) {
+  const array = new Uint8Array(bytes);
+  let binary = "";
+  for (let index = 0; index < array.length; index += 0x8000) {
+    binary += String.fromCharCode(...array.slice(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+}
+
+function textBytes(value) {
+  return new TextEncoder().encode(value);
+}
+
+async function sha256Hex(value) {
+  const hash = await crypto.subtle.digest("SHA-256", textBytes(value));
+  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function deriveSharedSession(householdId, password) {
+  const cleanId = householdId.trim().toLowerCase();
+  const cleanPassword = password.trim();
+  if (!cleanId || !cleanPassword) throw new Error("아이디와 비밀번호를 입력해 주세요.");
+  const secret = await sha256Hex(`원수살림:${cleanId}:${cleanPassword}`);
+  return {
+    householdId: cleanId,
+    lookupKey: await sha256Hex(`원수살림-찾기:${cleanId}:${secret}`),
+    secret,
+  };
+}
+
+async function sharedCryptoKey(session = sharedSession) {
+  const baseKey = await crypto.subtle.importKey("raw", textBytes(session.secret), "HKDF", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name: "HKDF", hash: "SHA-256", salt: textBytes("원수살림-v1"), info: textBytes(`state:${session.householdId}`) },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+async function encryptSharedState(data) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await sharedCryptoKey();
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, textBytes(JSON.stringify(data)));
+  return { version: 1, iv: bytesToBase64(iv), data: bytesToBase64(encrypted) };
+}
+
+async function decryptSharedState(payload) {
+  if (!payload?.iv || !payload?.data) throw new Error("공유 데이터를 읽을 수 없어요.");
+  const key = await sharedCryptoKey();
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: base64ToBytes(payload.iv) }, key, base64ToBytes(payload.data));
+  return JSON.parse(new TextDecoder().decode(decrypted));
 }
 
 function loadSupabaseClient() {
@@ -214,14 +287,14 @@ function renderCloudStatus(message) {
     return;
   }
   if (!cloudKeysConfigured()) {
-    field.textContent = "Supabase 설정 필요";
+    field.textContent = "공유 저장소 설정 필요";
     return;
   }
   if (!cloudConfigured()) {
-    field.textContent = "클라우드 연결 대기";
+    field.textContent = "공유 저장소 연결 대기";
     return;
   }
-  field.textContent = cloudUser ? `${cloudUser.email || "로그인됨"} 동기화 중` : "로그인 필요";
+  field.textContent = sharedSession ? `${sharedSession.householdId} 연결됨` : "공유 로그인 필요";
 }
 
 async function setupCloud() {
@@ -244,80 +317,84 @@ async function setupCloudConnection() {
   }
   const config = window.BUDGET_CONFIG;
   cloudClient = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-  const { data } = await cloudClient.auth.getSession();
-  cloudUser = data.session?.user || null;
   renderCloudStatus();
-  if (cloudUser) await loadCloudState();
-  cloudClient.auth.onAuthStateChange(async (_event, session) => {
-    cloudUser = session?.user || null;
-    renderCloudStatus();
-    if (cloudUser) await loadCloudState();
-  });
+  if (sharedSession) await loadCloudState();
 }
 
 async function loadCloudState() {
-  if (!cloudClient || !cloudUser) return;
-  renderCloudStatus("클라우드 불러오는 중");
+  if (!cloudClient || !sharedSession) return;
+  renderCloudStatus("공유 가계부 불러오는 중");
   const { data, error } = await cloudClient
-    .from("budget_states")
-    .select("state")
-    .eq("user_id", cloudUser.id)
+    .from(SHARED_STATE_TABLE)
+    .select("payload")
+    .eq("household_key", sharedSession.lookupKey)
     .maybeSingle();
   if (error) {
-    renderCloudStatus("클라우드 불러오기 실패");
+    renderCloudStatus("공유 가계부 불러오기 실패");
     return;
   }
-  if (data?.state) {
-    applyingCloudState = true;
-    state = normalizeState(data.state);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    applyingCloudState = false;
-    renderAll();
-    renderCloudStatus("클라우드 불러옴");
-    return;
+  if (data?.payload) {
+    try {
+      const cloudState = await decryptSharedState(data.payload);
+      applyingCloudState = true;
+      state = normalizeState(cloudState);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      applyingCloudState = false;
+      renderAll();
+      renderCloudStatus("공유 가계부 불러옴");
+      return;
+    } catch {
+      renderCloudStatus("아이디 또는 비밀번호 확인 필요");
+      return;
+    }
   }
   await saveCloudState(true);
 }
 
 async function saveCloudState(immediate = false) {
-  if (!cloudClient || !cloudUser || applyingCloudState) return;
+  if (!cloudClient || !sharedSession || applyingCloudState) return;
   const write = async () => {
+    const payload = await encryptSharedState(state);
     const { error } = await cloudClient
-      .from("budget_states")
+      .from(SHARED_STATE_TABLE)
       .upsert({
-        user_id: cloudUser.id,
-        state,
+        household_key: sharedSession.lookupKey,
+        household_name: sharedSession.householdId,
+        payload,
         updated_at: new Date().toISOString(),
       });
-    renderCloudStatus(error ? "클라우드 저장 실패" : "클라우드 저장됨");
+    renderCloudStatus(error ? "공유 저장 실패" : "공유 저장됨");
   };
   clearTimeout(cloudSaveTimer);
   if (immediate) {
     await write();
     return;
   }
-  cloudSaveTimer = setTimeout(write, 500);
+  cloudSaveTimer = setTimeout(() => {
+    write().catch(() => renderCloudStatus("공유 저장 실패"));
+  }, 500);
 }
 
-async function sendCloudLoginLink() {
+async function connectSharedBudget() {
   if (!cloudClient) await setupCloud();
   if (!cloudClient) {
-    renderCloudStatus("Supabase 설정 필요");
+    renderCloudStatus("공유 저장소 설정 필요");
     return;
   }
-  const email = $("#cloudEmail").value.trim();
-  if (!email) return;
-  const { error } = await cloudClient.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
-  });
-  renderCloudStatus(error ? "로그인 링크 발송 실패" : "이메일 확인 필요");
+  try {
+    sharedSession = await deriveSharedSession($("#sharedBudgetId").value, $("#sharedBudgetPassword").value);
+    localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(sharedSession));
+    $("#sharedBudgetPassword").value = "";
+    renderCloudStatus("공유 가계부 연결 중");
+    await loadCloudState();
+  } catch (error) {
+    renderCloudStatus(error.message);
+  }
 }
 
 async function signOutCloud() {
-  if (!cloudClient) return;
-  await cloudClient.auth.signOut();
-  cloudUser = null;
+  sharedSession = null;
+  localStorage.removeItem(SHARED_SESSION_KEY);
   renderCloudStatus();
 }
 
@@ -1022,6 +1099,8 @@ function renderCalendar() {
 }
 
 function renderSettings() {
+  const sharedIdField = $("#sharedBudgetId");
+  if (sharedIdField && sharedSession && !sharedIdField.value) sharedIdField.value = sharedSession.householdId;
   $("#categoryChips").innerHTML = state.settings.categories.map((category) => `
     <span class="chip" style="background:${categoryColor(category)}">${escapeHtml(category)}<button data-remove-category="${escapeHtml(category)}" type="button">×</button></span>
   `).join("");
@@ -1493,13 +1572,14 @@ document.addEventListener("click", (event) => {
       boot();
     },
     restoreBackup,
-    sendLoginLink: sendCloudLoginLink,
+    connectSharedBudget,
     signOutCloud,
     syncCloudNow: async () => {
-      if (!cloudUser) {
-        renderCloudStatus("로그인 필요");
+      if (!sharedSession) {
+        renderCloudStatus("공유 로그인 필요");
         return;
       }
+      if (!cloudClient) await setupCloud();
       await saveCloudState(true);
     },
     addCategory: () => {
@@ -1650,13 +1730,14 @@ on("#resetSample", "click", () => {
   boot();
 });
 on("#restoreBackup", "click", restoreBackup);
-on("#sendLoginLink", "click", sendCloudLoginLink);
+on("#connectSharedBudget", "click", connectSharedBudget);
 on("#signOutCloud", "click", signOutCloud);
 on("#syncCloudNow", "click", async () => {
-  if (!cloudUser) {
-    renderCloudStatus("로그인 필요");
+  if (!sharedSession) {
+    renderCloudStatus("공유 로그인 필요");
     return;
   }
+  if (!cloudClient) await setupCloud();
   await saveCloudState(true);
 });
 on("#addCategory", "click", () => {

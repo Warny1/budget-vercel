@@ -653,7 +653,7 @@ button {
 
 .cloud-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto auto auto;
   gap: 8px;
   align-items: center;
 }

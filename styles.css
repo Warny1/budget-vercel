@@ -55,6 +55,11 @@ button {
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(16px);
   border-right: 1px solid var(--line);
@@ -814,6 +819,19 @@ button {
   box-shadow: var(--soft-shadow);
 }
 
+.date-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -5px 0 12px;
+}
+
+.date-tools .ghost-button {
+  height: 32px;
+  padding: 0 11px;
+  font-size: 13px;
+}
+
 .income-form {
   grid-template-columns: 150px 150px 170px minmax(240px, 1fr);
 }
@@ -1133,6 +1151,8 @@ th.amount {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 128px;
     align-items: center;
+    height: auto;
+    overflow-y: visible;
     padding: 5px 8px;
     gap: 4px 8px;
   }
@@ -1475,6 +1495,19 @@ th.amount {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
+  }
+
+  .date-tools {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    margin: -3px 0 9px;
+  }
+
+  .date-tools .ghost-button {
+    height: 30px;
+    padding: 0 6px;
+    font-size: 11px;
   }
 
   .switch-button {

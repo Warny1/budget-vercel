@@ -439,6 +439,19 @@ function toDateKey(date) {
   return dateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
 }
 
+function todayKey() {
+  return toDateKey(new Date());
+}
+
+function currentMonthKey() {
+  return todayKey().slice(0, 7);
+}
+
+function defaultDateForMonth(month = currentMonth()) {
+  const today = todayKey();
+  return today.startsWith(month) ? today : `${month}-01`;
+}
+
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
@@ -1070,18 +1083,20 @@ function setEventEditMode(active) {
   $("#cancelEventEdit").classList.toggle("hidden", !active);
 }
 
-function resetExpenseForm() {
+function resetExpenseForm(preferredDate = "") {
   editingExpenseId = null;
+  const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#expenseForm").reset();
-  $("#expenseDate").value = `${currentMonth()}-01`;
+  $("#expenseDate").value = nextDate;
   updatePaymentOptions();
   setExpenseEditMode(false);
 }
 
-function resetIncomeForm() {
+function resetIncomeForm(preferredDate = "") {
   editingIncomeId = null;
+  const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#incomeForm").reset();
-  $("#incomeDate").value = `${currentMonth()}-01`;
+  $("#incomeDate").value = nextDate;
   setIncomeEditMode(false);
 }
 
@@ -1102,7 +1117,7 @@ function resetEventForm() {
   $("#eventForm").reset();
   $("#eventCalendarType").value = "solar";
   $("#eventRepeat").value = "once";
-  $("#eventDate").value = `${currentMonth()}-01`;
+  $("#eventDate").value = defaultDateForMonth();
   $("#eventMonth").value = Number(currentMonth().slice(5, 7));
   $("#eventDay").value = 1;
   updateEventFields();
@@ -1173,7 +1188,7 @@ function addExpense() {
     state.expenses.push(nextRow);
   }
   saveState();
-  resetExpenseForm();
+  resetExpenseForm(nextRow.date);
   renderAll();
 }
 
@@ -1191,7 +1206,7 @@ function addIncome() {
     state.incomes.push(nextRow);
   }
   saveState();
-  resetIncomeForm();
+  resetIncomeForm(nextRow.date);
   renderAll();
 }
 
@@ -1246,6 +1261,29 @@ function parseDate(value) {
   const date = new Date(text);
   if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
   return "";
+}
+
+function moveToDateMonth(value) {
+  if (!value) return;
+  const month = value.slice(0, 7);
+  if ($("#monthPicker").value !== month) $("#monthPicker").value = month;
+}
+
+function setQuickDate(targetId, action) {
+  const field = $(`#${targetId}`);
+  if (!field) return;
+  const base = field.value ? parseDateKey(field.value) : parseDateKey(defaultDateForMonth());
+  const today = new Date();
+  const nextDate = action === "today"
+    ? today
+    : action === "yesterday"
+      ? addDays(today, -1)
+      : action === "prev"
+        ? addDays(base, -1)
+        : addDays(base, 1);
+  field.value = toDateKey(nextDate);
+  moveToDateMonth(field.value);
+  renderAll();
 }
 
 function parsePastedTable(text) {
@@ -1321,8 +1359,8 @@ function importSheetData() {
 
 function setDefaultDates() {
   const month = currentMonth();
-  $("#expenseDate").value = `${month}-01`;
-  $("#incomeDate").value = `${month}-01`;
+  $("#expenseDate").value = defaultDateForMonth(month);
+  $("#incomeDate").value = defaultDateForMonth(month);
 }
 
 function downloadJson() {
@@ -1370,7 +1408,7 @@ function activateSettingsTab(tabName) {
 
 function boot() {
   const today = new Date();
-  const defaultMonth = state.expenses[0]?.date?.slice(0, 7) || today.toISOString().slice(0, 7);
+  const defaultMonth = currentMonthKey();
   $("#todayLabel").textContent = today.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   $("#monthPicker").value = defaultMonth;
   setDefaultDates();
@@ -1399,6 +1437,14 @@ document.addEventListener("click", (event) => {
   if (settingsTab) {
     event.stopImmediatePropagation();
     activateSettingsTab(settingsTab.dataset.settingsTab);
+    return;
+  }
+
+  const dateButton = closestTarget(event, "[data-date-action]");
+  if (dateButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setQuickDate(dateButton.dataset.dateTarget, dateButton.dataset.dateAction);
     return;
   }
 
@@ -1509,6 +1555,14 @@ $$(".settings-tab").forEach((button) => {
 
 on("#monthPicker", "change", () => {
   setDefaultDates();
+  renderAll();
+});
+on("#expenseDate", "change", (event) => {
+  moveToDateMonth(event.target.value);
+  renderAll();
+});
+on("#incomeDate", "change", (event) => {
+  moveToDateMonth(event.target.value);
   renderAll();
 });
 on("#expenseFilterCategory", "change", (event) => {

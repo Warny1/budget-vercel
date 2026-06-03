@@ -10,8 +10,8 @@
     <title>원수살림</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20260603-8" />
-    <script defer src="./config.js?v=20260603-8"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260603-9" />
+    <script defer src="./config.js?v=20260603-9"></script>
   </head>
   <body>
     <div class="error-banner hidden" id="errorBanner"></div>
@@ -164,6 +164,12 @@
             <select id="expenseCard" required></select>
             <input id="expenseMemo" type="text" placeholder="메모" />
           </form>
+          <div class="date-tools" aria-label="지출 날짜 빠른 선택">
+            <button class="ghost-button" data-date-target="expenseDate" data-date-action="today" type="button">오늘</button>
+            <button class="ghost-button" data-date-target="expenseDate" data-date-action="yesterday" type="button">어제</button>
+            <button class="ghost-button" data-date-target="expenseDate" data-date-action="prev" type="button">전날</button>
+            <button class="ghost-button" data-date-target="expenseDate" data-date-action="next" type="button">다음날</button>
+          </div>
           <div class="view-switch" aria-label="입력 보기 방식">
             <button class="switch-button active" data-expense-view="all" type="button">전체</button>
             <button class="switch-button" data-expense-view="date" type="button">날짜별</button>
@@ -214,6 +220,12 @@
             <select id="incomeType" required></select>
             <input id="incomeMemo" type="text" placeholder="메모" />
           </form>
+          <div class="date-tools" aria-label="수입 날짜 빠른 선택">
+            <button class="ghost-button" data-date-target="incomeDate" data-date-action="today" type="button">오늘</button>
+            <button class="ghost-button" data-date-target="incomeDate" data-date-action="yesterday" type="button">어제</button>
+            <button class="ghost-button" data-date-target="incomeDate" data-date-action="prev" type="button">전날</button>
+            <button class="ghost-button" data-date-target="incomeDate" data-date-action="next" type="button">다음날</button>
+          </div>
           <section class="panel table-panel">
             <div class="table-scroll">
               <table>
@@ -398,6 +410,6 @@
         </section>
       </main>
     </div>
-    <script defer src="./app.js?v=20260603-8"></script>
+    <script defer src="./app.js?v=20260603-9"></script>
   </body>
 </html>

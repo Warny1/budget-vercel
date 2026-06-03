@@ -1256,7 +1256,7 @@ th.amount {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
   }
 
   .dashboard-hero .header-actions {
@@ -1365,7 +1365,10 @@ th.amount {
   }
 
   .event-alert-panel > div {
-    min-height: 36px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3px;
+    min-height: 0;
     padding: 7px 9px;
   }
 
@@ -1375,6 +1378,10 @@ th.amount {
 
   .event-alert-panel span {
     font-size: 11px;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.35;
   }
 
   .target-mini-card {
@@ -1409,31 +1416,36 @@ th.amount {
   }
 
   .calendar-grid {
-    min-width: 560px;
-    gap: 5px;
+    min-width: 0;
+    gap: 3px;
   }
 
   .calendar-layout .panel:first-child {
-    overflow-x: auto;
+    overflow-x: visible;
   }
 
   .calendar-cell {
-    min-height: 62px;
-    padding: 5px;
+    min-height: 42px;
+    padding: 3px;
+    border-radius: 9px 5px 9px 5px;
   }
 
   .calendar-day strong {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .calendar-day span {
-    font-size: 9px;
+    display: none;
   }
 
   .calendar-event-dot {
-    min-height: 18px;
-    padding: 2px 6px;
-    font-size: 10px;
+    width: 6px;
+    height: 6px;
+    min-height: 0;
+    margin-top: 2px;
+    padding: 0;
+    color: transparent;
+    font-size: 0;
   }
 
   .event-list {
@@ -1521,20 +1533,196 @@ th.amount {
   }
 
   .table-scroll {
-    margin: 0 -10px;
-    padding: 0 10px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
+    overflow-x: visible;
   }
 
   table {
-    min-width: 680px;
+    display: block;
+    min-width: 0;
+  }
+
+  #analysisView table,
+  #settingsView table {
+    display: table;
   }
 
   th,
   td {
     padding: 8px 9px;
     font-size: 12px;
+  }
+
+  #expenseRows,
+  #incomeRows,
+  #eventRows {
+    display: grid;
+    gap: 7px;
+  }
+
+  #expenseRows tr,
+  #incomeRows tr,
+  #eventRows tr {
+    display: grid;
+    border: 1px solid var(--line);
+    border-radius: 12px 7px 12px 7px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 9px;
+  }
+
+  #expenseRows td,
+  #incomeRows td,
+  #eventRows td {
+    display: block;
+    border-bottom: 0;
+    min-width: 0;
+    padding: 0;
+  }
+
+  #expenseRows .empty,
+  #incomeRows .empty,
+  #eventRows .empty {
+    text-align: center;
+    padding: 16px 8px;
+  }
+
+  #expenseRows tr:not(.group-row) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 9px;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 15px;
+    font-weight: 950;
+    text-align: right;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(4),
+  #expenseRows tr:not(.group-row) td:nth-child(5) {
+    grid-column: 1;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(6) {
+    grid-column: 1 / -1;
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(7),
+  #incomeRows td:nth-child(5),
+  #eventRows td:nth-child(5) {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+  }
+
+  #incomeRows tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 9px;
+  }
+
+  #incomeRows td:nth-child(1) {
+    grid-column: 1;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  #incomeRows td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 15px;
+    font-weight: 950;
+    text-align: right;
+  }
+
+  #incomeRows td:nth-child(3) {
+    grid-column: 1;
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  #incomeRows td:nth-child(4) {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #eventRows tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+  }
+
+  #eventRows td:nth-child(1) {
+    grid-column: 1;
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  #eventRows td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+
+  #eventRows td:nth-child(3),
+  #eventRows td:nth-child(4) {
+    grid-column: 1 / -1;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #expensesView thead,
+  #incomeView thead,
+  #calendarView .table-panel thead {
+    display: none;
+  }
+
+  .group-row {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .group-row td {
+    padding: 0 !important;
+  }
+
+  .group-filter-button {
+    min-height: 42px;
+    padding: 8px 9px;
+  }
+
+  .group-filter-button span {
+    font-size: 11px;
+    overflow-wrap: anywhere;
   }
 
   .analysis-strip {

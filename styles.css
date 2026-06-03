@@ -487,6 +487,28 @@ button {
   overflow-wrap: anywhere;
 }
 
+.drilldown-card strong.positive {
+  color: #2f7151;
+}
+
+.drilldown-card strong.negative {
+  color: var(--red);
+}
+
+.upcoming-lines {
+  display: grid !important;
+  gap: 2px;
+}
+
+.upcoming-lines em {
+  display: block;
+  overflow: hidden;
+  color: inherit;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 button.drilldown-card {
   cursor: pointer;
 }
@@ -1451,8 +1473,8 @@ th.amount {
   .target-mini-grid {
     display: flex;
     overflow-x: auto;
-    gap: 5px;
-    margin: 0 -8px 7px;
+    gap: 4px;
+    margin: 0 -8px 6px;
     padding: 0 8px 1px;
     scrollbar-width: none;
   }
@@ -1482,19 +1504,19 @@ th.amount {
   }
 
   .target-mini-card {
-    min-width: 82px;
-    min-height: 32px;
+    min-width: 68px;
+    min-height: 28px;
     flex: 0 0 auto;
-    padding: 4px 5px;
-    gap: 3px;
+    padding: 3px 4px;
+    gap: 2px;
   }
 
   .target-mini-card span {
-    font-size: 8.5px;
+    font-size: 7.5px;
   }
 
   .target-mini-card strong {
-    font-size: 10.5px;
+    font-size: 9.5px;
   }
 
   .target-mini-card > div:first-child {
@@ -1504,7 +1526,7 @@ th.amount {
   }
 
   .mini-progress {
-    height: 4px;
+    height: 3px;
   }
 
   .dashboard-layout,

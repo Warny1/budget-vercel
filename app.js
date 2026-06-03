@@ -821,10 +821,11 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
   const upcoming = upcomingEvents(2);
   const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
   const topCategory = data.topCategory[0] === "-" ? "아직 없음" : data.topCategory[0];
+  const monthFlow = data.incomeTotal - data.expenseTotal;
   panel.innerHTML = `
     <div class="drilldown-card">
       <span>이번 달 흐름</span>
-      <strong>${won.format(data.incomeTotal)} 들어오고 ${won.format(data.expenseTotal)} 나갔어요</strong>
+      <strong class="${monthFlow < 0 ? "negative" : "positive"}">${monthFlow >= 0 ? "+" : ""}${won.format(monthFlow)}</strong>
     </div>
     <button class="drilldown-card" data-dashboard-action="category" data-dashboard-value="${escapeHtml(data.topCategory[0] === "-" ? "" : data.topCategory[0])}" type="button">
       <span>최다 지출</span>
@@ -836,7 +837,7 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
     </button>
     <button class="drilldown-card" data-dashboard-action="calendar" type="button">
       <span>다가오는 일정</span>
-      <strong>${upcoming.length ? upcoming.map(({ event, date }) => `${shortDateLabel(date)} ${escapeHtml(event.title)}`).join(" · ") : "등록된 일정 없음"}</strong>
+      <strong class="upcoming-lines">${upcoming.length ? upcoming.map(({ event, date }) => `<em>${shortDateLabel(date)} ${escapeHtml(event.title)}</em>`).join("") : "<em>등록된 일정 없음</em>"}</strong>
     </button>
   `;
 }

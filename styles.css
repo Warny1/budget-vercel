@@ -315,6 +315,9 @@ button {
   font-size: 15px;
   font-weight: 800;
   line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hero-balance {
@@ -402,6 +405,9 @@ button {
   margin-top: 8px;
   font-size: 19px;
   line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-card.negative strong {
@@ -1381,10 +1387,9 @@ th.amount {
     max-width: 100%;
     font-size: 11px;
     line-height: 1.25;
-    display: -webkit-box;
     overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dashboard-hero .header-actions {
@@ -1476,7 +1481,9 @@ th.amount {
   .summary-card strong {
     margin-top: 2px;
     font-size: 12px;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .dashboard-drilldown {

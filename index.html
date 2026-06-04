@@ -10,8 +10,8 @@
     <title>가계부</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20260603-19" />
-    <script defer src="./config.js?v=20260603-19"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260605-1" />
+    <script defer src="./config.js?v=20260605-1"></script>
   </head>
   <body>
     <div class="error-banner hidden" id="errorBanner"></div>
@@ -26,7 +26,7 @@
         </div>
         <nav class="nav-tabs" aria-label="화면 전환">
           <button class="nav-tab active" data-view="dashboard" type="button">현재상태</button>
-          <button class="nav-tab" data-view="expenses" type="button">입력</button>
+          <button class="nav-tab" data-view="expenses" type="button">지출</button>
           <button class="nav-tab" data-view="income" type="button">수입</button>
           <button class="nav-tab" data-view="analysis" type="button">월별분석</button>
           <button class="nav-tab" data-view="calendar" type="button">캘린더</button>
@@ -148,7 +148,7 @@
         <section class="view" id="expensesView" aria-labelledby="expensesTitle">
           <div class="page-header">
             <div>
-              <h2 id="expensesTitle">입력</h2>
+              <h2 id="expensesTitle">지출 <span class="page-total" id="expenseMonthTotal"></span></h2>
               <p>오늘 쓴 돈을 빠르게 남기기</p>
             </div>
             <div class="header-actions">
@@ -166,12 +166,11 @@
             <input id="expenseMemo" type="text" placeholder="메모" />
           </form>
           <div class="date-tools" aria-label="지출 날짜 빠른 선택">
-            <button class="ghost-button" data-date-target="expenseDate" data-date-action="today" type="button">오늘</button>
-            <button class="ghost-button" data-date-target="expenseDate" data-date-action="yesterday" type="button">어제</button>
-            <button class="ghost-button" data-date-target="expenseDate" data-date-action="prev" type="button">전날</button>
-            <button class="ghost-button" data-date-target="expenseDate" data-date-action="next" type="button">다음날</button>
+            <button class="ghost-button icon-date-button" data-date-target="expenseDate" data-date-action="prev" type="button">◀</button>
+            <button class="ghost-button today-date-button" data-date-target="expenseDate" data-date-action="today" type="button">오늘</button>
+            <button class="ghost-button icon-date-button" data-date-target="expenseDate" data-date-action="next" type="button">▶</button>
           </div>
-          <div class="view-switch" aria-label="입력 보기 방식">
+          <div class="view-switch" aria-label="지출 보기 방식">
             <button class="switch-button active" data-expense-view="all" type="button">전체</button>
             <button class="switch-button" data-expense-view="date" type="button">날짜별</button>
             <button class="switch-button" data-expense-view="category" type="button">카테고리별</button>
@@ -206,7 +205,7 @@
         <section class="view" id="incomeView" aria-labelledby="incomeTitle">
           <div class="page-header">
             <div>
-              <h2 id="incomeTitle">수입</h2>
+              <h2 id="incomeTitle">수입 <span class="page-total" id="incomeMonthTotal"></span></h2>
               <p>이번 달 들어온 돈</p>
             </div>
             <div class="header-actions">
@@ -222,10 +221,9 @@
             <input id="incomeMemo" type="text" placeholder="메모" />
           </form>
           <div class="date-tools" aria-label="수입 날짜 빠른 선택">
-            <button class="ghost-button" data-date-target="incomeDate" data-date-action="today" type="button">오늘</button>
-            <button class="ghost-button" data-date-target="incomeDate" data-date-action="yesterday" type="button">어제</button>
-            <button class="ghost-button" data-date-target="incomeDate" data-date-action="prev" type="button">전날</button>
-            <button class="ghost-button" data-date-target="incomeDate" data-date-action="next" type="button">다음날</button>
+            <button class="ghost-button icon-date-button" data-date-target="incomeDate" data-date-action="prev" type="button">◀</button>
+            <button class="ghost-button today-date-button" data-date-target="incomeDate" data-date-action="today" type="button">오늘</button>
+            <button class="ghost-button icon-date-button" data-date-target="incomeDate" data-date-action="next" type="button">▶</button>
           </div>
           <section class="panel table-panel">
             <div class="table-scroll">
@@ -320,7 +318,7 @@
               </div>
               <div class="import-tools">
                 <select id="importTarget">
-                  <option value="expenses">입력</option>
+                  <option value="expenses">지출</option>
                   <option value="incomes">수입</option>
                 </select>
                 <button class="primary-button" id="importSheetData" type="button">가져오기</button>
@@ -412,6 +410,6 @@
         </section>
       </main>
     </div>
-    <script defer src="./app.js?v=20260603-19"></script>
+    <script defer src="./app.js?v=20260605-1"></script>
   </body>
 </html>

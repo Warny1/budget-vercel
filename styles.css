@@ -179,6 +179,21 @@ button {
   font-size: 28px;
 }
 
+.page-total {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin-left: 8px;
+  padding: 0 10px;
+  border: 1px solid rgba(205, 224, 233, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #47765d;
+  font-size: 15px;
+  font-weight: 950;
+  vertical-align: middle;
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
@@ -918,8 +933,8 @@ button.drilldown-card:hover {
 }
 
 .date-tools {
-  display: inline-flex;
-  flex-wrap: wrap;
+  display: inline-grid;
+  grid-template-columns: 42px minmax(72px, auto) 42px;
   gap: 6px;
   margin: -5px 0 12px;
 }
@@ -928,6 +943,15 @@ button.drilldown-card:hover {
   height: 32px;
   padding: 0 11px;
   font-size: 13px;
+}
+
+.icon-date-button {
+  padding: 0;
+  font-size: 14px;
+}
+
+.today-date-button {
+  min-width: 72px;
 }
 
 .income-form {
@@ -1325,6 +1349,13 @@ th.amount {
     font-size: 21px;
   }
 
+  .page-total {
+    min-height: 22px;
+    margin-left: 5px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
   .page-header p {
     font-size: 12px;
   }
@@ -1631,7 +1662,7 @@ th.amount {
 
   .date-tools {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
     gap: 5px;
     margin: -3px 0 9px;
   }

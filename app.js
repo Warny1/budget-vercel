@@ -783,6 +783,8 @@ function renderSummary() {
   $("#dashboardMonth").textContent = monthLabel(data.month);
   $("#analysisMonth").textContent = monthLabel(data.month);
   $("#topCategoryLabel").textContent = `이번달 최다 지출: ${data.topCategory[0]}`;
+  $("#expenseMonthTotal").textContent = won.format(data.expenseTotal);
+  $("#incomeMonthTotal").textContent = won.format(data.incomeTotal);
   $("#monthlyInsight").textContent = dashboardInsight(data, targetEntries);
   $("#heroBalance").textContent = won.format(data.balance);
   $("#heroBalance").classList.toggle("negative", data.balance < 0);

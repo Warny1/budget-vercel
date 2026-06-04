@@ -863,13 +863,13 @@ function renderMethodList() {
 function renderCardTargetMini() {
   const entries = cardTargetEntries();
   $("#cardTargetMini").innerHTML = entries.map(({ name, phase, rate }) => `
-    <button class="target-mini-card" data-dashboard-action="payment" data-dashboard-value="${escapeHtml(name)}" type="button">
+    <div class="target-mini-card">
       <div>
         <span>${escapeHtml(name)}</span>
         <strong>${phase} ${rate}%</strong>
       </div>
       <div class="mini-progress" aria-hidden="true"><span style="width:${rate}%"></span></div>
-    </button>
+    </div>
   `).join("");
 }
 

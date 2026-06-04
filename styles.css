@@ -355,14 +355,12 @@ button {
 }
 
 .summary-card:hover,
-.target-mini-card:hover,
 .method-row:hover {
   transform: translateY(-1px);
   border-color: rgba(117, 185, 189, 0.55);
 }
 
 .summary-card:focus-visible,
-.target-mini-card:focus-visible,
 .method-row:focus-visible {
   outline: 3px solid rgba(117, 185, 189, 0.3);
   outline-offset: 2px;
@@ -412,34 +410,33 @@ button {
 
 .target-mini-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(90px, 1fr));
-  gap: 7px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(7, minmax(72px, 1fr));
+  gap: 5px;
+  margin-bottom: 10px;
 }
 
 .target-mini-card {
   width: 100%;
   text-align: left;
-  cursor: pointer;
-  min-height: 48px;
+  min-height: 38px;
   display: grid;
-  gap: 5px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid var(--line);
   border-radius: 14px 8px 14px 8px;
-  padding: 6px 8px;
+  padding: 5px 6px;
   box-shadow: 0 8px 18px rgba(85, 112, 130, 0.07);
 }
 
 .target-mini-card span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .target-mini-card strong {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .target-mini-card > div:first-child {
@@ -450,7 +447,7 @@ button {
 }
 
 .mini-progress {
-  height: 5px;
+  height: 4px;
   border-radius: 999px;
   background: #edf1f5;
   overflow: hidden;
@@ -1504,8 +1501,8 @@ th.amount {
   .target-mini-grid {
     display: flex;
     overflow-x: auto;
-    gap: 4px;
-    margin: 0 -8px 6px;
+    gap: 3px;
+    margin: 0 -8px 5px;
     padding: 0 8px 1px;
     scrollbar-width: none;
   }
@@ -1535,19 +1532,19 @@ th.amount {
   }
 
   .target-mini-card {
-    min-width: 68px;
-    min-height: 28px;
+    min-width: 54px;
+    min-height: 24px;
     flex: 0 0 auto;
-    padding: 3px 4px;
-    gap: 2px;
+    padding: 2px 3px;
+    gap: 1px;
   }
 
   .target-mini-card span {
-    font-size: 7.5px;
+    font-size: 7px;
   }
 
   .target-mini-card strong {
-    font-size: 9.5px;
+    font-size: 8.5px;
   }
 
   .target-mini-card > div:first-child {
@@ -1557,7 +1554,7 @@ th.amount {
   }
 
   .mini-progress {
-    height: 3px;
+    height: 2px;
   }
 
   .dashboard-layout,

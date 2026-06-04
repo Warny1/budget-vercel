@@ -863,10 +863,10 @@ function renderMethodList() {
 function renderCardTargetMini() {
   const entries = cardTargetEntries();
   $("#cardTargetMini").innerHTML = entries.map(({ name, phase, rate }) => `
-    <div class="target-mini-card">
+    <div class="target-mini-card" title="${escapeHtml(name)} ${escapeHtml(phase)} ${rate}%">
       <div>
         <span>${escapeHtml(name)}</span>
-        <strong>${phase} ${rate}%</strong>
+        <strong>${rate}%</strong>
       </div>
       <div class="mini-progress" aria-hidden="true"><span style="width:${rate}%"></span></div>
     </div>

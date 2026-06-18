@@ -100,7 +100,8 @@ function showError(message) {
 let state = loadState();
 let expenseViewMode = "all";
 let expenseGroupFilter = null;
-let expenseFilters = { category: "", method: "", payment: "" };
+let expenseFilters = { category: "", method: "", payment: "", source: "" };
+let expenseVisibleLimit = 10;
 let editingExpenseId = null;
 let editingIncomeId = null;
 let editingEventId = null;
@@ -849,7 +850,7 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
 
 function renderMethodList() {
   const data = monthlyData();
-  const order = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "원 용돈", "수연이 용돈"];
+  const order = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금", "원 용돈", "수연이 용돈"];
   $("#methodList").innerHTML = order.map((group) => {
     const value = totalForPaymentLabel(data, group);
     const width = data.expenseTotal ? Math.round((value / data.expenseTotal) * 100) : 0;
@@ -934,6 +935,7 @@ function renderExpenses() {
     .filter((row) => !expenseFilters.category || row.category === expenseFilters.category)
     .filter((row) => !expenseFilters.method || row.method === expenseFilters.method)
     .filter((row) => !expenseFilters.payment || row.payment === expenseFilters.payment)
+    .filter((row) => !expenseFilters.source || row.source === expenseFilters.source)
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date));
   $("#expenseRows").innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="8">내역 없음</td></tr>`;
@@ -952,19 +954,40 @@ function renderExpenseRows(rows) {
     map.get(key).push(row);
     return map;
   }, new Map());
-  const entries = [...grouped.entries()];
-  const visibleEntries = expenseGroupFilter ? entries.filter(([label]) => label === expenseGroupFilter) : entries;
-  return visibleEntries.map(([label, groupRows]) => `
+  const entries = [...grouped.entries()].sort((a, b) => {
+    if (expenseViewMode === "date") return b[0].localeCompare(a[0]);
+    return sum(b[1]) - sum(a[1]);
+  });
+  if (!expenseGroupFilter) {
+    return entries.map(([label, groupRows]) => `
+      <tr class="group-row">
+        <td colspan="8">
+          <button class="group-filter-button" data-group-filter="${escapeHtml(label)}" type="button">
+            <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(sum(groupRows))} · ${groupRows.length}건</span>
+          </button>
+        </td>
+      </tr>
+    `).join("");
+  }
+  const selectedRows = grouped.get(expenseGroupFilter) || [];
+  const visibleRows = selectedRows.slice(0, expenseVisibleLimit);
+  const remaining = selectedRows.length - visibleRows.length;
+  return `
     <tr class="group-row">
       <td colspan="8">
-        <button class="group-filter-button" data-group-filter="${escapeHtml(label)}" type="button">
-          <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(sum(groupRows))} · ${groupRows.length}건</span>
-        </button>
-        ${expenseGroupFilter ? `<button class="group-clear-button" data-clear-group-filter="true" type="button">전체 보기</button>` : ""}
+        <div class="group-selection">
+          <div><strong>${escapeHtml(expenseGroupFilter)}</strong><span>${won.format(sum(selectedRows))} · ${selectedRows.length}건</span></div>
+          <button class="group-clear-button" data-clear-group-filter="true" type="button">목록으로</button>
+        </div>
       </td>
     </tr>
-    ${groupRows.map(renderExpenseRow).join("")}
-  `).join("");
+    ${visibleRows.map(renderExpenseRow).join("")}
+    ${remaining > 0 ? `
+      <tr class="load-more-row">
+        <td colspan="8"><button class="ghost-button load-more-button" data-load-more-expenses="true" type="button">더보기 ${Math.min(10, remaining)}건</button></td>
+      </tr>
+    ` : ""}
+  `;
 }
 
 function renderExpenseRow(row) {
@@ -1010,7 +1033,7 @@ function renderIncomes() {
 
 function renderAnalysis() {
   const data = monthlyData();
-  const groupOrder = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "원 용돈", "수연이 용돈"];
+  const groupOrder = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금", "원 용돈", "수연이 용돈"];
   $("#analysisStrip").innerHTML = [
     ...groupOrder.map((group) => [group, won.format(totalForPaymentLabel(data, group))]),
     ["총지출", won.format(data.expenseTotal)],
@@ -1484,11 +1507,12 @@ function restoreBackup() {
   boot();
 }
 
-function openExpenseList({ view = "all", category = "", method = "", payment = "", group = "" } = {}) {
+function openExpenseList({ view = "all", category = "", method = "", payment = "", source = "", group = "" } = {}) {
   activateView("expenses");
-  expenseFilters = { category, method, payment };
+  expenseFilters = { category, method, payment, source };
   expenseViewMode = view;
   expenseGroupFilter = group;
+  expenseVisibleLimit = 10;
   $$(".switch-button").forEach((button) => button.classList.toggle("active", button.dataset.expenseView === view));
   renderExpenseFilters();
   renderExpenses();
@@ -1504,7 +1528,7 @@ function openPaymentLabel(label) {
     return;
   }
   if (label === "원 용돈" || label === "수연이 용돈") {
-    openExpenseList({ method: "현금", payment: label });
+    openExpenseList({ source: label });
     return;
   }
   openExpenseList({ method: label, view: "method", group: label });
@@ -1556,6 +1580,7 @@ function activateView(viewName) {
 function activateExpenseView(viewName) {
   expenseViewMode = viewName;
   expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
   $$(".switch-button").forEach((button) => button.classList.toggle("active", button.dataset.expenseView === viewName));
   renderExpenses();
 }
@@ -1622,8 +1647,9 @@ document.addEventListener("click", (event) => {
   if (!button) return;
   const actions = {
     clearExpenseFilters: () => {
-      expenseFilters = { category: "", method: "", payment: "" };
+      expenseFilters = { category: "", method: "", payment: "", source: "" };
       expenseGroupFilter = null;
+      expenseVisibleLimit = 10;
       renderExpenseFilters();
       renderExpenses();
     },
@@ -1739,22 +1765,26 @@ on("#incomeDate", "change", (event) => {
 on("#expenseFilterCategory", "change", (event) => {
   expenseFilters.category = event.target.value;
   expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
   renderExpenses();
 });
 on("#expenseFilterMethod", "change", (event) => {
   expenseFilters.method = event.target.value;
   expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
   renderExpenseFilters();
   renderExpenses();
 });
 on("#expenseFilterPayment", "change", (event) => {
   expenseFilters.payment = event.target.value;
   expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
   renderExpenses();
 });
 on("#clearExpenseFilters", "click", () => {
-  expenseFilters = { category: "", method: "", payment: "" };
+  expenseFilters = { category: "", method: "", payment: "", source: "" };
   expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
   renderExpenseFilters();
   renderExpenses();
 });
@@ -1861,11 +1891,18 @@ document.addEventListener("click", (event) => {
   const clearGroupFilter = closestTarget(event, "[data-clear-group-filter]");
   if (groupFilter) {
     expenseGroupFilter = groupFilter;
+    expenseVisibleLimit = 10;
     renderExpenses();
     return;
   }
   if (clearGroupFilter) {
     expenseGroupFilter = null;
+    expenseVisibleLimit = 10;
+    renderExpenses();
+    return;
+  }
+  if (closestTarget(event, "[data-load-more-expenses]")) {
+    expenseVisibleLimit += 10;
     renderExpenses();
     return;
   }

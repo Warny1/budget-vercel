@@ -1055,6 +1055,11 @@ th.amount {
 }
 
 .group-filter-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -1076,7 +1081,6 @@ th.amount {
 }
 
 .group-clear-button {
-  margin-left: 12px;
   height: 26px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -1085,6 +1089,33 @@ th.amount {
   padding: 0 10px;
   font-size: 12px;
   font-weight: 900;
+}
+
+.group-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.group-selection > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.group-selection span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.load-more-row td {
+  padding: 10px;
+  text-align: center;
+}
+
+.load-more-button {
+  min-width: 150px;
 }
 
 .row-actions {
@@ -1894,6 +1925,26 @@ th.amount {
   .group-filter-button span {
     font-size: 11px;
     overflow-wrap: anywhere;
+  }
+
+  .group-selection {
+    min-height: 42px;
+    padding: 7px 9px;
+  }
+
+  .group-selection > div {
+    display: grid;
+    gap: 1px;
+  }
+
+  .group-selection span {
+    font-size: 10px;
+  }
+
+  .load-more-row {
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
   }
 
   .analysis-strip {

@@ -938,7 +938,9 @@ function renderExpenses() {
     .filter((row) => !expenseFilters.source || row.source === expenseFilters.source)
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date));
-  $("#expenseRows").innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="8">내역 없음</td></tr>`;
+  const tableBody = $("#expenseRows");
+  tableBody.className = expenseGroupFilter ? `compact-details ${expenseViewMode}-detail` : "";
+  tableBody.innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="9">내역 없음</td></tr>`;
 }
 
 function renderExpenseRows(rows) {
@@ -961,7 +963,7 @@ function renderExpenseRows(rows) {
   if (!expenseGroupFilter) {
     return entries.map(([label, groupRows]) => `
       <tr class="group-row">
-        <td colspan="8">
+        <td colspan="9">
           <button class="group-filter-button" data-group-filter="${escapeHtml(label)}" type="button">
             <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(sum(groupRows))} · ${groupRows.length}건</span>
           </button>
@@ -974,7 +976,7 @@ function renderExpenseRows(rows) {
   const remaining = selectedRows.length - visibleRows.length;
   return `
     <tr class="group-row">
-      <td colspan="8">
+      <td colspan="9">
         <div class="group-selection">
           <div><strong>${escapeHtml(expenseGroupFilter)}</strong><span>${won.format(sum(selectedRows))} · ${selectedRows.length}건</span></div>
           <button class="group-clear-button" data-clear-group-filter="true" type="button">목록으로</button>
@@ -984,7 +986,7 @@ function renderExpenseRows(rows) {
     ${visibleRows.map(renderExpenseRow).join("")}
     ${remaining > 0 ? `
       <tr class="load-more-row">
-        <td colspan="8"><button class="ghost-button load-more-button" data-load-more-expenses="true" type="button">더보기 ${Math.min(10, remaining)}건</button></td>
+        <td colspan="9"><button class="ghost-button load-more-button" data-load-more-expenses="true" type="button">더보기 ${Math.min(10, remaining)}건</button></td>
       </tr>
     ` : ""}
   `;
@@ -998,13 +1000,17 @@ function renderExpenseRow(row) {
       <td class="amount">${won.format(row.amount)}</td>
       <td>${escapeHtml(row.method)}</td>
       <td><span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span></td>
-      <td><span class="soft-badge source-badge source-${row.source === "원 용돈" ? "won" : row.source === "수연이 용돈" ? "suyeon" : "shared"}">${escapeHtml(row.source || "공용")}</span></td>
-      <td>${escapeHtml(row.memo)}</td>
+      <td class="source-cell"><span class="soft-badge source-badge source-${row.source === "원 용돈" ? "won" : row.source === "수연이 용돈" ? "suyeon" : "shared"}">${escapeHtml(row.source || "공용")}</span></td>
+      <td class="expense-memo">${escapeHtml(row.memo)}</td>
       <td>
         <div class="row-actions">
           <button class="edit-button" data-edit-expense="${row.id}" type="button">수정</button>
           <button class="delete-button" data-delete-expense="${row.id}" type="button">삭제</button>
         </div>
+      </td>
+      <td class="mobile-expense-meta">
+        <span class="payment-meta">${escapeHtml(row.payment)}</span>
+        ${row.source && row.source !== "공용" ? `<span class="source-meta source-${row.source === "원 용돈" ? "won" : "suyeon"}">${escapeHtml(row.source)}</span>` : ""}
       </td>
     </tr>
   `;

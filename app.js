@@ -6,6 +6,7 @@ const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@
 const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
+const EXPENSE_SOURCES = ["공용", "원 용돈", "수연이 용돈"];
 const CATEGORY_COLORS = {
   "생활": "#A7D8F0",
   "식재료": "#BFE7C2",
@@ -64,8 +65,7 @@ const sampleState = {
       { group: "카드(수)", name: "국체(수)", method: "카드(수)" },
       { group: "카드(수)", name: "롯데(수)", method: "카드(수)" },
       { group: "카드(수)", name: "현대(수)", method: "카드(수)" },
-      { group: "용돈", name: "원 용돈", method: "현금" },
-      { group: "용돈", name: "수연이 용돈", method: "현금" },
+      { group: "현금", name: "현금", method: "현금" },
       { group: "계좌이체", name: "원", method: "계좌이체" },
       { group: "계좌이체", name: "수연", method: "계좌이체" },
     ],
@@ -377,21 +377,23 @@ function normalizeState(source) {
     delete next.settings.cardTargets["국제(수)"];
   }
   next.settings.cardTargets = Object.fromEntries(Object.entries(next.settings.cardTargets).map(([name, target]) => [name, normalizeCardTarget(target)]));
-  next.settings.paymentItems = next.settings.paymentItems.map((item) => {
+  next.settings.paymentItems = (next.settings.paymentItems || []).map((item) => {
     if (item.name === "국제(수)") return { ...item, name: "국체(수)" };
     if (item.method === "카드" && (item.group === "카드(원)" || item.group === "카드(수)")) {
       return { ...item, method: item.group };
     }
-    if (item.group === "용돈" && (item.name === "원 용돈" || item.name === "수연이 용돈")) {
-      return { ...item, group: item.name };
-    }
     return item;
-  });
+  }).filter((item) => !["원 용돈", "수연이 용돈"].includes(item.name));
+  if (!next.settings.paymentItems.some((item) => item.method === "현금")) {
+    next.settings.paymentItems.push({ group: "현금", name: "현금", method: "현금" });
+  }
   next.expenses = next.expenses.map((row) => {
-    const paymentName = row.payment === "국제(수)" ? "국체(수)" : row.payment;
+    const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(row.payment) ? row.payment : "";
+    const paymentName = legacyAllowance ? "현금" : row.payment === "국제(수)" ? "국체(수)" : row.payment;
     const item = next.settings.paymentItems.find((payment) => payment.name === paymentName);
     const method = row.method === "카드" && item?.method ? item.method : row.method;
-    return { ...row, method, payment: paymentName };
+    const source = EXPENSE_SOURCES.includes(row.source) ? row.source : legacyAllowance || "공용";
+    return { ...row, method: legacyAllowance ? "현금" : method, payment: paymentName || "현금", source };
   });
   next.events = (next.events || []).map(normalizeEvent).filter((event) => event.title);
   return next;
@@ -575,7 +577,7 @@ function cardTargetEntries(data = monthlyData()) {
 function totalForPaymentLabel(data, label) {
   if (label === "원 계좌이체") return sum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "원"));
   if (label === "수연 계좌이체") return sum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "수연"));
-  if (label === "원 용돈" || label === "수연이 용돈") return sum(data.expenses.filter((row) => row.payment === label));
+  if (label === "원 용돈" || label === "수연이 용돈") return sum(data.expenses.filter((row) => row.source === label));
   return data.groupTotals[label] || 0;
 }
 
@@ -736,6 +738,7 @@ function renderSelectors() {
   const selectedPayment = $("#expenseCard").value;
   optionList($("#expenseCategory"), state.settings.categories);
   optionList($("#expenseMethod"), PAYMENT_METHODS, selectedMethod);
+  optionList($("#expenseSource"), EXPENSE_SOURCES, $("#expenseSource").value || "공용");
   optionList($("#incomeType"), state.settings.incomeTypes);
   updatePaymentOptions(selectedPayment);
   renderExpenseFilters();
@@ -933,7 +936,7 @@ function renderExpenses() {
     .filter((row) => !expenseFilters.payment || row.payment === expenseFilters.payment)
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date));
-  $("#expenseRows").innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="7">내역 없음</td></tr>`;
+  $("#expenseRows").innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="8">내역 없음</td></tr>`;
 }
 
 function renderExpenseRows(rows) {
@@ -953,7 +956,7 @@ function renderExpenseRows(rows) {
   const visibleEntries = expenseGroupFilter ? entries.filter(([label]) => label === expenseGroupFilter) : entries;
   return visibleEntries.map(([label, groupRows]) => `
     <tr class="group-row">
-      <td colspan="7">
+      <td colspan="8">
         <button class="group-filter-button" data-group-filter="${escapeHtml(label)}" type="button">
           <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(sum(groupRows))} · ${groupRows.length}건</span>
         </button>
@@ -972,6 +975,7 @@ function renderExpenseRow(row) {
       <td class="amount">${won.format(row.amount)}</td>
       <td>${escapeHtml(row.method)}</td>
       <td><span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span></td>
+      <td><span class="soft-badge source-badge source-${row.source === "원 용돈" ? "won" : row.source === "수연이 용돈" ? "suyeon" : "shared"}">${escapeHtml(row.source || "공용")}</span></td>
       <td>${escapeHtml(row.memo)}</td>
       <td>
         <div class="row-actions">
@@ -1175,6 +1179,7 @@ function resetExpenseForm(preferredDate = "") {
   const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#expenseForm").reset();
   $("#expenseDate").value = nextDate;
+  $("#expenseSource").value = "공용";
   updatePaymentOptions();
   setExpenseEditMode(false);
 }
@@ -1221,6 +1226,7 @@ function startExpenseEdit(id) {
   $("#expenseMethod").value = row.method;
   updatePaymentOptions(row.payment);
   $("#expenseCard").value = row.payment;
+  $("#expenseSource").value = row.source || "공용";
   $("#expenseMemo").value = row.memo || "";
   setExpenseEditMode(true);
   $(".nav-tab[data-view='expenses']").click();
@@ -1267,6 +1273,7 @@ function addExpense() {
     amount: Number($("#expenseAmount").value),
     method: $("#expenseMethod").value || paymentItem?.method || "카드(원)",
     payment,
+    source: $("#expenseSource").value || "공용",
     memo: $("#expenseMemo").value.trim(),
   };
   if (editingExpenseId) {
@@ -1415,9 +1422,12 @@ function importSheetData() {
   const target = $("#importTarget").value;
   if (target === "expenses") {
     const imported = rows.map((row) => {
-      const payment = row["상세수단"] || row["카드사"] || row["결제수단상세"] || row["상세결제수단"] || row["카드"] || "";
+      const rawPayment = row["상세수단"] || row["카드사"] || row["결제수단상세"] || row["상세결제수단"] || row["카드"] || "";
+      const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(rawPayment) ? rawPayment : "";
+      const payment = legacyAllowance ? "현금" : rawPayment;
       const item = getPaymentItem(payment) || getPaymentItemByGroup(row["카드그룹"]);
-      const method = item?.method || row["결제수단"] || "카드(원)";
+      const method = legacyAllowance ? "현금" : item?.method || row["결제수단"] || "카드(원)";
+      const sourceValue = row["지출구분"] || row["용돈구분"] || row["구분"] || legacyAllowance || "공용";
       return {
         id: newId("expense-import"),
         date: parseDate(row["날짜"]),
@@ -1425,6 +1435,7 @@ function importSheetData() {
         amount: parseMoney(row["금액"]),
         method,
         payment: payment || item?.name || "",
+        source: EXPENSE_SOURCES.includes(sourceValue) ? sourceValue : "공용",
         memo: row["메모"] || "",
       };
     }).filter((row) => row.date && row.amount > 0);

@@ -10,8 +10,8 @@
     <title>가계부</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20260605-4" />
-    <script defer src="./config.js?v=20260605-4"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260618-1" />
+    <script defer src="./config.js?v=20260618-1"></script>
   </head>
   <body>
     <div class="error-banner hidden" id="errorBanner"></div>
@@ -163,6 +163,11 @@
             <input id="expenseAmount" type="number" min="0" step="1" placeholder="금액" required />
             <select id="expenseMethod" required></select>
             <select id="expenseCard" required></select>
+            <select id="expenseSource" aria-label="지출 구분" required>
+              <option value="공용">공용</option>
+              <option value="원 용돈">원 용돈</option>
+              <option value="수연이 용돈">수연이 용돈</option>
+            </select>
             <input id="expenseMemo" type="text" placeholder="메모" />
           </form>
           <div class="date-tools" aria-label="지출 날짜 빠른 선택">
@@ -192,6 +197,7 @@
                     <th>금액</th>
                     <th>결제수단</th>
                     <th>상세수단</th>
+                    <th>지출구분</th>
                     <th>메모</th>
                     <th>관리</th>
                   </tr>
@@ -410,6 +416,6 @@
         </section>
       </main>
     </div>
-    <script defer src="./app.js?v=20260605-4"></script>
+    <script defer src="./app.js?v=20260618-1"></script>
   </body>
 </html>

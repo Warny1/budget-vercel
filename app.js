@@ -733,6 +733,39 @@ function paymentColor(row) {
   return METHOD_FALLBACK_COLORS[row.method] || "#EEF3F7";
 }
 
+function renderCategoryPicker() {
+  const select = $("#expenseCategory");
+  const selected = select.value || state.settings.categories[0] || "";
+  const label = $("#expenseCategoryPickerLabel");
+  const dot = $(".category-picker-dot");
+  if (label) label.textContent = selected || "카테고리";
+  if (dot) dot.style.background = categoryColor(selected);
+  $("#categoryChoiceGrid").innerHTML = state.settings.categories.map((category) => `
+    <button class="category-choice ${category === selected ? "active" : ""}" data-category-choice="${escapeHtml(category)}" type="button">
+      <span style="background:${categoryColor(category)}"></span>
+      <strong>${escapeHtml(category)}</strong>
+    </button>
+  `).join("");
+}
+
+function openCategoryPicker() {
+  renderCategoryPicker();
+  const dialog = $("#categoryDialog");
+  if (dialog?.showModal) dialog.showModal();
+}
+
+function closeCategoryPicker() {
+  const dialog = $("#categoryDialog");
+  if (dialog?.open) dialog.close();
+}
+
+function selectExpenseCategory(category) {
+  if (!state.settings.categories.includes(category)) return;
+  $("#expenseCategory").value = category;
+  renderCategoryPicker();
+  closeCategoryPicker();
+}
+
 function renderSelectors() {
   const currentMethod = $("#expenseMethod").value;
   const selectedMethod = PAYMENT_METHODS.includes(currentMethod) ? currentMethod : "카드(원)";
@@ -743,6 +776,7 @@ function renderSelectors() {
   optionList($("#incomeType"), state.settings.incomeTypes);
   updatePaymentOptions(selectedPayment);
   renderExpenseFilters();
+  renderCategoryPicker();
 }
 
 function filterOptionList(select, placeholder, values, selected) {
@@ -1251,6 +1285,7 @@ function startExpenseEdit(id) {
   editingExpenseId = id;
   $("#expenseDate").value = row.date;
   $("#expenseCategory").value = row.category;
+  renderCategoryPicker();
   $("#expenseAmount").value = row.amount;
   $("#expenseMethod").value = row.method;
   updatePaymentOptions(row.payment);
@@ -1609,6 +1644,14 @@ function boot() {
 }
 
 document.addEventListener("click", (event) => {
+  const categoryChoice = closestTarget(event, "[data-category-choice]");
+  if (categoryChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectExpenseCategory(categoryChoice.dataset.categoryChoice);
+    return;
+  }
+
   const navTab = closestTarget(event, "[data-view]");
   if (navTab) {
     event.stopImmediatePropagation();
@@ -1763,6 +1806,11 @@ on("#monthPicker", "change", () => {
 on("#expenseDate", "change", (event) => {
   moveToDateMonth(event.target.value);
   renderAll();
+});
+on("#expenseCategoryPickerButton", "click", openCategoryPicker);
+on("#closeCategoryDialog", "click", closeCategoryPicker);
+on("#categoryDialog", "click", (event) => {
+  if (event.target === $("#categoryDialog")) closeCategoryPicker();
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);

@@ -10,8 +10,8 @@
     <title>가계부</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20260618-3" />
-    <script defer src="./config.js?v=20260618-3"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260619-2" />
+    <script defer src="./config.js?v=20260619-2"></script>
   </head>
   <body>
     <div class="error-banner hidden" id="errorBanner"></div>
@@ -159,7 +159,14 @@
           </div>
           <form class="entry-form" id="expenseForm">
             <input id="expenseDate" type="date" required />
-            <select id="expenseCategory" required></select>
+            <div class="category-field">
+              <select class="category-native-select" id="expenseCategory" required></select>
+              <button class="category-picker-button" id="expenseCategoryPickerButton" type="button">
+                <span class="category-picker-dot"></span>
+                <strong id="expenseCategoryPickerLabel">카테고리</strong>
+                <span aria-hidden="true">⌄</span>
+              </button>
+            </div>
             <input id="expenseAmount" type="number" min="0" step="1" placeholder="금액" required />
             <select id="expenseMethod" required></select>
             <select id="expenseCard" required></select>
@@ -416,6 +423,15 @@
         </section>
       </main>
     </div>
-    <script defer src="./app.js?v=20260618-3"></script>
+    <dialog class="category-dialog" id="categoryDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <strong>카테고리 선택</strong>
+          <button class="dialog-close-button" id="closeCategoryDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="category-choice-grid" id="categoryChoiceGrid"></div>
+      </div>
+    </dialog>
+    <script defer src="./app.js?v=20260619-2"></script>
   </body>
 </html>

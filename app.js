@@ -671,12 +671,12 @@ function monthlyData() {
 
 function dashboardInsight(data, targetEntries) {
   const topCategory = data.topCategory[0] === "-" ? "지출" : data.topCategory[0];
-  const topRatio = data.expenseTotal && data.topCategory[1] ? Math.round((data.topCategory[1] / data.expenseTotal) * 100) : 0;
   const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
-  if (!data.expenseTotal) return "아직 조용한 달이에요. 첫 지출을 남겨볼까요?";
-  if (data.balance < 0) return `${topCategory} 지출이 ${topRatio}%예요. 이번 달은 조금 숨 고르기 모드.`;
-  if (nextTarget) return `${topCategory} 지출이 제일 크고, ${nextTarget.name}은 ${nextTarget.phase} ${nextTarget.rate}%까지 왔어요.`;
-  return `${topCategory} 지출이 제일 큰 달이에요. 카드 실적은 다 채웠으니 아껴쓰세요~`;
+  if (!data.expenseTotal) return ["첫 지출 기다림", "기록 시작하기"];
+  const topInsight = `${topCategory} 지출 최다`;
+  if (data.balance < 0) return [topInsight, "잔액 부족"];
+  if (nextTarget) return [topInsight, `${nextTarget.name} ${nextTarget.phase} ${nextTarget.rate}%`];
+  return [topInsight, "카드 실적 달성"];
 }
 
 function optionList(select, values, selected) {
@@ -916,7 +916,9 @@ function renderSummary() {
   $("#topCategoryLabel").textContent = `이번달 최다 지출: ${data.topCategory[0]}`;
   $("#expenseMonthTotal").textContent = won.format(data.expenseTotal);
   $("#incomeMonthTotal").textContent = won.format(data.incomeTotal);
-  $("#monthlyInsight").textContent = dashboardInsight(data, targetEntries);
+  $("#monthlyInsight").innerHTML = dashboardInsight(data, targetEntries)
+    .map((insight) => `<span>${escapeHtml(insight)}</span>`)
+    .join("");
   $("#heroBalance").textContent = won.format(data.balance);
   $("#heroBalance").classList.toggle("negative", data.balance < 0);
   const nextTarget = targetEntries.find((entry) => entry.remaining > 0);

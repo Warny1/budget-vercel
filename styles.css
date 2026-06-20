@@ -385,14 +385,24 @@ button {
   font-size: 34px;
 }
 
-.dashboard-hero p {
-  max-width: 560px;
+.monthly-insight-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.monthly-insight-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid rgba(121, 151, 169, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
   color: #4d6271;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -1665,13 +1675,22 @@ th.amount {
     font-size: 18px;
   }
 
-  .dashboard-hero p {
+  .monthly-insight-list {
     max-width: 100%;
-    font-size: 11px;
-    line-height: 1.25;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .monthly-insight-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .monthly-insight-list span {
+    min-height: 21px;
+    padding: 0 7px;
+    font-size: 9.5px;
   }
 
   .dashboard-hero .header-actions {

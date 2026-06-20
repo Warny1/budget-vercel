@@ -12,8 +12,8 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260621-4" />
-    <script defer src="./config.js?v=20260621-4"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260621-5" />
+    <script defer src="./config.js?v=20260621-5"></script>
   </head>
   <body>
     <div class="launch-screen" aria-hidden="true">
@@ -268,7 +268,13 @@
           <form class="entry-form income-form" id="incomeForm">
             <input id="incomeDate" type="date" required />
             <input id="incomeAmount" type="number" min="0" step="1" placeholder="금액" required />
-            <select id="incomeType" required></select>
+            <div class="picker-field">
+              <select class="picker-native-select" id="incomeType" required></select>
+              <button class="picker-button" id="incomeTypePickerButton" type="button">
+                <strong id="incomeTypePickerLabel">수입항목</strong>
+                <span aria-hidden="true">⌄</span>
+              </button>
+            </div>
             <input id="incomeMemo" type="text" placeholder="메모" />
           </form>
           <div class="date-tools" aria-label="수입 날짜 빠른 선택">
@@ -497,6 +503,15 @@
         <div class="category-choice-grid payment-choice-grid" id="expenseFilterChoiceGrid"></div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260621-4"></script>
+    <dialog class="category-dialog" id="incomeTypeDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <strong>수입항목 선택</strong>
+          <button class="dialog-close-button" id="closeIncomeTypeDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="category-choice-grid payment-choice-grid" id="incomeTypeChoiceGrid"></div>
+      </div>
+    </dialog>
+    <script defer src="./app.js?v=20260621-5"></script>
   </body>
 </html>

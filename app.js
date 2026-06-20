@@ -758,8 +758,28 @@ function renderPaymentPickers() {
   `).join("");
 }
 
+function renderIncomeTypePicker() {
+  const select = $("#incomeType");
+  const selected = select.value || state.settings.incomeTypes[0] || "";
+  $("#incomeTypePickerLabel").textContent = selected || "수입항목";
+  $("#incomeTypeChoiceGrid").innerHTML = state.settings.incomeTypes.map((type, index) => `
+    <button class="category-choice payment-choice ${type === selected ? "active" : ""}" data-income-type-choice="${escapeHtml(type)}" type="button">
+      <span style="background:${FALLBACK_COLORS[index % FALLBACK_COLORS.length]}"></span>
+      <strong>${escapeHtml(type)}</strong>
+    </button>
+  `).join("");
+}
+
+function selectIncomeType(type) {
+  if (!state.settings.incomeTypes.includes(type)) return;
+  $("#incomeType").value = type;
+  renderIncomeTypePicker();
+  closePickerDialog("incomeTypeDialog");
+}
+
 function openPickerDialog(dialogId) {
-  renderPaymentPickers();
+  if (dialogId === "incomeTypeDialog") renderIncomeTypePicker();
+  else renderPaymentPickers();
   const dialog = $(`#${dialogId}`);
   if (dialog?.showModal) dialog.showModal();
 }
@@ -798,6 +818,7 @@ function renderSelectors() {
   renderExpenseFilters();
   renderCategoryPicker();
   renderPaymentPickers();
+  renderIncomeTypePicker();
 }
 
 function filterOptionList(select, placeholder, values, selected) {
@@ -1324,6 +1345,7 @@ function resetIncomeForm(preferredDate = "") {
   const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#incomeForm").reset();
   $("#incomeDate").value = nextDate;
+  renderIncomeTypePicker();
   setIncomeEditMode(false);
 }
 
@@ -1376,6 +1398,7 @@ function startIncomeEdit(id) {
   $("#incomeDate").value = row.date;
   $("#incomeAmount").value = row.amount;
   $("#incomeType").value = row.type;
+  renderIncomeTypePicker();
   $("#incomeMemo").value = row.memo || "";
   setIncomeEditMode(true);
   $(".nav-tab[data-view='income']").click();
@@ -1747,6 +1770,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const incomeTypeChoice = closestTarget(event, "[data-income-type-choice]");
+  if (incomeTypeChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectIncomeType(incomeTypeChoice.dataset.incomeTypeChoice);
+    return;
+  }
+
   const expenseFilterPicker = closestTarget(event, "[data-filter-picker]");
   if (expenseFilterPicker) {
     event.preventDefault();
@@ -1928,6 +1959,11 @@ on("#paymentCardDialog", "click", (event) => {
 on("#closeExpenseFilterDialog", "click", () => closePickerDialog("expenseFilterDialog"));
 on("#expenseFilterDialog", "click", (event) => {
   if (event.target === $("#expenseFilterDialog")) closePickerDialog("expenseFilterDialog");
+});
+on("#incomeTypePickerButton", "click", () => openPickerDialog("incomeTypeDialog"));
+on("#closeIncomeTypeDialog", "click", () => closePickerDialog("incomeTypeDialog"));
+on("#incomeTypeDialog", "click", (event) => {
+  if (event.target === $("#incomeTypeDialog")) closePickerDialog("incomeTypeDialog");
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);

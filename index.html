@@ -12,8 +12,8 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260621-7" />
-    <script defer src="./config.js?v=20260621-7"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260621-8" />
+    <script defer src="./config.js?v=20260621-8"></script>
   </head>
   <body>
     <div class="launch-screen" aria-hidden="true">
@@ -540,6 +540,19 @@
         <div class="category-choice-grid payment-choice-grid" id="incomeTypeChoiceGrid"></div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260621-7"></script>
+    <dialog class="category-dialog budget-detail-dialog" id="budgetDetailDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <div>
+            <strong id="budgetDetailDialogTitle">세부 예산</strong>
+            <span id="budgetDetailTotal"></span>
+          </div>
+          <button class="dialog-close-button" id="closeBudgetDetailDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="budget-detail-rows" id="budgetDetailRows"></div>
+        <button class="ghost-button budget-detail-add" id="addBudgetDetail" type="button">+ 세부 항목 추가</button>
+      </div>
+    </dialog>
+    <script defer src="./app.js?v=20260621-8"></script>
   </body>
 </html>

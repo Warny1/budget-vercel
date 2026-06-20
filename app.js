@@ -49,12 +49,16 @@ const DEFAULT_CARD_TARGETS = {
   "롯데(수)": { primary: 400000, secondary: 0 },
   "현대(수)": { primary: 300000, secondary: 0 },
 };
+const DEFAULT_BUDGET_DETAILS = {
+  "고정": ["은행이자", "관리비", "통신비", "보험"],
+};
 
 const sampleState = {
   settings: {
     categories: ["생활", "식재료", "외식", "교통", "고정", "관계", "쇼핑(Flex)", "의료", "문화", "여행", "기타"],
     incomeTypes: ["급여(원)", "급여(수)", "기타(원)", "기타(수)", "축의금", "환급"],
     monthlyBudgets: {},
+    monthlyBudgetDetails: {},
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -107,6 +111,7 @@ let editingIncomeId = null;
 let editingEventId = null;
 let dashboardOverviewOpen = false;
 let activeExpenseFilterPicker = "";
+let activeBudgetDetailCategory = "";
 let cloudClient = null;
 let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
@@ -375,6 +380,19 @@ function normalizeState(source) {
   next.settings.monthlyBudgets = Object.fromEntries(
     Object.entries(next.settings.monthlyBudgets || {}).map(([name, amount]) => [name, Math.max(Number(amount) || 0, 0)]),
   );
+  next.settings.monthlyBudgetDetails = Object.fromEntries(
+    Object.entries(next.settings.monthlyBudgetDetails || {}).map(([category, items]) => [
+      category,
+      Array.isArray(items) ? items.map((item) => ({
+        id: item.id || newId("budget-detail"),
+        name: String(item.name || "").trim(),
+        amount: Math.max(Number(item.amount) || 0, 0),
+      })) : [],
+    ]),
+  );
+  Object.entries(next.settings.monthlyBudgetDetails).forEach(([category, items]) => {
+    if (items.length) next.settings.monthlyBudgets[category] = items.reduce((total, item) => total + item.amount, 0);
+  });
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국체(수)"] = next.settings.cardTargets["국제(수)"];
@@ -1216,6 +1234,70 @@ function budgetEntries(data = monthlyData()) {
   ];
 }
 
+function budgetDetailItems(category) {
+  return state.settings.monthlyBudgetDetails?.[category] || [];
+}
+
+function ensureBudgetDetailItems(category) {
+  if (budgetDetailItems(category).length) return;
+  const currentTotal = Number(state.settings.monthlyBudgets?.[category] || 0);
+  const suggestions = DEFAULT_BUDGET_DETAILS[category] || [];
+  const items = suggestions.map((name) => ({ id: newId("budget-detail"), name, amount: 0 }));
+  if (currentTotal > 0) items.push({ id: newId("budget-detail"), name: "기존 예산", amount: currentTotal });
+  if (!items.length) items.push({ id: newId("budget-detail"), name: "", amount: currentTotal });
+  state.settings.monthlyBudgetDetails[category] = items;
+}
+
+function syncBudgetDetailTotal(category) {
+  const total = budgetDetailItems(category).reduce((sumValue, item) => sumValue + Math.max(Number(item.amount) || 0, 0), 0);
+  state.settings.monthlyBudgets[category] = total;
+}
+
+function renderBudgetDetailDialog() {
+  const category = activeBudgetDetailCategory;
+  if (!category) return;
+  const items = budgetDetailItems(category);
+  const total = items.reduce((sumValue, item) => sumValue + Number(item.amount || 0), 0);
+  $("#budgetDetailDialogTitle").textContent = `${category} 세부 예산`;
+  $("#budgetDetailTotal").textContent = `합계 ${won.format(total)}`;
+  $("#budgetDetailRows").innerHTML = items.map((item) => `
+    <div class="budget-detail-row">
+      <input data-budget-detail-name="${item.id}" type="text" value="${escapeHtml(item.name)}" placeholder="세부 항목" aria-label="${escapeHtml(category)} 세부 항목 이름" />
+      <input data-budget-detail-amount="${item.id}" type="number" min="0" step="10000" value="${Number(item.amount || 0)}" aria-label="${escapeHtml(item.name || category)} 예산 금액" />
+      <button class="delete-button" data-delete-budget-detail="${item.id}" type="button" aria-label="세부 항목 삭제">×</button>
+    </div>
+  `).join("");
+}
+
+function openBudgetDetailDialog(category) {
+  if (![...state.settings.categories, "저축"].includes(category)) return;
+  activeBudgetDetailCategory = category;
+  ensureBudgetDetailItems(category);
+  syncBudgetDetailTotal(category);
+  saveState();
+  renderBudgetDetailDialog();
+  renderBudget();
+  renderSettings();
+  const dialog = $("#budgetDetailDialog");
+  if (dialog?.showModal) dialog.showModal();
+}
+
+function closeBudgetDetailDialog() {
+  closePickerDialog("budgetDetailDialog");
+  activeBudgetDetailCategory = "";
+}
+
+function addBudgetDetail() {
+  if (!activeBudgetDetailCategory) return;
+  state.settings.monthlyBudgetDetails[activeBudgetDetailCategory].push({
+    id: newId("budget-detail"),
+    name: "",
+    amount: 0,
+  });
+  saveState();
+  renderBudgetDetailDialog();
+}
+
 function renderBudget() {
   const data = monthlyData();
   const entries = budgetEntries(data);
@@ -1351,10 +1433,14 @@ function renderSettings() {
     <span class="chip">${escapeHtml(type)}<button data-remove-income-type="${escapeHtml(type)}" type="button">×</button></span>
   `).join("");
   $("#monthlyBudgetRows").innerHTML = [...state.settings.categories.filter((name) => name !== "저축"), "저축"].map((name) => `
-    <label class="budget-setting-row">
+    <button class="budget-setting-row" data-budget-detail-open="${escapeHtml(name)}" type="button">
       <span><i style="background:${name === "저축" ? "#8FCFA4" : categoryColor(name)}"></i>${escapeHtml(name)}</span>
-      <input data-monthly-budget="${escapeHtml(name)}" type="number" min="0" step="10000" value="${Number(state.settings.monthlyBudgets?.[name] || 0)}" aria-label="${escapeHtml(name)} 월 예산" />
-    </label>
+      <span class="budget-setting-summary">
+        <strong>${won.format(Number(state.settings.monthlyBudgets?.[name] || 0))}</strong>
+        <small>${budgetDetailItems(name).length ? `${budgetDetailItems(name).length}개 항목` : "세부 설정"}</small>
+      </span>
+      <b aria-hidden="true">›</b>
+    </button>
   `).join("");
   $("#paymentSettingRows").innerHTML = state.settings.paymentItems.map((item) => `
     <tr>
@@ -1868,6 +1954,28 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const budgetDetailOpen = closestTarget(event, "[data-budget-detail-open]");
+  if (budgetDetailOpen) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openBudgetDetailDialog(budgetDetailOpen.dataset.budgetDetailOpen);
+    return;
+  }
+
+  const deleteBudgetDetailId = closestTarget(event, "[data-delete-budget-detail]")?.dataset.deleteBudgetDetail;
+  if (deleteBudgetDetailId && activeBudgetDetailCategory) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    state.settings.monthlyBudgetDetails[activeBudgetDetailCategory] = budgetDetailItems(activeBudgetDetailCategory)
+      .filter((item) => item.id !== deleteBudgetDetailId);
+    syncBudgetDetailTotal(activeBudgetDetailCategory);
+    saveState();
+    renderBudgetDetailDialog();
+    renderBudget();
+    renderSettings();
+    return;
+  }
+
   const navTab = closestTarget(event, "[data-view]");
   if (navTab) {
     event.stopImmediatePropagation();
@@ -1958,6 +2066,7 @@ document.addEventListener("click", (event) => {
       activateView("settings");
       activateSettingsTab("budget");
     },
+    addBudgetDetail,
     connectSharedBudget,
     signOutCloud,
     syncCloudNow: async () => {
@@ -2050,6 +2159,13 @@ on("#incomeTypePickerButton", "click", () => openPickerDialog("incomeTypeDialog"
 on("#closeIncomeTypeDialog", "click", () => closePickerDialog("incomeTypeDialog"));
 on("#incomeTypeDialog", "click", (event) => {
   if (event.target === $("#incomeTypeDialog")) closePickerDialog("incomeTypeDialog");
+});
+on("#closeBudgetDetailDialog", "click", closeBudgetDetailDialog);
+on("#budgetDetailDialog", "click", (event) => {
+  if (event.target === $("#budgetDetailDialog")) closeBudgetDetailDialog();
+});
+on("#budgetDetailDialog", "close", () => {
+  activeBudgetDetailCategory = "";
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);
@@ -2223,7 +2339,11 @@ document.addEventListener("click", (event) => {
   if (expenseId) state.expenses = state.expenses.filter((row) => row.id !== expenseId);
   if (incomeId) state.incomes = state.incomes.filter((row) => row.id !== incomeId);
   if (eventId) state.events = state.events.filter((row) => row.id !== eventId);
-  if (category) state.settings.categories = state.settings.categories.filter((item) => item !== category);
+  if (category) {
+    state.settings.categories = state.settings.categories.filter((item) => item !== category);
+    delete state.settings.monthlyBudgets[category];
+    delete state.settings.monthlyBudgetDetails[category];
+  }
   if (incomeType) state.settings.incomeTypes = state.settings.incomeTypes.filter((item) => item !== incomeType);
   if (paymentName) {
     state.settings.paymentItems = state.settings.paymentItems.filter((item) => item.name !== paymentName);
@@ -2238,6 +2358,21 @@ document.addEventListener("click", (event) => {
   }
 });
 document.addEventListener("change", (event) => {
+  const budgetDetailNameId = closestTarget(event, "[data-budget-detail-name]")?.dataset.budgetDetailName;
+  const budgetDetailAmountId = closestTarget(event, "[data-budget-detail-amount]")?.dataset.budgetDetailAmount;
+  if ((budgetDetailNameId || budgetDetailAmountId) && activeBudgetDetailCategory) {
+    const detailId = budgetDetailNameId || budgetDetailAmountId;
+    const detail = budgetDetailItems(activeBudgetDetailCategory).find((item) => item.id === detailId);
+    if (!detail) return;
+    if (budgetDetailNameId) detail.name = event.target.value.trim();
+    if (budgetDetailAmountId) detail.amount = Math.max(Number(event.target.value || 0), 0);
+    syncBudgetDetailTotal(activeBudgetDetailCategory);
+    saveState();
+    renderBudgetDetailDialog();
+    renderBudget();
+    renderSettings();
+    return;
+  }
   const budgetName = closestTarget(event, "[data-monthly-budget]")?.dataset.monthlyBudget;
   if (budgetName) {
     state.settings.monthlyBudgets[budgetName] = Math.max(Number(event.target.value || 0), 0);

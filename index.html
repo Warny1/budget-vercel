@@ -10,8 +10,8 @@
     <title>가계부</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=20260619-2" />
-    <script defer src="./config.js?v=20260619-2"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260619-3" />
+    <script defer src="./config.js?v=20260619-3"></script>
   </head>
   <body>
     <div class="error-banner hidden" id="errorBanner"></div>
@@ -168,8 +168,20 @@
               </button>
             </div>
             <input id="expenseAmount" type="number" min="0" step="1" placeholder="금액" required />
-            <select id="expenseMethod" required></select>
-            <select id="expenseCard" required></select>
+            <div class="picker-field">
+              <select class="picker-native-select" id="expenseMethod" required></select>
+              <button class="picker-button" id="expenseMethodPickerButton" type="button">
+                <strong id="expenseMethodPickerLabel">결제방식</strong>
+                <span aria-hidden="true">⌄</span>
+              </button>
+            </div>
+            <div class="picker-field">
+              <select class="picker-native-select" id="expenseCard" required></select>
+              <button class="picker-button" id="expenseCardPickerButton" type="button">
+                <strong id="expenseCardPickerLabel">카드종류</strong>
+                <span aria-hidden="true">⌄</span>
+              </button>
+            </div>
             <select id="expenseSource" aria-label="지출 구분" required>
               <option value="공용">공용</option>
               <option value="원 용돈">원 용돈</option>
@@ -432,6 +444,24 @@
         <div class="category-choice-grid" id="categoryChoiceGrid"></div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260619-2"></script>
+    <dialog class="category-dialog" id="paymentMethodDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <strong>결제방식 선택</strong>
+          <button class="dialog-close-button" id="closePaymentMethodDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="category-choice-grid payment-choice-grid" id="paymentMethodChoiceGrid"></div>
+      </div>
+    </dialog>
+    <dialog class="category-dialog" id="paymentCardDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <strong>카드종류 선택</strong>
+          <button class="dialog-close-button" id="closePaymentCardDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="category-choice-grid payment-choice-grid" id="paymentCardChoiceGrid"></div>
+      </div>
+    </dialog>
+    <script defer src="./app.js?v=20260619-3"></script>
   </body>
 </html>

@@ -1,7 +1,6 @@
 const STORAGE_KEY = "household-budget-app-v1";
 const BACKUP_KEY = `${STORAGE_KEY}-backup`;
 const SHARED_SESSION_KEY = `${STORAGE_KEY}-shared-session`;
-const API_STATE_URL = "./api/state";
 const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -106,7 +105,6 @@ let editingExpenseId = null;
 let editingIncomeId = null;
 let editingEventId = null;
 let dashboardOverviewOpen = false;
-let filePersistenceReady = false;
 let cloudClient = null;
 let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
@@ -434,33 +432,6 @@ function saveState() {
   if (previous && previous !== next) localStorage.setItem(BACKUP_KEY, previous);
   localStorage.setItem(STORAGE_KEY, next);
   saveCloudState();
-  if (filePersistenceReady) {
-    fetch(API_STATE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: next,
-    }).catch(() => {
-      filePersistenceReady = false;
-    });
-  }
-}
-
-async function syncFileState() {
-  try {
-    const response = await fetch(API_STATE_URL, { cache: "no-store" });
-    if (!response.ok) return;
-    const data = await response.json();
-    filePersistenceReady = true;
-    if (data.exists && data.state) {
-      state = normalizeState(data.state);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      renderAll();
-      return;
-    }
-    saveState();
-  } catch {
-    filePersistenceReady = false;
-  }
 }
 
 function currentMonth() {
@@ -766,6 +737,54 @@ function selectExpenseCategory(category) {
   closeCategoryPicker();
 }
 
+function renderPaymentPickers() {
+  const method = $("#expenseMethod").value || PAYMENT_METHODS[0];
+  const payment = $("#expenseCard").value || "";
+  $("#expenseMethodPickerLabel").textContent = method || "결제방식";
+  $("#expenseCardPickerLabel").textContent = payment || "카드종류";
+  $("#paymentMethodChoiceGrid").innerHTML = PAYMENT_METHODS.map((value) => `
+    <button class="category-choice payment-choice ${value === method ? "active" : ""}" data-payment-method-choice="${escapeHtml(value)}" type="button">
+      <span style="background:${METHOD_FALLBACK_COLORS[value] || "#EEF3F7"}"></span>
+      <strong>${escapeHtml(value)}</strong>
+    </button>
+  `).join("");
+  const items = paymentItemsForMethod(method);
+  $("#paymentCardChoiceGrid").innerHTML = items.map((item) => `
+    <button class="category-choice payment-choice ${item.name === payment ? "active" : ""}" data-payment-card-choice="${escapeHtml(item.name)}" type="button">
+      <span style="background:${PAYMENT_COLORS[item.name] || METHOD_FALLBACK_COLORS[method] || "#EEF3F7"}"></span>
+      <strong>${escapeHtml(item.name)}</strong>
+    </button>
+  `).join("");
+}
+
+function openPickerDialog(dialogId) {
+  renderPaymentPickers();
+  const dialog = $(`#${dialogId}`);
+  if (dialog?.showModal) dialog.showModal();
+}
+
+function closePickerDialog(dialogId) {
+  const dialog = $(`#${dialogId}`);
+  if (dialog?.open) dialog.close();
+}
+
+function selectExpenseMethod(method) {
+  if (!PAYMENT_METHODS.includes(method)) return;
+  $("#expenseMethod").value = method;
+  updatePaymentOptions();
+  renderPaymentPickers();
+  closePickerDialog("paymentMethodDialog");
+}
+
+function selectExpenseCard(payment) {
+  const item = getPaymentItem(payment);
+  if (!item || item.method !== $("#expenseMethod").value) return;
+  $("#expenseCard").value = payment;
+  updateExpenseGroup();
+  renderPaymentPickers();
+  closePickerDialog("paymentCardDialog");
+}
+
 function renderSelectors() {
   const currentMethod = $("#expenseMethod").value;
   const selectedMethod = PAYMENT_METHODS.includes(currentMethod) ? currentMethod : "카드(원)";
@@ -777,6 +796,7 @@ function renderSelectors() {
   updatePaymentOptions(selectedPayment);
   renderExpenseFilters();
   renderCategoryPicker();
+  renderPaymentPickers();
 }
 
 function filterOptionList(select, placeholder, values, selected) {
@@ -807,6 +827,7 @@ function updatePaymentOptions(preferredPayment) {
   optionList($("#expenseCard"), items.map((item) => item.name), selected);
   $("#expenseCard").disabled = items.length === 0;
   updateExpenseGroup();
+  renderPaymentPickers();
 }
 
 function updateExpenseGroup() {
@@ -1027,24 +1048,24 @@ function renderExpenseRows(rows) {
 }
 
 function renderExpenseRow(row) {
+  const source = row.source && row.source !== "공용" ? row.source : "";
   return `
     <tr>
       <td>${row.date}</td>
       <td>${escapeHtml(row.category)}</td>
       <td class="amount">${won.format(row.amount)}</td>
       <td>${escapeHtml(row.method)}</td>
-      <td><span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span></td>
-      <td class="source-cell"><span class="soft-badge source-badge source-${row.source === "원 용돈" ? "won" : row.source === "수연이 용돈" ? "suyeon" : "shared"}">${escapeHtml(row.source || "공용")}</span></td>
+      <td class="payment-cell">
+        <span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span>
+        ${source ? `<span class="soft-badge source-badge source-${source === "원 용돈" ? "won" : "suyeon"}">${escapeHtml(source)}</span>` : ""}
+      </td>
+      <td class="source-cell"></td>
       <td class="expense-memo">${escapeHtml(row.memo)}</td>
       <td>
         <div class="row-actions">
           <button class="edit-button" data-edit-expense="${row.id}" type="button">수정</button>
           <button class="delete-button" data-delete-expense="${row.id}" type="button">삭제</button>
         </div>
-      </td>
-      <td class="mobile-expense-meta">
-        <span class="payment-meta">${escapeHtml(row.payment)}</span>
-        ${row.source && row.source !== "공용" ? `<span class="source-meta source-${row.source === "원 용돈" ? "won" : "suyeon"}">${escapeHtml(row.source)}</span>` : ""}
       </td>
     </tr>
   `;
@@ -1639,7 +1660,6 @@ function boot() {
   setDefaultDates();
   resetEventForm();
   renderAll();
-  syncFileState();
   setupCloud();
 }
 
@@ -1649,6 +1669,22 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
     selectExpenseCategory(categoryChoice.dataset.categoryChoice);
+    return;
+  }
+
+  const paymentMethodChoice = closestTarget(event, "[data-payment-method-choice]");
+  if (paymentMethodChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectExpenseMethod(paymentMethodChoice.dataset.paymentMethodChoice);
+    return;
+  }
+
+  const paymentCardChoice = closestTarget(event, "[data-payment-card-choice]");
+  if (paymentCardChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectExpenseCard(paymentCardChoice.dataset.paymentCardChoice);
     return;
   }
 
@@ -1811,6 +1847,16 @@ on("#expenseCategoryPickerButton", "click", openCategoryPicker);
 on("#closeCategoryDialog", "click", closeCategoryPicker);
 on("#categoryDialog", "click", (event) => {
   if (event.target === $("#categoryDialog")) closeCategoryPicker();
+});
+on("#expenseMethodPickerButton", "click", () => openPickerDialog("paymentMethodDialog"));
+on("#expenseCardPickerButton", "click", () => openPickerDialog("paymentCardDialog"));
+on("#closePaymentMethodDialog", "click", () => closePickerDialog("paymentMethodDialog"));
+on("#closePaymentCardDialog", "click", () => closePickerDialog("paymentCardDialog"));
+on("#paymentMethodDialog", "click", (event) => {
+  if (event.target === $("#paymentMethodDialog")) closePickerDialog("paymentMethodDialog");
+});
+on("#paymentCardDialog", "click", (event) => {
+  if (event.target === $("#paymentCardDialog")) closePickerDialog("paymentCardDialog");
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);
@@ -2017,6 +2063,7 @@ on("#expenseCard", "change", () => {
   const item = getPaymentItem($("#expenseCard").value);
   if (item) $("#expenseMethod").value = item.method;
   updateExpenseGroup();
+  renderPaymentPickers();
 });
 
 try {

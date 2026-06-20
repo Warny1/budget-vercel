@@ -10,8 +10,8 @@ const config = {
 rmSync(distDir, { force: true, recursive: true });
 mkdirSync(distDir, { recursive: true });
 
-writeFileSync("config.js", `window.BUDGET_CONFIG = ${JSON.stringify(config, null, 2)};\n`);
+writeFileSync(join(distDir, "config.js"), `window.BUDGET_CONFIG = ${JSON.stringify(config, null, 2)};\n`);
 
-for (const file of ["index.html", "styles.css", "app.js", "config.js", "sw.js", "manifest.webmanifest", "icon.svg"]) {
+for (const file of ["index.html", "styles.css", "app.js", "sw.js", "manifest.webmanifest", "icon.svg"]) {
   copyFileSync(file, join(distDir, file));
 }

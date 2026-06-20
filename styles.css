@@ -937,12 +937,14 @@ button.drilldown-card:hover {
   box-shadow: var(--soft-shadow);
 }
 
-.category-field {
+.category-field,
+.picker-field {
   position: relative;
   min-width: 0;
 }
 
-.category-native-select {
+.category-native-select,
+.picker-native-select {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -950,7 +952,8 @@ button.drilldown-card:hover {
   pointer-events: none;
 }
 
-.category-picker-button {
+.category-picker-button,
+.picker-button {
   width: 100%;
   height: 40px;
   display: grid;
@@ -965,11 +968,16 @@ button.drilldown-card:hover {
   text-align: left;
 }
 
-.category-picker-button strong {
+.category-picker-button strong,
+.picker-button strong {
   overflow: hidden;
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.picker-button {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .category-picker-dot,
@@ -1045,6 +1053,14 @@ button.drilldown-card:hover {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.payment-choice-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.payment-choice {
+  min-height: 46px;
 }
 
 .category-choice.active {
@@ -1348,8 +1364,11 @@ th.amount {
   border-color: rgba(55, 73, 91, 0.08);
 }
 
-.mobile-expense-meta {
-  display: none;
+.payment-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 .source-badge {
@@ -1609,7 +1628,8 @@ th.amount {
     border-radius: 10px;
   }
 
-  .category-picker-button {
+  .category-picker-button,
+  .picker-button {
     height: 36px;
   }
 
@@ -1636,6 +1656,10 @@ th.amount {
 
   .category-choice strong {
     font-size: 11px;
+  }
+
+  .payment-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .month-control input {
@@ -1967,12 +1991,17 @@ th.amount {
   }
 
   #expenseRows tr:not(.group-row) td:nth-child(4),
-  #expenseRows tr:not(.group-row) td:nth-child(5),
   #expenseRows tr:not(.group-row) td:nth-child(6) {
+    display: none;
+  }
+
+  #expenseRows tr:not(.group-row) td:nth-child(5) {
     grid-column: 1;
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 800;
+    grid-row: 3;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
   }
 
   #expenseRows tr:not(.group-row) td:nth-child(7) {
@@ -1983,11 +2012,21 @@ th.amount {
     overflow-wrap: anywhere;
   }
 
-  #expenseRows tr:not(.group-row) td:nth-child(8),
+  #expenseRows tr:not(.group-row) td:nth-child(8) {
+    grid-column: 2;
+    grid-row: 3;
+    align-self: center;
+    margin-top: 0;
+  }
+
   #incomeRows td:nth-child(5),
   #eventRows td:nth-child(5) {
     grid-column: 1 / -1;
     margin-top: 4px;
+  }
+
+  #expenseRows tr:not(.group-row) .expense-memo {
+    grid-row: 4;
   }
 
   #expenseRows.compact-details tr:not(.group-row) {
@@ -1996,34 +2035,8 @@ th.amount {
   }
 
   #expenseRows.compact-details tr:not(.group-row) td:nth-child(4),
-  #expenseRows.compact-details tr:not(.group-row) td:nth-child(5),
   #expenseRows.compact-details tr:not(.group-row) td:nth-child(6) {
     display: none;
-  }
-
-  #expenseRows.compact-details .mobile-expense-meta {
-    grid-column: 1;
-    grid-row: 3;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    min-width: 0;
-    color: var(--muted);
-    font-size: 10px;
-    font-weight: 850;
-  }
-
-  .payment-meta {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .source-meta {
-    flex: 0 0 auto;
-    border-radius: 999px;
-    padding: 2px 5px;
-    font-size: 9px;
   }
 
   #expenseRows.compact-details .expense-memo {
@@ -2061,8 +2074,11 @@ th.amount {
     display: none;
   }
 
-  #expenseRows.compact-details.category-detail .mobile-expense-meta,
   #expenseRows.compact-details.category-detail tr:not(.group-row) td:nth-child(8) {
+    grid-row: 2;
+  }
+
+  #expenseRows.compact-details.category-detail tr:not(.group-row) td:nth-child(5) {
     grid-row: 2;
   }
 
@@ -2079,8 +2095,11 @@ th.amount {
     grid-row: 1;
   }
 
-  #expenseRows.compact-details.date-detail .mobile-expense-meta,
   #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(8) {
+    grid-row: 2;
+  }
+
+  #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(5) {
     grid-row: 2;
   }
 

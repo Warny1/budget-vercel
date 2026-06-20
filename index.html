@@ -12,8 +12,8 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260621-6" />
-    <script defer src="./config.js?v=20260621-6"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260621-7" />
+    <script defer src="./config.js?v=20260621-7"></script>
   </head>
   <body>
     <div class="launch-screen" aria-hidden="true">
@@ -36,6 +36,7 @@
           <button class="nav-tab active" data-view="dashboard" type="button">현재상태</button>
           <button class="nav-tab" data-view="expenses" type="button">지출</button>
           <button class="nav-tab" data-view="income" type="button">수입</button>
+          <button class="nav-tab" data-view="budget" type="button">예산</button>
           <button class="nav-tab" data-view="analysis" type="button">월별분석</button>
           <button class="nav-tab" data-view="calendar" type="button">캘린더</button>
           <button class="nav-tab" data-view="settings" type="button">설정</button>
@@ -300,6 +301,24 @@
           </section>
         </section>
 
+        <section class="view" id="budgetView" aria-labelledby="budgetTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="budgetTitle">월별 예산</h2>
+              <p id="budgetMonth"></p>
+            </div>
+            <div class="header-actions">
+              <button class="ghost-button" id="openBudgetSettings" type="button">예산 설정</button>
+            </div>
+          </div>
+          <section class="budget-summary">
+            <div><span>전체 예산</span><strong id="budgetTotalTarget"></strong></div>
+            <div><span>현재 지출</span><strong id="budgetTotalActual"></strong></div>
+            <div><span>예산 상태</span><strong id="budgetTotalStatus"></strong></div>
+          </section>
+          <section class="budget-list" id="budgetRows"></section>
+        </section>
+
         <section class="view" id="analysisView" aria-labelledby="analysisTitle">
           <div class="page-header">
             <div>
@@ -365,6 +384,7 @@
             <button class="settings-tab" data-settings-tab="cloud" type="button">공유 로그인</button>
             <button class="settings-tab" data-settings-tab="payment" type="button">결제</button>
             <button class="settings-tab" data-settings-tab="category" type="button">카테고리</button>
+            <button class="settings-tab" data-settings-tab="budget" type="button">예산</button>
             <button class="settings-tab" data-settings-tab="income" type="button">수입</button>
           </div>
           <div class="settings-grid">
@@ -405,6 +425,14 @@
                 <button class="primary-button" id="addCategory" type="button">추가</button>
               </div>
               <div class="chips" id="categoryChips"></div>
+            </section>
+            <section class="panel settings-panel budget-settings-panel" data-settings-panel="budget">
+              <div class="panel-title">
+                <h3>월별 예산 설정</h3>
+                <span>카테고리 + 저축 목표</span>
+              </div>
+              <p class="settings-note">설정한 금액은 매월 같은 기준으로 적용돼요.</p>
+              <div class="budget-setting-list" id="monthlyBudgetRows"></div>
             </section>
             <section class="panel settings-panel" data-settings-panel="payment">
               <div class="panel-title">
@@ -512,6 +540,6 @@
         <div class="category-choice-grid payment-choice-grid" id="incomeTypeChoiceGrid"></div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260621-6"></script>
+    <script defer src="./app.js?v=20260621-7"></script>
   </body>
 </html>

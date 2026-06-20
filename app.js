@@ -54,6 +54,7 @@ const sampleState = {
   settings: {
     categories: ["생활", "식재료", "외식", "교통", "고정", "관계", "쇼핑(Flex)", "의료", "문화", "여행", "기타"],
     incomeTypes: ["급여(원)", "급여(수)", "기타(원)", "기타(수)", "축의금", "환급"],
+    monthlyBudgets: {},
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -371,6 +372,9 @@ async function signOutCloud() {
 
 function normalizeState(source) {
   const next = clone(source);
+  next.settings.monthlyBudgets = Object.fromEntries(
+    Object.entries(next.settings.monthlyBudgets || {}).map(([name, amount]) => [name, Math.max(Number(amount) || 0, 0)]),
+  );
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국체(수)"] = next.settings.cardTargets["국제(수)"];
@@ -1194,6 +1198,75 @@ function renderAnalysis() {
   `).join("");
 }
 
+function budgetEntries(data = monthlyData()) {
+  const budgets = state.settings.monthlyBudgets || {};
+  return [
+    ...state.settings.categories.filter((name) => name !== "저축").map((name) => ({
+      name,
+      target: Number(budgets[name] || 0),
+      actual: Number(data.categoryTotals[name] || 0),
+      type: "expense",
+    })),
+    {
+      name: "저축",
+      target: Number(budgets["저축"] || 0),
+      actual: Math.max(data.incomeTotal - data.expenseTotal, 0),
+      type: "saving",
+    },
+  ];
+}
+
+function renderBudget() {
+  const data = monthlyData();
+  const entries = budgetEntries(data);
+  const expenseEntries = entries.filter((entry) => entry.type === "expense");
+  const totalTarget = expenseEntries.reduce((total, entry) => total + entry.target, 0);
+  const totalActual = expenseEntries.reduce((total, entry) => total + entry.actual, 0);
+  const remaining = totalTarget - totalActual;
+  $("#budgetMonth").textContent = monthLabel(data.month);
+  $("#budgetTotalTarget").textContent = won.format(totalTarget);
+  $("#budgetTotalActual").textContent = won.format(totalActual);
+  $("#budgetTotalStatus").textContent = !totalTarget
+    ? "예산 설정 필요"
+    : remaining >= 0
+      ? `${won.format(remaining)} 남음`
+      : `${won.format(Math.abs(remaining))} 초과`;
+  $("#budgetTotalStatus").classList.toggle("over", remaining < 0);
+  $("#budgetRows").innerHTML = entries.map((entry) => {
+    const rate = entry.target ? Math.round((entry.actual / entry.target) * 100) : 0;
+    const difference = entry.target - entry.actual;
+    const isOver = entry.type === "expense" && entry.target > 0 && difference < 0;
+    const achieved = entry.type === "saving" && entry.target > 0 && difference <= 0;
+    const status = !entry.target
+      ? "목표 미설정"
+      : entry.type === "saving"
+        ? achieved
+          ? `${won.format(Math.abs(difference))} 더 모음`
+          : `${won.format(difference)} 부족`
+        : isOver
+          ? `${won.format(Math.abs(difference))} 초과`
+          : `${won.format(difference)} 아낌`;
+    return `
+      <article class="budget-row ${isOver ? "over" : ""} ${achieved ? "achieved" : ""}">
+        <div class="budget-row-head">
+          <div>
+            <span class="category-dot" style="background:${entry.type === "saving" ? "#8FCFA4" : categoryColor(entry.name)}"></span>
+            <strong>${escapeHtml(entry.name)}</strong>
+          </div>
+          <em>${escapeHtml(status)}</em>
+        </div>
+        <div class="budget-amounts">
+          <strong>${won.format(entry.actual)}</strong>
+          <span>/ ${won.format(entry.target)}</span>
+        </div>
+        <div class="budget-progress" aria-label="${escapeHtml(entry.name)} ${rate}%">
+          <span style="width:${Math.min(rate, 100)}%"></span>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
 function renderEventAlert() {
   const events = upcomingEvents(3);
   const panel = $("#eventAlertPanel");
@@ -1277,6 +1350,12 @@ function renderSettings() {
   $("#incomeTypeChips").innerHTML = state.settings.incomeTypes.map((type) => `
     <span class="chip">${escapeHtml(type)}<button data-remove-income-type="${escapeHtml(type)}" type="button">×</button></span>
   `).join("");
+  $("#monthlyBudgetRows").innerHTML = [...state.settings.categories.filter((name) => name !== "저축"), "저축"].map((name) => `
+    <label class="budget-setting-row">
+      <span><i style="background:${name === "저축" ? "#8FCFA4" : categoryColor(name)}"></i>${escapeHtml(name)}</span>
+      <input data-monthly-budget="${escapeHtml(name)}" type="number" min="0" step="10000" value="${Number(state.settings.monthlyBudgets?.[name] || 0)}" aria-label="${escapeHtml(name)} 월 예산" />
+    </label>
+  `).join("");
   $("#paymentSettingRows").innerHTML = state.settings.paymentItems.map((item) => `
     <tr>
       <td>${escapeHtml(item.method)}</td>
@@ -1314,6 +1393,7 @@ function renderAll() {
   renderExpenses();
   renderIncomes();
   renderAnalysis();
+  renderBudget();
   renderSettings();
 }
 
@@ -1874,6 +1954,10 @@ document.addEventListener("click", (event) => {
       boot();
     },
     restoreBackup,
+    openBudgetSettings: () => {
+      activateView("settings");
+      activateSettingsTab("budget");
+    },
     connectSharedBudget,
     signOutCloud,
     syncCloudNow: async () => {
@@ -2154,6 +2238,13 @@ document.addEventListener("click", (event) => {
   }
 });
 document.addEventListener("change", (event) => {
+  const budgetName = closestTarget(event, "[data-monthly-budget]")?.dataset.monthlyBudget;
+  if (budgetName) {
+    state.settings.monthlyBudgets[budgetName] = Math.max(Number(event.target.value || 0), 0);
+    saveState();
+    renderBudget();
+    return;
+  }
   const cardName = closestTarget(event, "[data-card-target]")?.dataset.cardTarget;
   if (!cardName) return;
   const level = closestTarget(event, "[data-card-target]")?.dataset.targetLevel || "primary";

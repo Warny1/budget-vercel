@@ -1602,7 +1602,7 @@ function downloadJson() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `가계부-${currentMonth()}.json`;
+  anchor.download = `원수살림-${currentMonth()}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }

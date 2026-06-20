@@ -48,6 +48,85 @@ button {
   cursor: pointer;
 }
 
+.launch-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+  background: #fffaf7;
+  padding: 0 24px max(52px, env(safe-area-inset-bottom));
+  pointer-events: none;
+  animation: launch-screen-exit 0.45s ease 1.45s forwards;
+}
+
+.launch-screen::before,
+.launch-screen::after {
+  position: absolute;
+  inset: -24px;
+  content: "";
+  background-image: url("./app-logo.png");
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.launch-screen::before {
+  background-size: cover;
+  filter: blur(28px);
+  opacity: 0.22;
+  transform: scale(1.12);
+}
+
+.launch-screen::after {
+  inset: 0;
+  background-size: min(92vw, 620px) auto;
+}
+
+.launch-screen-title {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: min(280px, 86vw);
+  border: 1px solid rgba(108, 76, 56, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 13px 22px 12px;
+  box-shadow: 0 12px 32px rgba(84, 55, 39, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.launch-screen-title strong {
+  color: #493326;
+  font-size: 24px;
+  font-weight: 850;
+  letter-spacing: -0.7px;
+}
+
+.launch-screen-title span {
+  color: #836c5d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+@keyframes launch-screen-exit {
+  to {
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-screen {
+    animation-duration: 0.01ms;
+    animation-delay: 0.8s;
+  }
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);

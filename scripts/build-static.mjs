@@ -12,6 +12,6 @@ mkdirSync(distDir, { recursive: true });
 
 writeFileSync(join(distDir, "config.js"), `window.BUDGET_CONFIG = ${JSON.stringify(config, null, 2)};\n`);
 
-for (const file of ["index.html", "styles.css", "app.js", "sw.js", "manifest.webmanifest", "icon.svg"]) {
+for (const file of ["index.html", "styles.css", "app.js", "sw.js", "manifest.webmanifest", "icon.svg", "app-logo.png"]) {
   copyFileSync(file, join(distDir, file));
 }

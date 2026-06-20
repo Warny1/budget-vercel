@@ -77,15 +77,12 @@ button {
 
 .brand-mark {
   width: 48px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #ffe0cc, #c7ead1 52%, #dceeff);
-  color: #244054;
-  font-weight: 800;
-  border-radius: 14px 8px 14px 8px;
+  height: 48px;
+  display: block;
+  object-fit: cover;
+  border: 2px solid rgba(104, 71, 53, 0.2);
+  border-radius: 50%;
   box-shadow: var(--soft-shadow);
-  font-size: 14px;
 }
 
 .brand h1,
@@ -1486,8 +1483,7 @@ th.amount {
 
   .brand-mark {
     width: 34px;
-    height: 28px;
-    font-size: 11px;
+    height: 34px;
   }
 
   .brand h1 {

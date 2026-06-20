@@ -105,6 +105,7 @@ let editingExpenseId = null;
 let editingIncomeId = null;
 let editingEventId = null;
 let dashboardOverviewOpen = false;
+let activeExpenseFilterPicker = "";
 let cloudClient = null;
 let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
@@ -818,6 +819,56 @@ function renderExpenseFilters() {
   filterOptionList($("#expenseFilterCategory"), "카테고리 전체", state.settings.categories, expenseFilters.category);
   filterOptionList($("#expenseFilterMethod"), "결제수단 전체", PAYMENT_METHODS, expenseFilters.method);
   filterOptionList($("#expenseFilterPayment"), "상세수단 전체", paymentNames, expenseFilters.payment);
+  $("#expenseFilterCategoryLabel").textContent = expenseFilters.category || "카테고리 전체";
+  $("#expenseFilterMethodLabel").textContent = expenseFilters.method || "결제수단 전체";
+  $("#expenseFilterPaymentLabel").textContent = expenseFilters.payment || "상세수단 전체";
+}
+
+function expenseFilterPickerOptions(type) {
+  if (type === "category") {
+    return { title: "카테고리 선택", allLabel: "카테고리 전체", values: state.settings.categories, selected: expenseFilters.category };
+  }
+  if (type === "method") {
+    return { title: "결제수단 선택", allLabel: "결제수단 전체", values: PAYMENT_METHODS, selected: expenseFilters.method };
+  }
+  const values = expenseFilters.method
+    ? expensePaymentNames().filter((name) => getPaymentItem(name)?.method === expenseFilters.method)
+    : expensePaymentNames();
+  return { title: "상세수단 선택", allLabel: "상세수단 전체", values, selected: expenseFilters.payment };
+}
+
+function openExpenseFilterPicker(type) {
+  if (!["category", "method", "payment"].includes(type)) return;
+  activeExpenseFilterPicker = type;
+  const { title, allLabel, values, selected } = expenseFilterPickerOptions(type);
+  $("#expenseFilterDialogTitle").textContent = title;
+  $("#expenseFilterChoiceGrid").innerHTML = ["", ...values].map((value) => {
+    const label = value || allLabel;
+    const color = type === "category"
+      ? categoryColor(value)
+      : type === "method"
+        ? METHOD_FALLBACK_COLORS[value] || "#EEF3F7"
+        : PAYMENT_COLORS[value] || "#EEF3F7";
+    return `
+      <button class="category-choice payment-choice ${value === selected ? "active" : ""}" data-expense-filter-choice="${escapeHtml(value)}" type="button">
+        <span style="background:${value ? color : "#EEF3F7"}"></span>
+        <strong>${escapeHtml(label)}</strong>
+      </button>
+    `;
+  }).join("");
+  const dialog = $("#expenseFilterDialog");
+  if (dialog?.showModal) dialog.showModal();
+}
+
+function selectExpenseFilter(value) {
+  if (!activeExpenseFilterPicker) return;
+  expenseFilters[activeExpenseFilterPicker] = value;
+  if (activeExpenseFilterPicker === "method") expenseFilters.payment = "";
+  expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
+  renderExpenseFilters();
+  renderExpenses();
+  closePickerDialog("expenseFilterDialog");
 }
 
 function updatePaymentOptions(preferredPayment) {
@@ -1688,6 +1739,22 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const expenseFilterChoice = closestTarget(event, "[data-expense-filter-choice]");
+  if (expenseFilterChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectExpenseFilter(expenseFilterChoice.dataset.expenseFilterChoice);
+    return;
+  }
+
+  const expenseFilterPicker = closestTarget(event, "[data-filter-picker]");
+  if (expenseFilterPicker) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openExpenseFilterPicker(expenseFilterPicker.dataset.filterPicker);
+    return;
+  }
+
   const navTab = closestTarget(event, "[data-view]");
   if (navTab) {
     event.stopImmediatePropagation();
@@ -1857,6 +1924,10 @@ on("#paymentMethodDialog", "click", (event) => {
 });
 on("#paymentCardDialog", "click", (event) => {
   if (event.target === $("#paymentCardDialog")) closePickerDialog("paymentCardDialog");
+});
+on("#closeExpenseFilterDialog", "click", () => closePickerDialog("expenseFilterDialog"));
+on("#expenseFilterDialog", "click", (event) => {
+  if (event.target === $("#expenseFilterDialog")) closePickerDialog("expenseFilterDialog");
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);

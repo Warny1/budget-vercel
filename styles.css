@@ -1140,6 +1140,16 @@ button.drilldown-card:hover {
   min-width: 0;
 }
 
+.filter-picker-field,
+.filter-picker-button {
+  width: 100%;
+}
+
+.filter-picker-button {
+  height: 38px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 .table-panel {
   padding: 0;
   overflow: hidden;

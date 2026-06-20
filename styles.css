@@ -1473,7 +1473,7 @@ th.amount {
     top: 0;
     z-index: 5;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 128px;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     height: auto;
     overflow-y: visible;
@@ -1525,10 +1525,17 @@ th.amount {
   .month-control {
     grid-column: 2;
     grid-row: 1;
+    justify-self: end;
+    width: 118px;
     margin-top: 0;
     grid-template-columns: 1fr;
     align-items: center;
     gap: 2px;
+    padding: 2px;
+    border: 1px solid rgba(205, 224, 233, 0.9);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 4px 12px rgba(55, 79, 101, 0.06);
   }
 
   .month-control label {
@@ -1669,9 +1676,31 @@ th.amount {
   }
 
   .month-control input {
+    width: 100%;
     height: 27px;
-    padding: 0 7px;
-    font-size: 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    padding: 0 5px 0 8px;
+    color: #344657;
+    font-size: 11.5px;
+    font-weight: 750;
+    letter-spacing: -0.25px;
+    text-align: center;
+    box-shadow: none;
+  }
+
+  .month-control input:focus {
+    outline: 2px solid rgba(106, 169, 214, 0.22);
+    outline-offset: 0;
+  }
+
+  .month-control input::-webkit-calendar-picker-indicator {
+    width: 14px;
+    height: 14px;
+    margin-left: 2px;
+    padding: 0;
+    opacity: 0.55;
   }
 
   .summary-grid,

@@ -994,7 +994,7 @@ function renderExpenses() {
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date));
   const tableBody = $("#expenseRows");
-  tableBody.className = expenseGroupFilter ? `compact-details ${expenseViewMode}-detail` : "";
+  tableBody.className = `compact-expense-rows ${expenseViewMode}-view`;
   tableBody.innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="9">내역 없음</td></tr>`;
 }
 

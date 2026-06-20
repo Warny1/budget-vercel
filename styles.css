@@ -2029,17 +2029,17 @@ th.amount {
     grid-row: 4;
   }
 
-  #expenseRows.compact-details tr:not(.group-row) {
+  #expenseRows.compact-expense-rows tr:not(.group-row) {
     gap: 2px 8px;
     padding: 6px 8px;
   }
 
-  #expenseRows.compact-details tr:not(.group-row) td:nth-child(4),
-  #expenseRows.compact-details tr:not(.group-row) td:nth-child(6) {
+  #expenseRows.compact-expense-rows tr:not(.group-row) td:nth-child(4),
+  #expenseRows.compact-expense-rows tr:not(.group-row) td:nth-child(6) {
     display: none;
   }
 
-  #expenseRows.compact-details .expense-memo {
+  #expenseRows.compact-expense-rows .expense-memo {
     grid-row: 4;
     margin-top: 2px;
     font-size: 11px;
@@ -2048,63 +2048,26 @@ th.amount {
     text-overflow: ellipsis;
   }
 
-  #expenseRows.compact-details .expense-memo:empty {
+  #expenseRows.compact-expense-rows .expense-memo:empty {
     display: none;
   }
 
-  #expenseRows.compact-details tr:not(.group-row) td:nth-child(8) {
+  #expenseRows.compact-expense-rows tr:not(.group-row) td:nth-child(8) {
     grid-column: 2;
     grid-row: 3;
     align-self: center;
     margin-top: 0;
   }
 
-  #expenseRows.compact-details .row-actions {
+  #expenseRows.compact-expense-rows .row-actions {
     gap: 3px;
   }
 
-  #expenseRows.compact-details .edit-button,
-  #expenseRows.compact-details .delete-button {
+  #expenseRows.compact-expense-rows .edit-button,
+  #expenseRows.compact-expense-rows .delete-button {
     min-width: 32px;
     height: 24px;
     font-size: 10px;
-  }
-
-  #expenseRows.compact-details.category-detail tr:not(.group-row) td:nth-child(2) {
-    display: none;
-  }
-
-  #expenseRows.compact-details.category-detail tr:not(.group-row) td:nth-child(8) {
-    grid-row: 2;
-  }
-
-  #expenseRows.compact-details.category-detail tr:not(.group-row) td:nth-child(5) {
-    grid-row: 2;
-  }
-
-  #expenseRows.compact-details.category-detail .expense-memo {
-    grid-row: 3;
-  }
-
-  #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(1) {
-    display: none;
-  }
-
-  #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(2),
-  #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(3) {
-    grid-row: 1;
-  }
-
-  #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(8) {
-    grid-row: 2;
-  }
-
-  #expenseRows.compact-details.date-detail tr:not(.group-row) td:nth-child(5) {
-    grid-row: 2;
-  }
-
-  #expenseRows.compact-details.date-detail .expense-memo {
-    grid-row: 3;
   }
 
   #incomeRows tr {

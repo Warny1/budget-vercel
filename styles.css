@@ -85,35 +85,6 @@ button {
   background-size: min(92vw, 620px) auto;
 }
 
-.launch-screen-title {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  min-width: min(280px, 86vw);
-  border: 1px solid rgba(108, 76, 56, 0.12);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.86);
-  padding: 13px 22px 12px;
-  box-shadow: 0 12px 32px rgba(84, 55, 39, 0.14);
-  backdrop-filter: blur(10px);
-}
-
-.launch-screen-title strong {
-  color: #493326;
-  font-size: 24px;
-  font-weight: 850;
-  letter-spacing: -0.7px;
-}
-
-.launch-screen-title span {
-  color: #836c5d;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-}
-
 @keyframes launch-screen-exit {
   to {
     visibility: hidden;

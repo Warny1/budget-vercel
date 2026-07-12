@@ -1060,7 +1060,7 @@ function renderSummary() {
   const recommended = !targetEntries.length
     ? "목표 없음"
     : nextTarget
-      ? `${nextTarget.name} 집중`
+      ? nextTarget.name
       : "아껴쓰세요~";
 
   const cards = [

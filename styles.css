@@ -191,30 +191,18 @@ button {
 
 .nav-tab {
   height: 44px;
-  border: 1px solid rgba(205, 224, 233, 0.65);
-  background: #fff8ec;
-  color: #687386;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
   text-align: left;
   padding: 0 12px 0 14px;
   border-radius: 14px;
   font-weight: 700;
 }
 
-.nav-tab:nth-child(2n) {
-  background: #eef8ff;
-}
-
-.nav-tab:nth-child(3n) {
-  background: #f1fbf3;
-}
-
-.nav-tab:nth-child(4n) {
-  background: #fff0f0;
-}
-
 .nav-tab.active {
-  background: linear-gradient(135deg, #f4fbf7, #eaf7ff);
-  border-color: rgba(143, 207, 164, 0.7);
+  background: #fff;
+  border-color: #cfe4d6;
   color: #2f7151;
   box-shadow: 0 8px 18px rgba(102, 146, 174, 0.13);
 }
@@ -2178,8 +2166,8 @@ th.amount {
     height: auto;
     overflow-y: visible;
     margin: 0;
-    padding: 9px 10px 4px;
-    gap: 6px 10px;
+    padding: 5px 8px;
+    gap: 4px 8px;
     border-right: 0;
     border: 0;
     border-radius: 0;
@@ -2188,13 +2176,13 @@ th.amount {
   }
 
   .brand-mark {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
   }
 
   .brand h1 {
-    font-size: 18px;
-    letter-spacing: -0.6px;
+    font-size: 16px;
+    letter-spacing: 0;
   }
 
   .brand p {
@@ -2203,7 +2191,7 @@ th.amount {
 
   .brand {
     justify-content: space-between;
-    min-height: 42px;
+    min-height: 26px;
     min-width: 0;
   }
 
@@ -2215,12 +2203,12 @@ th.amount {
     z-index: 30;
     display: grid;
     grid-template-columns: repeat(7, minmax(58px, 1fr));
-    gap: 3px;
+    gap: 4px;
     overflow-x: auto;
-    padding: 5px;
-    border: 1px solid rgba(205, 224, 233, 0.95);
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.94);
+    padding: 4px;
+    border: 1px solid rgba(205, 224, 233, 0.9);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 14px 36px rgba(55, 79, 101, 0.18);
     backdrop-filter: blur(16px);
     scrollbar-width: none;
@@ -2234,33 +2222,22 @@ th.amount {
 
   .nav-tab {
     min-width: 0;
-    height: 40px;
-    border: 1px solid rgba(205, 224, 233, 0.6);
-    padding: 0 4px;
-    border-radius: 15px;
-    background: #fff8ec;
+    height: 28px;
+    border: 1px solid transparent;
+    padding: 0 5px;
+    border-radius: 11px;
+    background: transparent;
+    color: var(--muted);
     text-align: center;
-    font-size: 10px;
-    letter-spacing: -0.4px;
-  }
-
-  .nav-tab:nth-child(2n) {
-    background: #eef8ff;
-  }
-
-  .nav-tab:nth-child(3n) {
-    background: #f1fbf3;
-  }
-
-  .nav-tab:nth-child(4n) {
-    background: #fff0f0;
+    font-size: 10.5px;
+    letter-spacing: -0.2px;
   }
 
   .nav-tab.active {
-    background: linear-gradient(135deg, #dff6e8, #dff1ff);
-    border-color: transparent;
+    background: #fff;
+    border-color: #cfe4d6;
     color: #2f7151;
-    box-shadow: 0 7px 16px rgba(79, 159, 119, 0.28);
+    box-shadow: 0 6px 14px rgba(102, 146, 174, 0.14);
   }
 
   .month-control {

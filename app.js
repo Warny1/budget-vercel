@@ -1047,6 +1047,7 @@ function renderSummary() {
   const data = monthlyData();
   const targetEntries = cardTargetEntries(data);
   $("#dashboardMonth").textContent = monthLabel(data.month);
+  renderMonthStepper();
   $("#analysisMonth").textContent = monthLabel(data.month);
   $("#topCategoryLabel").textContent = `이번달 최다 지출: ${data.topCategory[0]}`;
   $("#expenseMonthTotal").textContent = won.format(data.expenseTotal);
@@ -2077,7 +2078,31 @@ function activateView(viewName) {
   if (!view) return;
   $$(".nav-tab").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   $$(".view").forEach((item) => item.classList.toggle("active", item === view));
+  setMenuOpen(false);
   renderChart();
+}
+
+function renderMonthStepper() {
+  const label = $("#monthStepperLabel");
+  if (!label) return;
+  const [, monthNo] = currentMonth().split("-").map(Number);
+  label.textContent = `${monthNo}월`;
+}
+
+function shiftCurrentMonth(offset) {
+  const [year, month] = currentMonth().split("-").map(Number);
+  const next = new Date(year, month - 1 + Number(offset || 0), 1);
+  $("#monthPicker").value = `${next.getFullYear()}-${pad2(next.getMonth() + 1)}`;
+  setDefaultDates();
+  renderAll();
+}
+
+function setMenuOpen(open) {
+  const shell = $(".sidebar");
+  const button = $("#menuToggle");
+  if (!shell || !button) return;
+  shell.classList.toggle("menu-open", open);
+  button.setAttribute("aria-expanded", String(open));
 }
 
 function activateExpenseView(viewName) {
@@ -2208,6 +2233,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const monthShift = closestTarget(event, "[data-month-shift]");
+  if (monthShift) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    shiftCurrentMonth(monthShift.dataset.monthShift);
+    return;
+  }
+
   const switchButton = closestTarget(event, "[data-expense-view]");
   if (switchButton) {
     event.stopImmediatePropagation();
@@ -2251,6 +2284,7 @@ document.addEventListener("click", (event) => {
       renderExpenseFilters();
       renderExpenses();
     },
+    menuToggle: () => setMenuOpen(!$(".sidebar")?.classList.contains("menu-open")),
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),
     addEvent: () => $("#eventForm")?.requestSubmit(),

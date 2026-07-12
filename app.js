@@ -59,6 +59,8 @@ const sampleState = {
     incomeTypes: ["급여(원)", "급여(수)", "기타(원)", "기타(수)", "축의금", "환급"],
     monthlyBudgets: {},
     monthlyBudgetDetails: {},
+    budgetExcludedCategories: [],
+    budgetCustomCategories: [],
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -115,12 +117,58 @@ let activeBudgetDetailCategory = "";
 let cloudClient = null;
 let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
+let cloudRevision = 0;
+let cloudBaseState = null;
+let cloudWriteQueue = Promise.resolve();
 let applyingCloudState = false;
 let cloudSetupPromise = null;
 let supabaseLoadPromise = null;
 
 function clone(value) {
+  if (value === undefined) return undefined;
   return JSON.parse(JSON.stringify(value));
+}
+
+function valuesEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function mergeStateValue(base, local, remote) {
+  if (valuesEqual(local, base)) return clone(remote);
+  if (valuesEqual(remote, base) || valuesEqual(local, remote)) return clone(local);
+  if (Array.isArray(local) && Array.isArray(remote)) {
+    const objectItems = [...local, ...remote].filter((item) => item && typeof item === "object");
+    const keyName = objectItems.some((item) => item.id) ? "id" : objectItems.some((item) => item.name) ? "name" : "";
+    if (keyName) {
+      const baseMap = new Map((Array.isArray(base) ? base : []).map((item) => [item?.[keyName], item]));
+      const localMap = new Map(local.map((item) => [item?.[keyName], item]));
+      const remoteMap = new Map(remote.map((item) => [item?.[keyName], item]));
+      return [...new Set([...localMap.keys(), ...remoteMap.keys(), ...baseMap.keys()])]
+        .filter(Boolean)
+        .map((key) => {
+          const baseItem = baseMap.get(key);
+          const localItem = localMap.get(key);
+          const remoteItem = remoteMap.get(key);
+          if (localItem === undefined) return valuesEqual(remoteItem, baseItem) ? null : clone(remoteItem);
+          if (remoteItem === undefined) return valuesEqual(localItem, baseItem) ? null : clone(localItem);
+          return mergeStateValue(baseItem, localItem, remoteItem);
+        })
+        .filter(Boolean);
+    }
+    return [...new Set([...local, ...remote])];
+  }
+  if (local && remote && typeof local === "object" && typeof remote === "object") {
+    const baseObject = base && typeof base === "object" ? base : {};
+    return Object.fromEntries([...new Set([...Object.keys(baseObject), ...Object.keys(local), ...Object.keys(remote)])].map((key) => [
+      key,
+      mergeStateValue(baseObject[key], local[key], remote[key]),
+    ]).filter(([, value]) => value !== undefined));
+  }
+  return clone(local);
+}
+
+function mergeBudgetStates(base, local, remote) {
+  return normalizeState(mergeStateValue(base || clone(sampleState), local, remote));
 }
 
 function loadState() {
@@ -266,6 +314,7 @@ function renderCloudStatus(message) {
 
 function cloudErrorMessage(error, fallback) {
   const message = error?.message || "";
+  if (message.includes("revision") || message.includes("save_shared_budget_state")) return "공유 SQL 업데이트 필요";
   if (message.includes("relation") || message.includes("does not exist")) return "공유 테이블 생성 필요";
   if (message.includes("permission") || message.includes("policy") || message.includes("RLS")) return "공유 테이블 권한 확인 필요";
   return fallback;
@@ -300,7 +349,7 @@ async function loadCloudState() {
   renderCloudStatus("공유 가계부 불러오는 중");
   const { data, error } = await cloudClient
     .from(SHARED_STATE_TABLE)
-    .select("payload")
+    .select("payload, revision")
     .eq("household_key", sharedSession.lookupKey)
     .maybeSingle();
   if (error) {
@@ -311,7 +360,9 @@ async function loadCloudState() {
     try {
       const cloudState = await decryptSharedState(data.payload);
       applyingCloudState = true;
-      state = normalizeState(cloudState);
+      state = cloudBaseState ? mergeBudgetStates(cloudBaseState, state, cloudState) : normalizeState(cloudState);
+      cloudBaseState = clone(state);
+      cloudRevision = Number(data.revision || 0);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       applyingCloudState = false;
       renderAll();
@@ -328,24 +379,50 @@ async function loadCloudState() {
 async function saveCloudState(immediate = false) {
   if (!cloudClient || !sharedSession || applyingCloudState) return;
   const write = async () => {
-    const payload = await encryptSharedState(state);
-    const { error } = await cloudClient
-      .from(SHARED_STATE_TABLE)
-      .upsert({
-        household_key: sharedSession.lookupKey,
-        household_name: sharedSession.householdId,
-        payload,
-        updated_at: new Date().toISOString(),
+    let localSnapshot = clone(state);
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const payload = await encryptSharedState(localSnapshot);
+      const { data, error } = await cloudClient.rpc("save_shared_budget_state", {
+        p_household_key: sharedSession.lookupKey,
+        p_household_name: sharedSession.householdId,
+        p_payload: payload,
+        p_expected_revision: cloudRevision,
       });
-    renderCloudStatus(error ? cloudErrorMessage(error, "공유 저장 실패") : "공유 저장됨");
+      if (error) {
+        renderCloudStatus(cloudErrorMessage(error, "공유 저장 실패"));
+        return;
+      }
+      const result = Array.isArray(data) ? data[0] : data;
+      if (result?.saved) {
+        cloudRevision = Number(result.current_revision || cloudRevision + 1);
+        cloudBaseState = clone(localSnapshot);
+        renderCloudStatus(attempt ? "충돌 병합 후 저장됨" : "공유 저장됨");
+        return;
+      }
+      if (!result?.current_payload) {
+        renderCloudStatus("공유 저장 충돌 확인 필요");
+        return;
+      }
+      const remoteState = normalizeState(await decryptSharedState(result.current_payload));
+      const mergedSnapshot = mergeBudgetStates(cloudBaseState, localSnapshot, remoteState);
+      state = mergeBudgetStates(localSnapshot, state, mergedSnapshot);
+      localSnapshot = clone(state);
+      cloudBaseState = clone(remoteState);
+      cloudRevision = Number(result.current_revision || 0);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+    }
+    renderCloudStatus("동시 수정이 많아 다시 동기화해 주세요");
   };
   clearTimeout(cloudSaveTimer);
   if (immediate) {
-    await write();
+    cloudWriteQueue = cloudWriteQueue.then(write, write);
+    await cloudWriteQueue;
     return;
   }
   cloudSaveTimer = setTimeout(() => {
-    write().catch(() => renderCloudStatus("공유 저장 실패"));
+    cloudWriteQueue = cloudWriteQueue.then(write, write);
+    cloudWriteQueue.catch(() => renderCloudStatus("공유 저장 실패"));
   }, 500);
 }
 
@@ -368,6 +445,8 @@ async function connectSharedBudget() {
 
 async function signOutCloud() {
   sharedSession = null;
+  cloudRevision = 0;
+  cloudBaseState = null;
   localStorage.removeItem(SHARED_SESSION_KEY);
   state = clone(sampleState);
   saveState();
@@ -393,6 +472,9 @@ function normalizeState(source) {
   Object.entries(next.settings.monthlyBudgetDetails).forEach(([category, items]) => {
     if (items.length) next.settings.monthlyBudgets[category] = items.reduce((total, item) => total + item.amount, 0);
   });
+  next.settings.budgetExcludedCategories = [...new Set(next.settings.budgetExcludedCategories || [])];
+  next.settings.budgetCustomCategories = [...new Set(next.settings.budgetCustomCategories || [])]
+    .filter((name) => name && !next.settings.categories.includes(name) && name !== "저축");
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국체(수)"] = next.settings.cardTargets["국제(수)"];
@@ -1219,19 +1301,28 @@ function renderAnalysis() {
 function budgetEntries(data = monthlyData()) {
   const budgets = state.settings.monthlyBudgets || {};
   return [
-    ...state.settings.categories.filter((name) => name !== "저축").map((name) => ({
+    ...budgetSettingNames().filter((name) => name !== "저축").map((name) => ({
       name,
       target: Number(budgets[name] || 0),
       actual: Number(data.categoryTotals[name] || 0),
       type: "expense",
     })),
-    {
+    ...(!state.settings.budgetExcludedCategories.includes("저축") ? [{
       name: "저축",
       target: Number(budgets["저축"] || 0),
       actual: Math.max(data.incomeTotal - data.expenseTotal, 0),
       type: "saving",
-    },
+    }] : []),
   ];
+}
+
+function budgetSettingNames() {
+  const excluded = new Set(state.settings.budgetExcludedCategories || []);
+  return [...new Set([
+    ...state.settings.categories.filter((name) => name !== "저축"),
+    ...(state.settings.budgetCustomCategories || []),
+    "저축",
+  ])].filter((name) => !excluded.has(name));
 }
 
 function budgetDetailItems(category) {
@@ -1270,7 +1361,7 @@ function renderBudgetDetailDialog() {
 }
 
 function openBudgetDetailDialog(category) {
-  if (![...state.settings.categories, "저축"].includes(category)) return;
+  if (!budgetSettingNames().includes(category)) return;
   activeBudgetDetailCategory = category;
   ensureBudgetDetailItems(category);
   syncBudgetDetailTotal(category);
@@ -1296,6 +1387,29 @@ function addBudgetDetail() {
   });
   saveState();
   renderBudgetDetailDialog();
+}
+
+function addBudgetCategory() {
+  const field = $("#newBudgetCategory");
+  const name = field.value.trim();
+  if (!name) return;
+  state.settings.budgetExcludedCategories = state.settings.budgetExcludedCategories.filter((item) => item !== name);
+  if (!state.settings.categories.includes(name) && name !== "저축" && !state.settings.budgetCustomCategories.includes(name)) {
+    state.settings.budgetCustomCategories.push(name);
+  }
+  field.value = "";
+  saveState();
+  renderBudget();
+  renderSettings();
+}
+
+function removeBudgetCategory(name) {
+  if (!name) return;
+  if (!state.settings.budgetExcludedCategories.includes(name)) state.settings.budgetExcludedCategories.push(name);
+  state.settings.budgetCustomCategories = state.settings.budgetCustomCategories.filter((item) => item !== name);
+  saveState();
+  renderBudget();
+  renderSettings();
 }
 
 function renderBudget() {
@@ -1432,15 +1546,18 @@ function renderSettings() {
   $("#incomeTypeChips").innerHTML = state.settings.incomeTypes.map((type) => `
     <span class="chip">${escapeHtml(type)}<button data-remove-income-type="${escapeHtml(type)}" type="button">×</button></span>
   `).join("");
-  $("#monthlyBudgetRows").innerHTML = [...state.settings.categories.filter((name) => name !== "저축"), "저축"].map((name) => `
-    <button class="budget-setting-row" data-budget-detail-open="${escapeHtml(name)}" type="button">
-      <span><i style="background:${name === "저축" ? "#8FCFA4" : categoryColor(name)}"></i>${escapeHtml(name)}</span>
-      <span class="budget-setting-summary">
-        <strong>${won.format(Number(state.settings.monthlyBudgets?.[name] || 0))}</strong>
-        <small>${budgetDetailItems(name).length ? `${budgetDetailItems(name).length}개 항목` : "세부 설정"}</small>
-      </span>
-      <b aria-hidden="true">›</b>
-    </button>
+  $("#monthlyBudgetRows").innerHTML = budgetSettingNames().map((name) => `
+    <div class="budget-setting-card">
+      <button class="budget-setting-row" data-budget-detail-open="${escapeHtml(name)}" type="button">
+        <span><i style="background:${name === "저축" ? "#8FCFA4" : categoryColor(name)}"></i>${escapeHtml(name)}</span>
+        <span class="budget-setting-summary">
+          <strong>${won.format(Number(state.settings.monthlyBudgets?.[name] || 0))}</strong>
+          <small>${budgetDetailItems(name).length ? `${budgetDetailItems(name).length}개 항목 · 수정` : "눌러서 수정"}</small>
+        </span>
+        <b aria-hidden="true">›</b>
+      </button>
+      <button class="budget-setting-remove" data-remove-budget-category="${escapeHtml(name)}" type="button">제거</button>
+    </div>
   `).join("");
   $("#paymentSettingRows").innerHTML = state.settings.paymentItems.map((item) => `
     <tr>
@@ -1962,6 +2079,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const removeBudgetCategoryName = closestTarget(event, "[data-remove-budget-category]")?.dataset.removeBudgetCategory;
+  if (removeBudgetCategoryName) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    removeBudgetCategory(removeBudgetCategoryName);
+    return;
+  }
+
   const deleteBudgetDetailId = closestTarget(event, "[data-delete-budget-detail]")?.dataset.deleteBudgetDetail;
   if (deleteBudgetDetailId && activeBudgetDetailCategory) {
     event.preventDefault();
@@ -2067,6 +2192,7 @@ document.addEventListener("click", (event) => {
       activateSettingsTab("budget");
     },
     addBudgetDetail,
+    addBudgetCategory,
     connectSharedBudget,
     signOutCloud,
     syncCloudNow: async () => {
@@ -2161,6 +2287,7 @@ on("#incomeTypeDialog", "click", (event) => {
   if (event.target === $("#incomeTypeDialog")) closePickerDialog("incomeTypeDialog");
 });
 on("#closeBudgetDetailDialog", "click", closeBudgetDetailDialog);
+on("#closeBudgetDetailDone", "click", closeBudgetDetailDialog);
 on("#budgetDetailDialog", "click", (event) => {
   if (event.target === $("#budgetDetailDialog")) closeBudgetDetailDialog();
 });

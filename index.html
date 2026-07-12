@@ -12,8 +12,8 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260621-8" />
-    <script defer src="./config.js?v=20260621-8"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260621-10" />
+    <script defer src="./config.js?v=20260621-10"></script>
   </head>
   <body>
     <div class="launch-screen" aria-hidden="true">
@@ -432,6 +432,10 @@
                 <span>카테고리 + 저축 목표</span>
               </div>
               <p class="settings-note">설정한 금액은 매월 같은 기준으로 적용돼요.</p>
+              <div class="setting-editor budget-category-editor">
+                <input id="newBudgetCategory" type="text" placeholder="새 예산 항목" />
+                <button class="primary-button" id="addBudgetCategory" type="button">추가</button>
+              </div>
               <div class="budget-setting-list" id="monthlyBudgetRows"></div>
             </section>
             <section class="panel settings-panel" data-settings-panel="payment">
@@ -551,8 +555,9 @@
         </div>
         <div class="budget-detail-rows" id="budgetDetailRows"></div>
         <button class="ghost-button budget-detail-add" id="addBudgetDetail" type="button">+ 세부 항목 추가</button>
+        <button class="primary-button budget-detail-done" id="closeBudgetDetailDone" type="button">수정 완료</button>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260621-8"></script>
+    <script defer src="./app.js?v=20260621-10"></script>
   </body>
 </html>

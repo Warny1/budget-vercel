@@ -17,6 +17,8 @@
   --rose: #ffe4e1;
   --shadow: 0 14px 34px rgba(85, 112, 130, 0.11);
   --soft-shadow: 0 8px 24px rgba(55, 79, 101, 0.09);
+  --card-radius: 22px;
+  --card-radius-sm: 16px;
 }
 
 * {
@@ -129,7 +131,7 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 238px minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -142,10 +144,10 @@ button {
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(16px);
   border-right: 1px solid var(--line);
-  padding: 24px 18px;
+  padding: 22px 16px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
 }
 
 .brand {
@@ -184,22 +186,22 @@ button {
 
 .nav-tabs {
   display: grid;
-  gap: 6px;
+  gap: 7px;
 }
 
 .nav-tab {
-  height: 42px;
+  height: 44px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
   text-align: left;
-  padding: 0 12px;
-  border-radius: 10px;
+  padding: 0 12px 0 14px;
+  border-radius: 14px;
   font-weight: 700;
 }
 
 .nav-tab.active {
-  background: #fff;
+  background: linear-gradient(135deg, #ffffff, #f4fbf7);
   border-color: #cfe4d6;
   color: #2f7151;
   box-shadow: 0 8px 18px rgba(102, 146, 174, 0.13);
@@ -231,7 +233,7 @@ button {
 }
 
 .main {
-  padding: 26px;
+  padding: 26px clamp(20px, 3vw, 36px);
   min-width: 0;
 }
 
@@ -332,13 +334,13 @@ button {
 .dashboard-hero {
   position: relative;
   cursor: pointer;
-  min-height: 156px;
+  min-height: 170px;
   align-items: stretch;
-  padding: 22px;
+  padding: 24px;
   border: 1px solid rgba(205, 224, 233, 0.9);
-  border-radius: 18px 10px 18px 10px;
+  border-radius: var(--card-radius);
   background:
-    linear-gradient(135deg, rgba(255, 246, 220, 0.92), rgba(237, 247, 253, 0.88) 48%, rgba(255, 228, 225, 0.78)),
+    linear-gradient(135deg, rgba(255, 246, 220, 0.96), rgba(237, 247, 253, 0.9) 50%, rgba(255, 228, 225, 0.82)),
     #fff;
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -436,8 +438,8 @@ button {
   cursor: pointer;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
-  border-radius: 14px 8px 14px 8px;
-  padding: 14px;
+  border-radius: var(--card-radius-sm);
+  padding: 15px;
   box-shadow: var(--soft-shadow);
   position: relative;
   overflow: hidden;
@@ -564,6 +566,55 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin: -2px 0 10px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: -6px 0 12px;
+}
+
+.quick-action {
+  min-height: 66px;
+  border: 1px solid rgba(205, 224, 233, 0.85);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+  padding: 12px 14px;
+  text-align: left;
+  box-shadow: var(--soft-shadow);
+}
+
+.quick-action:hover,
+.recent-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(117, 185, 189, 0.55);
+}
+
+.quick-action span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.quick-action strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 16px;
+}
+
+.quick-action-expense {
+  background: linear-gradient(135deg, #fff, #fff2ec);
+}
+
+.quick-action-income {
+  background: linear-gradient(135deg, #fff, #effbf2);
+}
+
+.quick-action-budget {
+  background: linear-gradient(135deg, #fff, #eef7ff);
 }
 
 .drilldown-card {
@@ -787,9 +838,13 @@ button.drilldown-card:hover {
 .calendar-layout,
 .settings-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   gap: 16px;
   align-items: start;
+}
+
+#dashboardView .dashboard-layout .panel:first-child {
+  grid-row: span 2;
 }
 
 .calendar-layout {
@@ -1151,7 +1206,7 @@ button.drilldown-card:hover {
 .panel {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
-  border-radius: 14px 8px 14px 8px;
+  border-radius: var(--card-radius-sm);
   padding: 16px;
   box-shadow: var(--shadow);
 }
@@ -1209,21 +1264,88 @@ button.drilldown-card:hover {
 
 .method-list {
   display: grid;
-  gap: 12px;
+  gap: 9px;
 }
 
 .method-row {
   width: 100%;
   border: 0;
-  border-radius: 10px 6px 10px 6px;
-  background: rgba(255, 255, 255, 0.46);
-  padding: 4px 6px;
+  border: 1px solid rgba(221, 231, 238, 0.75);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 8px 9px;
   color: var(--ink);
   cursor: pointer;
   display: grid;
   grid-template-columns: 95px minmax(0, 1fr) 110px;
   gap: 10px;
   align-items: center;
+}
+
+.recent-list {
+  display: grid;
+  gap: 8px;
+}
+
+.recent-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 50px;
+  border: 1px solid rgba(221, 231, 238, 0.8);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.recent-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(32, 39, 51, 0.08);
+}
+
+.recent-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recent-main strong,
+.recent-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-main strong {
+  font-size: 13px;
+}
+
+.recent-main small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.recent-item b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-card {
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .bar {
@@ -1781,6 +1903,10 @@ th.amount {
     grid-template-columns: 1fr;
   }
 
+  #dashboardView .dashboard-layout .panel:first-child {
+    grid-row: auto;
+  }
+
   .card-target-panel {
     grid-column: auto;
   }
@@ -1806,6 +1932,7 @@ th.amount {
   body {
     background: linear-gradient(180deg, #f7fbfb 0%, #fbf7fd 100%);
     font-size: 13px;
+    padding-bottom: calc(68px + env(safe-area-inset-bottom));
   }
 
   .app-shell {
@@ -1822,8 +1949,10 @@ th.amount {
     align-items: center;
     height: auto;
     overflow-y: visible;
-    padding: 5px 8px;
+    padding: 7px 9px;
     gap: 4px 8px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(221, 231, 238, 0.9);
   }
 
   .brand-mark {
@@ -1846,10 +1975,21 @@ th.amount {
   }
 
   .nav-tabs {
-    grid-column: 1 / -1;
-    display: flex;
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(58px, 1fr));
+    gap: 3px;
     overflow-x: auto;
-    padding-bottom: 0;
+    padding: 5px;
+    border: 1px solid rgba(205, 224, 233, 0.95);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 14px 36px rgba(55, 79, 101, 0.18);
+    backdrop-filter: blur(16px);
     scrollbar-width: none;
   }
 
@@ -1860,11 +2000,13 @@ th.amount {
   }
 
   .nav-tab {
-    min-width: 62px;
-    height: 27px;
-    padding: 0 6px;
+    min-width: 0;
+    height: 40px;
+    padding: 0 4px;
+    border-radius: 15px;
     text-align: center;
-    font-size: 10.5px;
+    font-size: 10px;
+    letter-spacing: -0.4px;
   }
 
   .month-control {
@@ -1888,7 +2030,7 @@ th.amount {
   }
 
   .main {
-    padding: 8px;
+    padding: 10px 9px 0;
   }
 
   .page-header {
@@ -1919,8 +2061,8 @@ th.amount {
     align-items: center;
     gap: 6px;
     min-height: 0;
-    padding: 8px 9px;
-    border-radius: 14px 8px 14px 8px;
+    padding: 11px;
+    border-radius: 20px;
   }
 
   .dashboard-hero::after {
@@ -1973,9 +2115,38 @@ th.amount {
   }
 
   .hero-balance strong {
-    font-size: 18px;
+    font-size: 19px;
     overflow-wrap: anywhere;
     text-align: right;
+  }
+
+  .quick-actions {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    margin: 0 -9px 7px;
+    padding: 0 9px 1px;
+    scrollbar-width: none;
+  }
+
+  .quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-action {
+    flex: 0 0 112px;
+    min-height: 48px;
+    border-radius: 15px;
+    padding: 8px 10px;
+  }
+
+  .quick-action span {
+    font-size: 9.5px;
+  }
+
+  .quick-action strong {
+    margin-top: 2px;
+    font-size: 12px;
   }
 
   .header-actions {
@@ -2085,6 +2256,7 @@ th.amount {
     flex: 0 0 118px;
     padding: 6px 7px 6px 9px;
     min-height: 42px;
+    border-radius: 14px;
   }
 
   .summary-card span {
@@ -2176,6 +2348,10 @@ th.amount {
   .analysis-layout,
   .calendar-layout {
     gap: 7px;
+  }
+
+  #dashboardView .dashboard-layout .panel:first-child {
+    grid-row: auto;
   }
 
   .calendar-grid {

@@ -1033,10 +1033,10 @@ function renderSummary() {
       : "아껴쓰세요~";
 
   const cards = [
-    ["전월 이월", won.format(data.carryover), data.carryover < 0, "analysis"],
     ["이번달 수입", won.format(data.incomeTotal), false, "income"],
     ["이번달 지출", won.format(data.expenseTotal), false, "expenses"],
     ["현재 잔액", won.format(data.balance), data.balance < 0, "analysis"],
+    ["전월 이월", won.format(data.carryover), data.carryover < 0, "analysis"],
     ["추천 카드", recommended, false, "recommended", nextTarget?.name || ""],
   ];
 
@@ -1095,6 +1095,29 @@ function renderMethodList() {
       </button>
     `;
   }).join("");
+}
+
+function renderRecentList() {
+  const list = $("#recentList");
+  if (!list) return;
+  const rows = state.expenses
+    .filter((row) => inMonth(row, currentMonth()))
+    .slice()
+    .sort((a, b) => `${b.date}-${b.id}`.localeCompare(`${a.date}-${a.id}`))
+    .slice(0, 5);
+  list.innerHTML = rows.length ? rows.map((row) => {
+    const source = row.source && row.source !== "공용" ? ` · ${row.source.replace(" 용돈", "")}` : "";
+    return `
+      <button class="recent-item" data-dashboard-action="category" data-dashboard-value="${escapeHtml(row.category)}" type="button">
+        <span class="recent-dot" style="background:${categoryColor(row.category)}"></span>
+        <span class="recent-main">
+          <strong>${escapeHtml(row.category)}</strong>
+          <small>${shortDateLabel(row.date)} · ${escapeHtml(row.payment)}${escapeHtml(source)}</small>
+        </span>
+        <b>${won.format(row.amount)}</b>
+      </button>
+    `;
+  }).join("") : `<p class="empty-card">이번 달 기록이 아직 없어요.</p>`;
 }
 
 function renderCardTargetMini() {
@@ -1590,6 +1613,7 @@ function renderAll() {
   renderSummary();
   renderCardTargetMini();
   renderMethodList();
+  renderRecentList();
   renderChart();
   renderEventAlert();
   renderCalendar();
@@ -1963,6 +1987,10 @@ function handleDashboardAction(action, value) {
   }
   if (action === "calendar") {
     activateView("calendar");
+    return;
+  }
+  if (action === "budget") {
+    activateView("budget");
     return;
   }
   if (action === "income") {

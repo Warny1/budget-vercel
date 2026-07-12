@@ -956,7 +956,7 @@ button.drilldown-card:hover {
 }
 
 .savings-withdraw-form {
-  grid-template-columns: 150px minmax(160px, 1fr) auto;
+  grid-template-columns: 140px 150px minmax(160px, 1fr) auto;
   margin-top: -2px;
 }
 

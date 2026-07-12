@@ -1493,7 +1493,7 @@ function withdrawSavings() {
     alert(`저금 통장에 ${won.format(data.savingsBalance)}만 있어요.`);
     return;
   }
-  const date = defaultDateForMonth();
+  const date = $("#savingsWithdrawDate").value || defaultDateForMonth();
   const memo = $("#savingsWithdrawMemo").value.trim() || "저금 인출";
   const transferId = newId("savings-transfer");
   if (!state.settings.incomeTypes.includes("저금 인출")) state.settings.incomeTypes.push("저금 인출");
@@ -1514,6 +1514,7 @@ function withdrawSavings() {
   });
   $("#savingsWithdrawAmount").value = "";
   $("#savingsWithdrawMemo").value = "";
+  $("#savingsWithdrawDate").value = defaultDateForMonth();
   saveState();
   renderAll();
 }
@@ -2019,6 +2020,8 @@ function setDefaultDates() {
   const month = currentMonth();
   $("#expenseDate").value = defaultDateForMonth(month);
   $("#incomeDate").value = defaultDateForMonth(month);
+  const savingsWithdrawDate = $("#savingsWithdrawDate");
+  if (savingsWithdrawDate) savingsWithdrawDate.value = defaultDateForMonth(month);
 }
 
 function downloadJson() {

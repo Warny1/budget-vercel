@@ -12,8 +12,8 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260621-12" />
-    <script defer src="./config.js?v=20260621-12"></script>
+    <link rel="stylesheet" href="./styles.css?v=20260621-13" />
+    <script defer src="./config.js?v=20260621-13"></script>
   </head>
   <body>
     <div class="launch-screen" aria-hidden="true">
@@ -276,7 +276,6 @@
           </div>
           <form class="entry-form income-form" id="incomeForm">
             <input id="incomeDate" type="date" required />
-            <input id="incomeAmount" type="number" min="0" step="1" placeholder="금액" required />
             <div class="picker-field">
               <select class="picker-native-select" id="incomeType" required></select>
               <button class="picker-button" id="incomeTypePickerButton" type="button">
@@ -284,6 +283,7 @@
                 <span aria-hidden="true">⌄</span>
               </button>
             </div>
+            <input id="incomeAmount" type="number" min="0" step="1" placeholder="금액" required />
             <input id="incomeMemo" type="text" placeholder="메모" />
           </form>
           <div class="date-tools" aria-label="수입 날짜 빠른 선택">

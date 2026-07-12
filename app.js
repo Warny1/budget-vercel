@@ -1066,7 +1066,6 @@ function renderSummary() {
   const cards = [
     ["이번달 수입", won.format(data.incomeTotal), false, "income"],
     ["이번달 지출", won.format(data.expenseTotal), false, "expenses"],
-    ["현재 잔액", won.format(data.balance), data.balance < 0, "analysis"],
     ["전월 이월", won.format(data.carryover), data.carryover < 0, "analysis"],
     ["추천 카드", recommended, false, "recommended", nextTarget?.name || ""],
   ];
@@ -1180,10 +1179,6 @@ function renderChart() {
     ...(otherTotal > 0 ? [["그 외", otherTotal]] : []),
   ];
   panel.innerHTML = `
-    <div class="category-total-card">
-      <span>총지출</span>
-      <strong>${won.format(data.expenseTotal)}</strong>
-    </div>
     ${rows.map(([label, value], index) => {
       const percent = Math.round((value / data.expenseTotal) * 100);
       return `

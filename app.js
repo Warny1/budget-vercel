@@ -1453,11 +1453,12 @@ function removeBudgetCategory(name) {
 function renderSavings(data = monthlyData()) {
   const initialField = $("#savingsInitialAmount");
   if (!initialField) return;
+  const savingsRows = state.savings || [];
   initialField.value = Number(state.settings.savingsInitialAmount || 0) || "";
   $("#savingsMonthLabel").textContent = monthLabel(data.month);
   $("#savingsBalance").textContent = won.format(data.savingsBalance);
   $("#savingsMonthTotal").textContent = won.format(data.savingsTotal);
-  $("#savingsRows").innerHTML = data.savings.length ? data.savings
+  $("#savingsRows").innerHTML = savingsRows.length ? savingsRows
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .map((row) => `
@@ -1467,7 +1468,7 @@ function renderSavings(data = monthlyData()) {
         <em>${escapeHtml(row.memo || (row.amount < 0 ? "저금 인출" : "저금"))}</em>
         <button class="delete-button" data-delete-saving="${row.id}" type="button">삭제</button>
       </div>
-    `).join("") : `<p class="empty-card">이번 달 저금 기록이 없어요.</p>`;
+    `).join("") : `<p class="empty-card">저금 기록이 없어요.</p>`;
 }
 
 function addSavings() {

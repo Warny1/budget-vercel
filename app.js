@@ -508,9 +508,10 @@ function normalizeState(source) {
   next.savings = (next.savings || []).map((row) => ({
     id: row.id || newId("saving"),
     date: row.date || todayKey(),
-    amount: Math.max(Number(row.amount) || 0, 0),
+    amount: Number(row.amount) || 0,
     memo: String(row.memo || "").trim(),
-  })).filter((row) => row.date && row.amount > 0);
+    ...(row.transferId ? { transferId: row.transferId } : {}),
+  })).filter((row) => row.date && row.amount !== 0);
   next.events = (next.events || []).map(normalizeEvent).filter((event) => event.title);
   return next;
 }
@@ -1460,10 +1461,10 @@ function renderSavings(data = monthlyData()) {
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .map((row) => `
-      <div class="savings-row">
+      <div class="savings-row ${row.amount < 0 ? "withdrawal" : ""}">
         <span>${shortDateLabel(row.date)}</span>
         <strong>${won.format(row.amount)}</strong>
-        <em>${escapeHtml(row.memo || "저금")}</em>
+        <em>${escapeHtml(row.memo || (row.amount < 0 ? "저금 인출" : "저금"))}</em>
         <button class="delete-button" data-delete-saving="${row.id}" type="button">삭제</button>
       </div>
     `).join("") : `<p class="empty-card">이번 달 저금 기록이 없어요.</p>`;
@@ -1480,6 +1481,39 @@ function addSavings() {
   });
   $("#savingsAmount").value = "";
   $("#savingsMemo").value = "";
+  saveState();
+  renderAll();
+}
+
+function withdrawSavings() {
+  const amount = Math.max(Number($("#savingsWithdrawAmount").value || 0), 0);
+  if (!amount) return;
+  const data = monthlyData();
+  if (amount > data.savingsBalance) {
+    alert(`저금 통장에 ${won.format(data.savingsBalance)}만 있어요.`);
+    return;
+  }
+  const date = defaultDateForMonth();
+  const memo = $("#savingsWithdrawMemo").value.trim() || "저금 인출";
+  const transferId = newId("savings-transfer");
+  if (!state.settings.incomeTypes.includes("저금 인출")) state.settings.incomeTypes.push("저금 인출");
+  state.savings.push({
+    id: newId("saving"),
+    date,
+    amount: -amount,
+    memo,
+    transferId,
+  });
+  state.incomes.push({
+    id: newId("income"),
+    date,
+    amount,
+    type: "저금 인출",
+    memo,
+    savingsTransferId: transferId,
+  });
+  $("#savingsWithdrawAmount").value = "";
+  $("#savingsWithdrawMemo").value = "";
   saveState();
   renderAll();
 }
@@ -2256,7 +2290,11 @@ document.addEventListener("click", (event) => {
   if (deleteSavingId) {
     event.preventDefault();
     event.stopImmediatePropagation();
+    const savingRow = (state.savings || []).find((row) => row.id === deleteSavingId);
     state.savings = (state.savings || []).filter((row) => row.id !== deleteSavingId);
+    if (savingRow?.transferId) {
+      state.incomes = state.incomes.filter((row) => row.savingsTransferId !== savingRow.transferId);
+    }
     saveState();
     renderAll();
     return;
@@ -2363,6 +2401,7 @@ document.addEventListener("click", (event) => {
       activateSettingsTab("budget");
     },
     addSavings,
+    withdrawSavings,
     addBudgetDetail,
     addBudgetCategory,
     connectSharedBudget,
@@ -2641,7 +2680,13 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (expenseId) state.expenses = state.expenses.filter((row) => row.id !== expenseId);
-  if (incomeId) state.incomes = state.incomes.filter((row) => row.id !== incomeId);
+  if (incomeId) {
+    const incomeRow = state.incomes.find((row) => row.id === incomeId);
+    state.incomes = state.incomes.filter((row) => row.id !== incomeId);
+    if (incomeRow?.savingsTransferId) {
+      state.savings = (state.savings || []).filter((row) => row.transferId !== incomeRow.savingsTransferId);
+    }
+  }
   if (eventId) state.events = state.events.filter((row) => row.id !== eventId);
   if (category) {
     state.settings.categories = state.settings.categories.filter((item) => item !== category);

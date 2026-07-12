@@ -955,6 +955,11 @@ button.drilldown-card:hover {
   padding: 0 12px;
 }
 
+.savings-withdraw-form {
+  grid-template-columns: 150px minmax(160px, 1fr) auto;
+  margin-top: -2px;
+}
+
 .savings-list {
   display: grid;
   gap: 7px;
@@ -985,6 +990,10 @@ button.drilldown-card:hover {
 
 .savings-row strong {
   font-size: 13px;
+}
+
+.savings-row.withdrawal strong {
+  color: var(--red);
 }
 
 .budget-row {

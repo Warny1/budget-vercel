@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260621-20" />
+    <link rel="stylesheet" href="./styles.css?v=20260621-21" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -332,13 +332,18 @@
             </div>
             <div class="savings-overview">
               <div><span>모아둔 금액</span><strong id="savingsBalance"></strong></div>
-              <div><span>이번 달 저금</span><strong id="savingsMonthTotal"></strong></div>
+              <div><span>이번 달 순저금</span><strong id="savingsMonthTotal"></strong></div>
             </div>
             <div class="savings-form" id="savingsForm">
               <input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 저금액" />
               <input id="savingsAmount" type="number" min="0" step="10000" placeholder="이번 달 저금액" />
               <input id="savingsMemo" type="text" placeholder="메모" />
               <button class="primary-button" id="addSavings" type="button">저금 추가</button>
+            </div>
+            <div class="savings-form savings-withdraw-form" id="savingsWithdrawForm">
+              <input id="savingsWithdrawAmount" type="number" min="0" step="10000" placeholder="가져올 금액" />
+              <input id="savingsWithdrawMemo" type="text" placeholder="사용 메모" />
+              <button class="ghost-button" id="withdrawSavings" type="button">저금에서 가져오기</button>
             </div>
             <div class="savings-list" id="savingsRows"></div>
           </section>
@@ -585,6 +590,6 @@
         <button class="primary-button budget-detail-done" id="closeBudgetDetailDone" type="button">수정 완료</button>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260621-10"></script>
+    <script defer src="./app.js?v=20260621-11"></script>
   </body>
 </html>

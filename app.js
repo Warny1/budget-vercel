@@ -61,6 +61,7 @@ const sampleState = {
     monthlyBudgetDetails: {},
     budgetExcludedCategories: [],
     budgetCustomCategories: [],
+    savingsInitialAmount: 0,
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -78,6 +79,7 @@ const sampleState = {
   },
   expenses: [],
   incomes: [],
+  savings: [],
   events: [],
 };
 
@@ -475,6 +477,7 @@ function normalizeState(source) {
   next.settings.budgetExcludedCategories = [...new Set(next.settings.budgetExcludedCategories || [])];
   next.settings.budgetCustomCategories = [...new Set(next.settings.budgetCustomCategories || [])]
     .filter((name) => name && !next.settings.categories.includes(name) && name !== "저축");
+  next.settings.savingsInitialAmount = Math.max(Number(next.settings.savingsInitialAmount || 0), 0);
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국체(수)"] = next.settings.cardTargets["국제(수)"];
@@ -499,6 +502,12 @@ function normalizeState(source) {
     const source = EXPENSE_SOURCES.includes(row.source) ? row.source : legacyAllowance || "공용";
     return { ...row, method: legacyAllowance ? "현금" : method, payment: paymentName || "현금", source };
   });
+  next.savings = (next.savings || []).map((row) => ({
+    id: row.id || newId("saving"),
+    date: row.date || todayKey(),
+    amount: Math.max(Number(row.amount) || 0, 0),
+    memo: String(row.memo || "").trim(),
+  })).filter((row) => row.date && row.amount > 0);
   next.events = (next.events || []).map(normalizeEvent).filter((event) => event.title);
   return next;
 }
@@ -752,9 +761,12 @@ function monthlyData() {
   const month = currentMonth();
   const expenses = state.expenses.filter((row) => inMonth(row, month));
   const incomes = state.incomes.filter((row) => inMonth(row, month));
+  const savings = (state.savings || []).filter((row) => inMonth(row, month));
   const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month))) - sum(state.expenses.filter((row) => beforeMonth(row, month)));
   const expenseTotal = sum(expenses);
   const incomeTotal = sum(incomes);
+  const savingsTotal = sum(savings);
+  const savingsBalance = Number(state.settings.savingsInitialAmount || 0) + sum(state.savings || []);
   const groupTotals = byKey(expenses, paymentGroup);
   const categoryTotals = byKey(expenses, (row) => row.category);
   const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
@@ -762,9 +774,12 @@ function monthlyData() {
     month,
     expenses,
     incomes,
+    savings,
     carryover,
     expenseTotal,
     incomeTotal,
+    savingsTotal,
+    savingsBalance,
     balance: carryover + incomeTotal - expenseTotal,
     groupTotals,
     categoryTotals,
@@ -910,6 +925,21 @@ function selectExpenseCard(payment) {
   closePickerDialog("paymentCardDialog");
 }
 
+function renderExpenseSourceSegment() {
+  const selected = $("#expenseSource").value || "공용";
+  const segment = $("#expenseSourceSegment");
+  if (!segment) return;
+  segment.innerHTML = EXPENSE_SOURCES.map((source) => `
+    <button class="${source === selected ? "active" : ""}" data-expense-source-choice="${escapeHtml(source)}" type="button">${escapeHtml(source.replace(" 용돈", ""))}</button>
+  `).join("");
+}
+
+function selectExpenseSource(source) {
+  if (!EXPENSE_SOURCES.includes(source)) return;
+  $("#expenseSource").value = source;
+  renderExpenseSourceSegment();
+}
+
 function renderSelectors() {
   const currentMethod = $("#expenseMethod").value;
   const selectedMethod = PAYMENT_METHODS.includes(currentMethod) ? currentMethod : "카드(원)";
@@ -922,6 +952,7 @@ function renderSelectors() {
   renderExpenseFilters();
   renderCategoryPicker();
   renderPaymentPickers();
+  renderExpenseSourceSegment();
   renderIncomeTypePicker();
 }
 
@@ -1134,55 +1165,39 @@ function renderCardTargetMini() {
 }
 
 function renderChart() {
-  const canvas = $("#categoryChart");
-  const ctx = canvas.getContext("2d");
+  const panel = $("#categoryBreakdown");
   const data = monthlyData();
   const entries = Object.entries(data.categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!entries.length) {
-    ctx.fillStyle = "#687386";
-    ctx.font = "16px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("지출 없음", canvas.width / 2, canvas.height / 2);
+  if (!panel) return;
+  if (!entries.length || !data.expenseTotal) {
+    panel.innerHTML = `<p class="empty-card">이번 달 지출이 아직 없어요.</p>`;
     return;
   }
-
-  const total = entries.reduce((acc, [, value]) => acc + value, 0);
-  let angle = -Math.PI / 2;
-  const cx = 150;
-  const cy = 145;
-  const outer = 98;
-  const inner = 52;
-  entries.forEach(([label, value]) => {
-    const nextAngle = angle + (value / total) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, outer, angle, nextAngle);
-    ctx.arc(cx, cy, inner, nextAngle, angle, true);
-    ctx.closePath();
-    ctx.fillStyle = categoryColor(label);
-    ctx.fill();
-    angle = nextAngle;
-  });
-
-  ctx.fillStyle = "#202733";
-  ctx.font = "700 16px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(won.format(total), cx, cy - 4);
-  ctx.fillStyle = "#687386";
-  ctx.font = "13px sans-serif";
-  ctx.fillText("총지출", cx, cy + 18);
-
-  ctx.textAlign = "left";
-  entries.slice(0, 8).forEach(([label, value], index) => {
-    const x = 290;
-    const y = 54 + index * 26;
-    ctx.fillStyle = categoryColor(label);
-    ctx.fillRect(x, y - 10, 12, 12);
-    ctx.fillStyle = "#202733";
-    ctx.font = "13px sans-serif";
-    ctx.fillText(`${label} ${Math.round((value / total) * 100)}%`, x + 20, y);
-  });
+  const topTotal = entries.slice(0, 5).reduce((total, [, value]) => total + value, 0);
+  const otherTotal = Math.max(data.expenseTotal - topTotal, 0);
+  const rows = [
+    ...entries.slice(0, 5),
+    ...(otherTotal > 0 ? [["그 외", otherTotal]] : []),
+  ];
+  panel.innerHTML = `
+    <div class="category-total-card">
+      <span>총지출</span>
+      <strong>${won.format(data.expenseTotal)}</strong>
+    </div>
+    ${rows.map(([label, value], index) => {
+      const percent = Math.round((value / data.expenseTotal) * 100);
+      return `
+        <button class="category-breakdown-row" data-dashboard-action="category" data-dashboard-value="${label === "그 외" ? "" : escapeHtml(label)}" type="button">
+          <span class="category-rank">${index + 1}</span>
+          <span class="category-breakdown-main">
+            <span><i style="background:${categoryColor(label)}"></i>${escapeHtml(label)}</span>
+            <b>${won.format(value)} · ${percent}%</b>
+          </span>
+          <span class="category-breakdown-bar"><i style="width:${percent}%; background:${categoryColor(label)}"></i></span>
+        </button>
+      `;
+    }).join("")}
+  `;
 }
 
 function renderExpenses() {
@@ -1333,7 +1348,7 @@ function budgetEntries(data = monthlyData()) {
     ...(!state.settings.budgetExcludedCategories.includes("저축") ? [{
       name: "저축",
       target: Number(budgets["저축"] || 0),
-      actual: Math.max(data.incomeTotal - data.expenseTotal, 0),
+      actual: data.savingsTotal,
       type: "saving",
     }] : []),
   ];
@@ -1435,6 +1450,47 @@ function removeBudgetCategory(name) {
   renderSettings();
 }
 
+function renderSavings(data = monthlyData()) {
+  const initialField = $("#savingsInitialAmount");
+  if (!initialField) return;
+  initialField.value = Number(state.settings.savingsInitialAmount || 0) || "";
+  $("#savingsMonthLabel").textContent = monthLabel(data.month);
+  $("#savingsBalance").textContent = won.format(data.savingsBalance);
+  $("#savingsMonthTotal").textContent = won.format(data.savingsTotal);
+  $("#savingsRows").innerHTML = data.savings.length ? data.savings
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((row) => `
+      <div class="savings-row">
+        <span>${shortDateLabel(row.date)}</span>
+        <strong>${won.format(row.amount)}</strong>
+        <em>${escapeHtml(row.memo || "저금")}</em>
+        <button class="delete-button" data-delete-saving="${row.id}" type="button">삭제</button>
+      </div>
+    `).join("") : `<p class="empty-card">이번 달 저금 기록이 없어요.</p>`;
+}
+
+function addSavings() {
+  const amount = Math.max(Number($("#savingsAmount").value || 0), 0);
+  if (!amount) return;
+  state.savings.push({
+    id: newId("saving"),
+    date: defaultDateForMonth(),
+    amount,
+    memo: $("#savingsMemo").value.trim(),
+  });
+  $("#savingsAmount").value = "";
+  $("#savingsMemo").value = "";
+  saveState();
+  renderAll();
+}
+
+function updateSavingsInitialAmount() {
+  state.settings.savingsInitialAmount = Math.max(Number($("#savingsInitialAmount").value || 0), 0);
+  saveState();
+  renderBudget();
+}
+
 function renderBudget() {
   const data = monthlyData();
   const entries = budgetEntries(data);
@@ -1451,6 +1507,7 @@ function renderBudget() {
       ? `${won.format(remaining)} 남음`
       : `${won.format(Math.abs(remaining))} 초과`;
   $("#budgetTotalStatus").classList.toggle("over", remaining < 0);
+  renderSavings(data);
   $("#budgetRows").innerHTML = entries.map((entry) => {
     const rate = entry.target ? Math.round((entry.actual / entry.target) * 100) : 0;
     const difference = entry.target - entry.actual;
@@ -1646,6 +1703,7 @@ function resetExpenseForm(preferredDate = "") {
   $("#expenseDate").value = nextDate;
   $("#expenseSource").value = "공용";
   updatePaymentOptions();
+  renderExpenseSourceSegment();
   setExpenseEditMode(false);
 }
 
@@ -1694,6 +1752,7 @@ function startExpenseEdit(id) {
   updatePaymentOptions(row.payment);
   $("#expenseCard").value = row.payment;
   $("#expenseSource").value = row.source || "공용";
+  renderExpenseSourceSegment();
   $("#expenseMemo").value = row.memo || "";
   setExpenseEditMode(true);
   $(".nav-tab[data-view='expenses']").click();
@@ -2091,6 +2150,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const expenseSourceChoice = closestTarget(event, "[data-expense-source-choice]");
+  if (expenseSourceChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectExpenseSource(expenseSourceChoice.dataset.expenseSourceChoice);
+    return;
+  }
+
   const expenseFilterPicker = closestTarget(event, "[data-filter-picker]");
   if (expenseFilterPicker) {
     event.preventDefault();
@@ -2126,6 +2193,16 @@ document.addEventListener("click", (event) => {
     renderBudgetDetailDialog();
     renderBudget();
     renderSettings();
+    return;
+  }
+
+  const deleteSavingId = closestTarget(event, "[data-delete-saving]")?.dataset.deleteSaving;
+  if (deleteSavingId) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    state.savings = (state.savings || []).filter((row) => row.id !== deleteSavingId);
+    saveState();
+    renderAll();
     return;
   }
 
@@ -2219,6 +2296,7 @@ document.addEventListener("click", (event) => {
       activateView("settings");
       activateSettingsTab("budget");
     },
+    addSavings,
     addBudgetDetail,
     addBudgetCategory,
     connectSharedBudget,
@@ -2354,6 +2432,8 @@ on("#clearExpenseFilters", "click", () => {
 });
 on("#addExpense", "click", () => $("#expenseForm").requestSubmit());
 on("#addIncome", "click", () => $("#incomeForm").requestSubmit());
+on("#addSavings", "click", addSavings);
+on("#savingsInitialAmount", "change", updateSavingsInitialAmount);
 on("#cancelExpenseEdit", "click", () => {
   resetExpenseForm();
   renderSelectors();

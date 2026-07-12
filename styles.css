@@ -933,6 +933,85 @@ button.drilldown-card:hover {
   gap: 10px;
 }
 
+.savings-panel {
+  margin-bottom: 12px;
+}
+
+.savings-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.savings-overview > div {
+  border: 1px solid rgba(205, 224, 233, 0.9);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 12px;
+}
+
+.savings-overview span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.savings-overview strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 22px;
+}
+
+.savings-form {
+  display: grid;
+  grid-template-columns: 150px 150px minmax(160px, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.savings-form input {
+  min-width: 0;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+.savings-list {
+  display: grid;
+  gap: 7px;
+}
+
+.savings-row {
+  display: grid;
+  grid-template-columns: 60px 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid rgba(221, 231, 238, 0.85);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 7px 9px;
+}
+
+.savings-row span,
+.savings-row em {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savings-row strong {
+  font-size: 13px;
+}
+
 .budget-row {
   border: 1px solid var(--line);
   border-radius: 15px 8px 15px 8px;
@@ -1258,8 +1337,108 @@ button.drilldown-card:hover {
 
 .chart-wrap {
   min-height: 330px;
+  display: block;
+}
+
+.category-breakdown {
+  display: grid;
+  gap: 9px;
+}
+
+.category-total-card {
+  min-height: 72px;
+  display: grid;
+  align-content: center;
+  border: 1px solid rgba(205, 224, 233, 0.9);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffdf8, #eef8ff);
+  padding: 14px;
+}
+
+.category-total-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.category-total-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 22px;
+}
+
+.category-breakdown-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid rgba(221, 231, 238, 0.85);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  padding: 10px;
+  text-align: left;
+}
+
+.category-breakdown-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(117, 185, 189, 0.55);
+}
+
+.category-rank {
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
+  border-radius: 12px;
+  background: #f1f6f8;
+  color: #5d7182;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.category-breakdown-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.category-breakdown-main > span,
+.category-breakdown-main b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-breakdown-main > span {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.category-breakdown-main i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.category-breakdown-main b {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.category-breakdown-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1f5;
+}
+
+.category-breakdown-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
 }
 
 .method-list {
@@ -1394,10 +1573,10 @@ button.drilldown-card:hover {
   grid-template-columns: 145px 135px 130px 120px 135px 130px minmax(170px, 1fr);
   gap: 10px;
   margin-bottom: 14px;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid rgba(205, 224, 233, 0.8);
-  border-radius: 16px 8px 16px 8px;
-  background: rgba(255, 255, 255, 0.72);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 252, 251, 0.82));
   box-shadow: var(--soft-shadow);
 }
 
@@ -1557,6 +1736,40 @@ button.drilldown-card:hover {
 
 .income-form {
   grid-template-columns: 150px 150px 170px minmax(240px, 1fr);
+}
+
+#expenseSource {
+  display: none;
+}
+
+.source-segment {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f6fafb;
+  padding: 4px;
+}
+
+.source-segment button {
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.source-segment button.active {
+  background: #fff;
+  color: #2f7151;
+  box-shadow: 0 5px 12px rgba(85, 112, 130, 0.12);
 }
 
 .view-switch {
@@ -1949,19 +2162,26 @@ th.amount {
     align-items: center;
     height: auto;
     overflow-y: visible;
-    padding: 7px 9px;
-    gap: 4px 8px;
+    margin: 8px 8px 0;
+    padding: 10px 11px;
+    gap: 6px 10px;
     border-right: 0;
-    border-bottom: 1px solid rgba(221, 231, 238, 0.9);
+    border: 1px solid rgba(205, 224, 233, 0.9);
+    border-radius: 20px;
+    background:
+      linear-gradient(135deg, rgba(255, 246, 220, 0.95), rgba(237, 247, 253, 0.94)),
+      rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 28px rgba(55, 79, 101, 0.12);
   }
 
   .brand-mark {
-    width: 34px;
-    height: 34px;
+    width: 42px;
+    height: 42px;
   }
 
   .brand h1 {
-    font-size: 16px;
+    font-size: 18px;
+    letter-spacing: -0.6px;
   }
 
   .brand p {
@@ -1970,7 +2190,7 @@ th.amount {
 
   .brand {
     justify-content: space-between;
-    min-height: 26px;
+    min-height: 42px;
     min-width: 0;
   }
 
@@ -2009,19 +2229,26 @@ th.amount {
     letter-spacing: -0.4px;
   }
 
+  .nav-tab.active {
+    background: linear-gradient(135deg, #4f9f77, #6aa9d6);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 7px 16px rgba(79, 159, 119, 0.28);
+  }
+
   .month-control {
     grid-column: 2;
     grid-row: 1;
     justify-self: end;
-    width: 118px;
+    width: 128px;
     margin-top: 0;
     grid-template-columns: 1fr;
     align-items: center;
     gap: 2px;
-    padding: 2px;
+    padding: 4px;
     border: 1px solid rgba(205, 224, 233, 0.9);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.88);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.78);
     box-shadow: 0 4px 12px rgba(55, 79, 101, 0.06);
   }
 
@@ -2030,7 +2257,7 @@ th.amount {
   }
 
   .main {
-    padding: 10px 9px 0;
+    padding: 12px 9px 0;
   }
 
   .page-header {
@@ -2239,6 +2466,47 @@ th.amount {
     grid-template-columns: 1fr;
   }
 
+  .entry-form,
+  .income-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding: 10px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  #expenseAmount,
+  #incomeAmount {
+    grid-column: 1 / -1;
+    height: 46px;
+    border-color: rgba(79, 159, 119, 0.25);
+    background: #fff;
+    font-size: 17px;
+    font-weight: 900;
+  }
+
+  #expenseMemo,
+  #incomeMemo,
+  .source-segment {
+    grid-column: 1 / -1;
+  }
+
+  .source-segment {
+    min-height: 38px;
+    border-radius: 13px;
+  }
+
+  .source-segment button {
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .date-tools {
+    width: 100%;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    margin: -4px 0 10px;
+  }
+
   .summary-grid {
     display: flex;
     overflow-x: auto;
@@ -2413,15 +2681,9 @@ th.amount {
   }
 
   .chart-wrap {
-    min-height: 126px;
-    max-height: 142px;
-    overflow: hidden;
-  }
-
-  #categoryChart {
-    width: 100%;
-    max-width: 210px;
-    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
   }
 
   .method-list {
@@ -2828,6 +3090,37 @@ th.amount {
   .budget-summary strong {
     font-size: 13px;
     overflow-wrap: anywhere;
+  }
+
+  .savings-overview,
+  .savings-form {
+    grid-template-columns: 1fr;
+  }
+
+  .savings-overview {
+    gap: 6px;
+  }
+
+  .savings-overview > div {
+    padding: 10px 11px;
+  }
+
+  .savings-form {
+    gap: 7px;
+  }
+
+  .savings-row {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .savings-row em {
+    grid-column: 1 / 3;
+  }
+
+  .savings-row .delete-button {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 
   .budget-list {

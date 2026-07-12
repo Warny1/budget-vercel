@@ -2350,6 +2350,7 @@ document.addEventListener("click", (event) => {
       renderAll();
     },
     exportJson: downloadJson,
+    settingsExportJson: downloadJson,
     resetSample: () => {
       if (!confirm("빈 가계부로 초기화할까요? 현재 저장 내용은 백업으로 남겨둘게요.")) return;
       state = clone(sampleState);

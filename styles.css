@@ -2195,7 +2195,7 @@ th.amount {
   .menu-toggle-button {
     grid-column: 1;
     color: #344657;
-    padding: 0 12px;
+    padding: 0 10px;
     font-size: 12px;
     font-weight: 900;
   }

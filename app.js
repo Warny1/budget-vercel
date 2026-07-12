@@ -125,6 +125,9 @@ let cloudWriteQueue = Promise.resolve();
 let applyingCloudState = false;
 let cloudSetupPromise = null;
 let supabaseLoadPromise = null;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartedOnInteractive = false;
 
 function clone(value) {
   if (value === undefined) return undefined;
@@ -2082,6 +2085,17 @@ function activateView(viewName) {
   renderChart();
 }
 
+function activeViewName() {
+  return $(".nav-tab.active")?.dataset.view || "dashboard";
+}
+
+function navigateViewByOffset(offset) {
+  const tabs = $$(".nav-tab");
+  const index = tabs.findIndex((button) => button.dataset.view === activeViewName());
+  const nextIndex = Math.min(Math.max(index + offset, 0), tabs.length - 1);
+  if (nextIndex !== index && tabs[nextIndex]) activateView(tabs[nextIndex].dataset.view);
+}
+
 function renderMonthStepper() {
   const label = $("#monthStepperLabel");
   if (!label) return;
@@ -2103,6 +2117,28 @@ function setMenuOpen(open) {
   if (!shell || !button) return;
   shell.classList.toggle("menu-open", open);
   button.setAttribute("aria-expanded", String(open));
+}
+
+function shouldIgnoreSwipe(event) {
+  return Boolean(closestTarget(event, "button,input,select,textarea,label,dialog,.table-scroll,.nav-tabs,.mobile-top-controls"));
+}
+
+function handleSwipeStart(event) {
+  const touch = event.touches?.[0];
+  if (!touch) return;
+  swipeStartX = touch.clientX;
+  swipeStartY = touch.clientY;
+  swipeStartedOnInteractive = shouldIgnoreSwipe(event);
+}
+
+function handleSwipeEnd(event) {
+  if (swipeStartedOnInteractive) return;
+  const touch = event.changedTouches?.[0];
+  if (!touch) return;
+  const deltaX = touch.clientX - swipeStartX;
+  const deltaY = touch.clientY - swipeStartY;
+  if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) return;
+  navigateViewByOffset(deltaX < 0 ? 1 : -1);
 }
 
 function activateExpenseView(viewName) {
@@ -2388,6 +2424,9 @@ $$(".settings-tab").forEach((button) => {
     activateSettingsTab(button.dataset.settingsTab);
   });
 });
+
+on(".main", "touchstart", handleSwipeStart);
+on(".main", "touchend", handleSwipeEnd);
 
 on("#monthPicker", "change", () => {
   setDefaultDates();

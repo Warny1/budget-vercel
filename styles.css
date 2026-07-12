@@ -2136,7 +2136,7 @@ th.amount {
     top: 0;
     z-index: 5;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 1fr;
     align-items: center;
     height: auto;
     overflow-y: visible;
@@ -2165,54 +2165,59 @@ th.amount {
   }
 
   .brand {
-    justify-content: space-between;
-    min-height: 26px;
-    min-width: 0;
+    display: none;
   }
 
   .mobile-top-controls {
-    display: flex;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 48px minmax(116px, 1fr) 74px 48px;
     align-items: center;
-    gap: 6px;
-    justify-self: end;
+    gap: 8px;
+    justify-self: stretch;
   }
 
   .menu-toggle-button,
-  .month-stepper {
-    min-height: 30px;
+  .month-shift-button,
+  .month-stepper-label {
+    min-height: 44px;
     border: 1px solid rgba(205, 224, 233, 0.9);
-    border-radius: 12px;
+    border-radius: 15px;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 12px rgba(55, 79, 101, 0.06);
   }
 
   .menu-toggle-button {
+    grid-column: 2;
     color: #344657;
-    padding: 0 10px;
-    font-size: 11px;
+    padding: 0 18px;
+    font-size: 14px;
     font-weight: 900;
   }
 
-  .month-stepper {
-    display: grid;
-    grid-template-columns: 26px minmax(42px, auto) 26px;
-    align-items: center;
-    overflow: hidden;
-  }
-
-  .month-stepper button {
-    height: 30px;
-    border: 0;
-    background: transparent;
+  .month-shift-button {
     color: #5f7282;
     padding: 0;
-    font-size: 17px;
+    font-size: 23px;
     font-weight: 900;
   }
 
-  .month-stepper span {
+  .month-shift-button[data-month-shift="-1"] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .month-shift-button[data-month-shift="1"] {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .month-stepper-label {
+    grid-column: 3;
+    display: grid;
+    place-items: center;
     color: #344657;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 950;
     text-align: center;
     white-space: nowrap;

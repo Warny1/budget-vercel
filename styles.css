@@ -1503,6 +1503,16 @@ button.drilldown-card:hover {
   font-variant-numeric: tabular-nums;
 }
 
+.recent-item b.positive,
+.cancellation-row .amount {
+  color: #2f7151;
+  font-weight: 950;
+}
+
+.cancellation-row {
+  background: rgba(230, 250, 237, 0.42);
+}
+
 .empty-card {
   margin: 0;
   border: 1px dashed var(--line);

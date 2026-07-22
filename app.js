@@ -6,6 +6,7 @@ const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
 const EXPENSE_SOURCES = ["공용", "원 용돈", "수연이 용돈"];
+const CANCELLATION_CATEGORY = "취소";
 const CATEGORY_COLORS = {
   "생활": "#A7D8F0",
   "식재료": "#BFE7C2",
@@ -17,6 +18,7 @@ const CATEGORY_COLORS = {
   "의료": "#BDEDE0",
   "문화": "#FFE6A7",
   "여행": "#C7E9F1",
+  "취소": "#D7F5E3",
   "기타": "#DDE3EA",
 };
 const FALLBACK_COLORS = ["#A7D8F0", "#BFE7C2", "#FFD6A5", "#C8D7FF", "#F7C7D9", "#D9C2F0", "#F8C8B8", "#BDEDE0"];
@@ -55,7 +57,7 @@ const DEFAULT_BUDGET_DETAILS = {
 
 const sampleState = {
   settings: {
-    categories: ["생활", "식재료", "외식", "교통", "고정", "관계", "쇼핑(Flex)", "의료", "문화", "여행", "기타"],
+    categories: ["생활", "식재료", "외식", "교통", "고정", "관계", "쇼핑(Flex)", "의료", "문화", "여행", "취소", "기타"],
     incomeTypes: ["급여(원)", "급여(수)", "기타(원)", "기타(수)", "축의금", "환급"],
     monthlyBudgets: {},
     monthlyBudgetDetails: {},
@@ -461,6 +463,7 @@ async function signOutCloud() {
 
 function normalizeState(source) {
   const next = clone(source);
+  if (!next.settings.categories.includes(CANCELLATION_CATEGORY)) next.settings.categories.push(CANCELLATION_CATEGORY);
   next.settings.monthlyBudgets = Object.fromEntries(
     Object.entries(next.settings.monthlyBudgets || {}).map(([name, amount]) => [name, Math.max(Number(amount) || 0, 0)]),
   );
@@ -636,10 +639,31 @@ function sum(rows) {
   return rows.reduce((total, row) => total + Number(row.amount || 0), 0);
 }
 
-function byKey(rows, keyFn) {
+function isCancellationExpense(row) {
+  return row.category === CANCELLATION_CATEGORY;
+}
+
+function expenseValue(row) {
+  const amount = Math.abs(Number(row.amount || 0));
+  return isCancellationExpense(row) ? -amount : amount;
+}
+
+function expenseSum(rows) {
+  return rows.reduce((total, row) => total + expenseValue(row), 0);
+}
+
+function formatSignedWon(value) {
+  return `${value > 0 ? "+" : ""}${won.format(value)}`;
+}
+
+function formatExpenseAmount(row) {
+  return isCancellationExpense(row) ? formatSignedWon(Math.abs(Number(row.amount || 0))) : won.format(row.amount);
+}
+
+function byKey(rows, keyFn, valueFn = (row) => Number(row.amount || 0)) {
   return rows.reduce((map, row) => {
     const key = keyFn(row) || "기타";
-    map[key] = (map[key] || 0) + Number(row.amount || 0);
+    map[key] = (map[key] || 0) + valueFn(row);
     return map;
   }, {});
 }
@@ -654,7 +678,7 @@ function cardTargetEntries(data = monthlyData()) {
       const target = normalizeCardTarget(state.settings.cardTargets?.[name]);
       const primary = target.primary;
       const secondary = target.secondary;
-      const used = sum(data.expenses.filter((row) => row.payment === name));
+      const used = expenseSum(data.expenses.filter((row) => row.payment === name));
       const activeTarget = used < primary || secondary <= primary ? primary : secondary;
       const phase = used < primary || secondary <= primary ? "1차" : "2차";
       const remaining = Math.max(activeTarget - used, 0);
@@ -665,9 +689,9 @@ function cardTargetEntries(data = monthlyData()) {
 }
 
 function totalForPaymentLabel(data, label) {
-  if (label === "원 계좌이체") return sum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "원"));
-  if (label === "수연 계좌이체") return sum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "수연"));
-  if (label === "원 용돈" || label === "수연이 용돈") return sum(data.expenses.filter((row) => row.source === label));
+  if (label === "원 계좌이체") return expenseSum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "원"));
+  if (label === "수연 계좌이체") return expenseSum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "수연"));
+  if (label === "원 용돈" || label === "수연이 용돈") return expenseSum(data.expenses.filter((row) => row.source === label));
   return data.groupTotals[label] || 0;
 }
 
@@ -766,14 +790,14 @@ function monthlyData() {
   const expenses = state.expenses.filter((row) => inMonth(row, month));
   const incomes = state.incomes.filter((row) => inMonth(row, month));
   const savings = (state.savings || []).filter((row) => inMonth(row, month));
-  const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month))) - sum(state.expenses.filter((row) => beforeMonth(row, month)));
-  const expenseTotal = sum(expenses);
+  const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month))) - expenseSum(state.expenses.filter((row) => beforeMonth(row, month)));
+  const expenseTotal = expenseSum(expenses);
   const incomeTotal = sum(incomes);
   const savingsTotal = sum(savings);
   const savingsBalance = Number(state.settings.savingsInitialAmount || 0) + sum(state.savings || []);
-  const groupTotals = byKey(expenses, paymentGroup);
-  const categoryTotals = byKey(expenses, (row) => row.category);
-  const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
+  const groupTotals = byKey(expenses, paymentGroup, expenseValue);
+  const categoryTotals = byKey(expenses, (row) => row.category, expenseValue);
+  const topCategory = Object.entries(categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
   return {
     month,
     expenses,
@@ -1121,7 +1145,7 @@ function renderMethodList() {
   const order = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금", "원 용돈", "수연이 용돈"];
   $("#methodList").innerHTML = order.map((group) => {
     const value = totalForPaymentLabel(data, group);
-    const width = data.expenseTotal ? Math.round((value / data.expenseTotal) * 100) : 0;
+    const width = data.expenseTotal > 0 ? Math.max(Math.round((value / data.expenseTotal) * 100), 0) : 0;
     return `
       <button class="method-row" data-dashboard-action="method" data-dashboard-value="${escapeHtml(group)}" type="button">
         <strong>${group}</strong>
@@ -1149,7 +1173,7 @@ function renderRecentList() {
           <strong>${escapeHtml(row.category)}</strong>
           <small>${shortDateLabel(row.date)} · ${escapeHtml(row.payment)}${escapeHtml(source)}</small>
         </span>
-        <b>${won.format(row.amount)}</b>
+        <b class="${isCancellationExpense(row) ? "positive" : ""}">${formatExpenseAmount(row)}</b>
       </button>
     `;
   }).join("") : `<p class="empty-card">이번 달 기록이 아직 없어요.</p>`;
@@ -1229,14 +1253,14 @@ function renderExpenseRows(rows) {
   }, new Map());
   const entries = [...grouped.entries()].sort((a, b) => {
     if (expenseViewMode === "date") return b[0].localeCompare(a[0]);
-    return sum(b[1]) - sum(a[1]);
+    return expenseSum(b[1]) - expenseSum(a[1]);
   });
   if (!expenseGroupFilter) {
     return entries.map(([label, groupRows]) => `
       <tr class="group-row">
         <td colspan="9">
           <button class="group-filter-button" data-group-filter="${escapeHtml(label)}" type="button">
-            <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(sum(groupRows))} · ${groupRows.length}건</span>
+            <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(expenseSum(groupRows))} · ${groupRows.length}건</span>
           </button>
         </td>
       </tr>
@@ -1249,7 +1273,7 @@ function renderExpenseRows(rows) {
     <tr class="group-row">
       <td colspan="9">
         <div class="group-selection">
-          <div><strong>${escapeHtml(expenseGroupFilter)}</strong><span>${won.format(sum(selectedRows))} · ${selectedRows.length}건</span></div>
+          <div><strong>${escapeHtml(expenseGroupFilter)}</strong><span>${won.format(expenseSum(selectedRows))} · ${selectedRows.length}건</span></div>
           <button class="group-clear-button" data-clear-group-filter="true" type="button">목록으로</button>
         </div>
       </td>
@@ -1266,10 +1290,10 @@ function renderExpenseRows(rows) {
 function renderExpenseRow(row) {
   const source = row.source && row.source !== "공용" ? row.source : "";
   return `
-    <tr>
+    <tr class="${isCancellationExpense(row) ? "cancellation-row" : ""}">
       <td>${row.date}</td>
       <td>${escapeHtml(row.category)}</td>
-      <td class="amount">${won.format(row.amount)}</td>
+      <td class="amount">${formatExpenseAmount(row)}</td>
       <td>${escapeHtml(row.method)}</td>
       <td class="payment-cell">
         <span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span>
@@ -1323,8 +1347,8 @@ function renderAnalysis() {
   $("#categoryRows").innerHTML = categoryEntries.map(([category, value]) => `
     <tr>
       <td><span class="category-dot" style="background:${categoryColor(category)}"></span>${escapeHtml(category)}</td>
-      <td class="amount">${won.format(value)}</td>
-      <td class="amount">${data.expenseTotal ? `${((value / data.expenseTotal) * 100).toFixed(1)}%` : "0.0%"}</td>
+      <td class="amount">${value < 0 ? formatSignedWon(Math.abs(value)) : won.format(value)}</td>
+      <td class="amount">${data.expenseTotal > 0 && value > 0 ? `${((value / data.expenseTotal) * 100).toFixed(1)}%` : value < 0 ? "취소" : "0.0%"}</td>
     </tr>
   `).join("");
 
@@ -1357,7 +1381,7 @@ function budgetEntries(data = monthlyData()) {
 function budgetSettingNames() {
   const excluded = new Set(state.settings.budgetExcludedCategories || []);
   return [...new Set([
-    ...state.settings.categories.filter((name) => name !== "저축"),
+    ...state.settings.categories.filter((name) => name !== "저축" && name !== CANCELLATION_CATEGORY),
     ...(state.settings.budgetCustomCategories || []),
     "저축",
   ])].filter((name) => !excluded.has(name));

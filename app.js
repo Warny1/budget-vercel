@@ -18,7 +18,6 @@ const CATEGORY_COLORS = {
   "의료": "#BDEDE0",
   "문화": "#FFE6A7",
   "여행": "#C7E9F1",
-  "취소": "#D7F5E3",
   "기타": "#DDE3EA",
 };
 const FALLBACK_COLORS = ["#A7D8F0", "#BFE7C2", "#FFD6A5", "#C8D7FF", "#F7C7D9", "#D9C2F0", "#F8C8B8", "#BDEDE0"];
@@ -57,7 +56,7 @@ const DEFAULT_BUDGET_DETAILS = {
 
 const sampleState = {
   settings: {
-    categories: ["생활", "식재료", "외식", "교통", "고정", "관계", "쇼핑(Flex)", "의료", "문화", "여행", "취소", "기타"],
+    categories: ["생활", "식재료", "외식", "교통", "고정", "관계", "쇼핑(Flex)", "의료", "문화", "여행", "기타"],
     incomeTypes: ["급여(원)", "급여(수)", "기타(원)", "기타(수)", "축의금", "환급"],
     monthlyBudgets: {},
     monthlyBudgetDetails: {},
@@ -463,7 +462,8 @@ async function signOutCloud() {
 
 function normalizeState(source) {
   const next = clone(source);
-  if (!next.settings.categories.includes(CANCELLATION_CATEGORY)) next.settings.categories.push(CANCELLATION_CATEGORY);
+  next.settings.categories = (next.settings.categories || clone(sampleState).settings.categories)
+    .filter((category) => category !== CANCELLATION_CATEGORY);
   next.settings.monthlyBudgets = Object.fromEntries(
     Object.entries(next.settings.monthlyBudgets || {}).map(([name, amount]) => [name, Math.max(Number(amount) || 0, 0)]),
   );
@@ -482,7 +482,7 @@ function normalizeState(source) {
   });
   next.settings.budgetExcludedCategories = [...new Set(next.settings.budgetExcludedCategories || [])];
   next.settings.budgetCustomCategories = [...new Set(next.settings.budgetCustomCategories || [])]
-    .filter((name) => name && !next.settings.categories.includes(name) && name !== "저축");
+    .filter((name) => name && !next.settings.categories.includes(name) && name !== "저축" && name !== CANCELLATION_CATEGORY);
   next.settings.savingsInitialAmount = Math.max(Number(next.settings.savingsInitialAmount || 0), 0);
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
@@ -506,7 +506,15 @@ function normalizeState(source) {
     const item = next.settings.paymentItems.find((payment) => payment.name === paymentName);
     const method = row.method === "카드" && item?.method ? item.method : row.method;
     const source = EXPENSE_SOURCES.includes(row.source) ? row.source : legacyAllowance || "공용";
-    return { ...row, method: legacyAllowance ? "현금" : method, payment: paymentName || "현금", source };
+    return {
+      ...row,
+      category: row.category === CANCELLATION_CATEGORY ? "기타" : row.category,
+      amount: Math.abs(Number(row.amount || 0)),
+      method: legacyAllowance ? "현금" : method,
+      payment: paymentName || "현금",
+      source,
+      cancelled: Boolean(row.cancelled || row.category === CANCELLATION_CATEGORY),
+    };
   });
   next.savings = (next.savings || []).map((row) => ({
     id: row.id || newId("saving"),
@@ -640,7 +648,7 @@ function sum(rows) {
 }
 
 function isCancellationExpense(row) {
-  return row.category === CANCELLATION_CATEGORY;
+  return Boolean(row.cancelled || row.category === CANCELLATION_CATEGORY);
 }
 
 function expenseValue(row) {
@@ -1069,6 +1077,17 @@ function updateExpenseGroup() {
   const item = getPaymentItem($("#expenseCard").value);
   const field = $("#expenseGroup");
   if (field) field.value = item?.group || "";
+}
+
+function setExpenseCancelToggle(active) {
+  const button = $("#expenseCancelToggle");
+  if (!button) return;
+  button.classList.toggle("active", active);
+  button.setAttribute("aria-pressed", active ? "true" : "false");
+}
+
+function toggleExpenseCancel() {
+  setExpenseCancelToggle($("#expenseCancelToggle")?.getAttribute("aria-pressed") !== "true");
 }
 
 function renderSummary() {
@@ -1755,13 +1774,15 @@ function setEventEditMode(active) {
   $("#cancelEventEdit").classList.toggle("hidden", !active);
 }
 
-function resetExpenseForm(preferredDate = "") {
+function resetExpenseForm(preferredDate = "", preferredMethod = "", preferredPayment = "") {
   editingExpenseId = null;
   const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#expenseForm").reset();
   $("#expenseDate").value = nextDate;
+  if (PAYMENT_METHODS.includes(preferredMethod)) $("#expenseMethod").value = preferredMethod;
   $("#expenseSource").value = "공용";
-  updatePaymentOptions();
+  updatePaymentOptions(preferredPayment);
+  setExpenseCancelToggle(false);
   renderExpenseSourceSegment();
   setExpenseEditMode(false);
 }
@@ -1810,6 +1831,7 @@ function startExpenseEdit(id) {
   $("#expenseMethod").value = row.method;
   updatePaymentOptions(row.payment);
   $("#expenseCard").value = row.payment;
+  setExpenseCancelToggle(isCancellationExpense(row));
   $("#expenseSource").value = row.source || "공용";
   renderExpenseSourceSegment();
   $("#expenseMemo").value = row.memo || "";
@@ -1860,6 +1882,7 @@ function addExpense() {
     method: $("#expenseMethod").value || paymentItem?.method || "카드(원)",
     payment,
     source: $("#expenseSource").value || "공용",
+    cancelled: $("#expenseCancelToggle")?.getAttribute("aria-pressed") === "true",
     memo: $("#expenseMemo").value.trim(),
   };
   if (editingExpenseId) {
@@ -1868,7 +1891,7 @@ function addExpense() {
     state.expenses.push(nextRow);
   }
   saveState();
-  resetExpenseForm(nextRow.date);
+  resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment);
   renderAll();
 }
 
@@ -2387,6 +2410,7 @@ document.addEventListener("click", (event) => {
       renderExpenses();
     },
     menuToggle: () => setMenuOpen(!$(".sidebar")?.classList.contains("menu-open")),
+    expenseCancelToggle: toggleExpenseCancel,
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),
     addEvent: () => $("#eventForm")?.requestSubmit(),

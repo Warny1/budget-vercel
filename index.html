@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260723-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260723-2" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -184,7 +184,10 @@
                 <span aria-hidden="true">⌄</span>
               </button>
             </div>
-            <input id="expenseAmount" type="number" min="0" step="1" placeholder="금액" required />
+            <div class="amount-field">
+              <input id="expenseAmount" type="number" min="0" step="1" placeholder="금액" required />
+              <button class="cancel-toggle-button" id="expenseCancelToggle" type="button" aria-pressed="false">취소</button>
+            </div>
             <div class="picker-field">
               <select class="picker-native-select" id="expenseMethod" required></select>
               <button class="picker-button" id="expenseMethodPickerButton" type="button">
@@ -591,6 +594,6 @@
         <button class="primary-button budget-detail-done" id="closeBudgetDetailDone" type="button">수정 완료</button>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260723-1"></script>
+    <script defer src="./app.js?v=20260723-2"></script>
   </body>
 </html>

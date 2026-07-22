@@ -1583,6 +1583,29 @@ button.drilldown-card:hover {
   min-width: 0;
 }
 
+.amount-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cancel-toggle-button {
+  height: 40px;
+  border: 1px solid rgba(205, 224, 233, 0.95);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.cancel-toggle-button.active {
+  border-color: rgba(79, 159, 119, 0.45);
+  background: #e6faed;
+  color: #2f7151;
+}
+
 .category-native-select,
 .picker-native-select {
   position: absolute;
@@ -2523,14 +2546,23 @@ th.amount {
     background: rgba(255, 255, 255, 0.9);
   }
 
-  #expenseAmount,
+  .amount-field,
   #incomeAmount {
     grid-column: 1 / -1;
+  }
+
+  #expenseAmount,
+  #incomeAmount {
     height: 46px;
     border-color: rgba(79, 159, 119, 0.25);
     background: #fff;
     font-size: 17px;
     font-weight: 900;
+  }
+
+  .cancel-toggle-button {
+    height: 46px;
+    font-size: 12px;
   }
 
   #expenseMemo,

@@ -478,28 +478,55 @@ button {
 }
 
 .target-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.card-usage-title {
+  grid-column: 1 / -1;
   display: flex;
-  gap: 3px;
-  margin-bottom: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink);
+  padding: 0 2px;
+}
+
+.card-usage-title strong {
+  font-size: 14px;
+}
+
+.card-usage-title span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .target-mini-card {
-  flex: 0 0 58px;
   text-align: left;
-  min-height: 22px;
+  min-height: 82px;
   display: grid;
-  gap: 1px;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 2px 4px;
+  border-radius: 14px;
+  padding: 10px 11px;
+  box-shadow: 0 8px 18px rgba(85, 112, 130, 0.06);
+}
+
+.target-mini-head,
+.target-mini-amount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .target-mini-card span {
   color: var(--muted);
-  font-size: 7.5px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.1;
   overflow: hidden;
@@ -508,17 +535,25 @@ button {
 }
 
 .target-mini-card strong {
-  font-size: 10px;
+  color: #315b75;
+  font-size: 15px;
   line-height: 1.05;
 }
 
-.target-mini-card > div:first-child {
-  display: grid;
-  gap: 0;
+.target-mini-amount b {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.target-mini-amount small {
+  color: #2f7151;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .mini-progress {
-  height: 2px;
+  height: 6px;
   border-radius: 999px;
   background: #edf1f5;
   overflow: hidden;
@@ -2638,26 +2673,52 @@ th.amount {
 
   .target-mini-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     margin: 0 0 7px;
     padding: 0;
     overflow: visible;
   }
 
+  .card-usage-title {
+    display: grid;
+    gap: 2px;
+  }
+
+  .card-usage-title strong {
+    font-size: 13px;
+  }
+
+  .card-usage-title span {
+    font-size: 10px;
+  }
+
   .target-mini-card {
-    min-height: 42px;
-    flex: none;
-    padding: 5px 6px;
+    min-height: 78px;
+    padding: 8px 9px;
     border-radius: 12px;
   }
 
   .target-mini-card span {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .target-mini-card strong {
-    font-size: 12px;
+    font-size: 13px;
+  }
+
+  .target-mini-amount {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .target-mini-amount b {
+    font-size: 13px;
+  }
+
+  .target-mini-amount small {
+    font-size: 10px;
   }
 
   .event-alert-panel {
@@ -2685,25 +2746,20 @@ th.amount {
   }
 
   .target-mini-card {
-    min-height: 42px;
-    flex: none;
-    padding: 5px 6px;
+    min-height: 78px;
+    padding: 8px 9px;
   }
 
   .target-mini-card span {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .target-mini-card strong {
-    font-size: 12px;
-  }
-
-  .target-mini-card > div:first-child {
-    gap: 0;
+    font-size: 13px;
   }
 
   .mini-progress {
-    height: 2px;
+    height: 6px;
   }
 
   .dashboard-layout,

@@ -115,6 +115,7 @@ let editingExpenseId = null;
 let editingIncomeId = null;
 let editingEventId = null;
 let dashboardOverviewOpen = false;
+let activeCardUsageName = "";
 let activeExpenseFilterPicker = "";
 let activeBudgetDetailCategory = "";
 let cloudClient = null;
@@ -1200,40 +1201,45 @@ function renderRecentList() {
 
 function renderCardTargetMini() {
   const entries = cardTargetEntries();
-  $("#cardTargetMini").innerHTML = entries.length ? `
-    <div class="card-usage-title">
-      <strong>카드별 사용 체크</strong>
-      <span>취소 금액은 사용액에서 차감돼요</span>
-    </div>
-    ${entries.map(({ name, phase, used, remaining, rate, primary, secondary }) => {
-      const target = phase === "2차" ? secondary : primary;
-      const status = target > 0
-        ? remaining > 0
-          ? `${won.format(remaining)} 남음`
-          : "목표 달성"
-        : "목표 없음";
-      return `
-        <div class="target-mini-card" title="${escapeHtml(name)} 사용 ${won.format(used)} · ${target ? `${escapeHtml(phase)} 목표 ${won.format(target)}` : "목표 없음"}">
-          <div class="target-mini-head">
-            <span>${escapeHtml(name)}</span>
-            <strong>${rate}%</strong>
-          </div>
-          <div class="target-mini-amount">
-            <b>${won.format(used)}</b>
-            <small>${escapeHtml(status)}</small>
-          </div>
-          <div class="mini-progress" aria-label="${escapeHtml(name)} ${rate}%">
-            <span style="width:${rate}%"></span>
-          </div>
+  if (!entries.some((entry) => entry.name === activeCardUsageName)) activeCardUsageName = "";
+  const activeEntry = entries.find((entry) => entry.name === activeCardUsageName);
+  const detail = activeEntry ? (() => {
+    const target = activeEntry.phase === "2차" ? activeEntry.secondary : activeEntry.primary;
+    const status = target > 0
+      ? activeEntry.remaining > 0
+        ? `${won.format(activeEntry.remaining)} 남음`
+        : "목표 달성"
+      : "목표 없음";
+    return `
+      <div class="target-mini-detail">
+        <div>
+          <span>${escapeHtml(activeEntry.name)} 사용액</span>
+          <strong>${won.format(activeEntry.used)}</strong>
         </div>
-      `;
-    }).join("")}
-  ` : `
-    <div class="card-usage-title">
-      <strong>카드별 사용 체크</strong>
-      <span>이번 달 카드 지출이 아직 없어요</span>
-    </div>
-  `;
+        <div>
+          <span>${target ? `${escapeHtml(activeEntry.phase)} 목표` : "목표"}</span>
+          <strong>${target ? won.format(target) : "미설정"}</strong>
+        </div>
+        <div>
+          <span>상태</span>
+          <strong>${escapeHtml(status)}</strong>
+        </div>
+        <button class="ghost-button target-detail-button" data-dashboard-action="card-usage-list" data-dashboard-value="${escapeHtml(activeEntry.name)}" type="button">내역 보기</button>
+      </div>
+    `;
+  })() : "";
+  $("#cardTargetMini").innerHTML = entries.length ? `
+    ${entries.map(({ name, rate }) => `
+      <button class="target-mini-card ${name === activeCardUsageName ? "active" : ""}" data-dashboard-action="card-usage" data-dashboard-value="${escapeHtml(name)}" title="${escapeHtml(name)} 사용 상세 보기" type="button">
+        <div>
+          <span>${escapeHtml(name)}</span>
+          <strong>${rate}%</strong>
+        </div>
+        <div class="mini-progress" aria-hidden="true"><span style="width:${rate}%"></span></div>
+      </button>
+    `).join("")}
+    ${detail}
+  ` : `<p class="empty-card card-usage-empty">이번 달 카드 지출이 아직 없어요.</p>`;
 }
 
 function renderChart() {
@@ -2181,6 +2187,15 @@ function handleDashboardAction(action, value) {
   if (action === "payment" || action === "recommended") {
     if (value) openExpenseList({ payment: value });
     else activateView("analysis");
+    return;
+  }
+  if (action === "card-usage") {
+    activeCardUsageName = activeCardUsageName === value ? "" : value;
+    renderCardTargetMini();
+    return;
+  }
+  if (action === "card-usage-list") {
+    if (value) openExpenseList({ payment: value });
     return;
   }
   if (action === "method") openPaymentLabel(value);

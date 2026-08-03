@@ -1125,6 +1125,11 @@ button.drilldown-card:hover {
   padding: 0 12px;
 }
 
+.savings-form input:disabled {
+  background: #eef3f7;
+  color: var(--muted);
+}
+
 .savings-detail-form {
   grid-template-columns: minmax(180px, 1fr) auto;
 }

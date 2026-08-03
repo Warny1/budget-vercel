@@ -1090,6 +1090,8 @@ button.drilldown-card:hover {
   display: flex;
   gap: 7px;
   overflow-x: auto;
+  align-items: stretch;
+  min-height: 48px;
   margin: -2px 0 10px;
   padding-bottom: 2px;
   scrollbar-width: none;
@@ -1102,6 +1104,7 @@ button.drilldown-card:hover {
 .savings-detail-tab {
   flex: 0 0 auto;
   min-width: 88px;
+  height: 44px;
   min-height: 44px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1165,6 +1168,7 @@ button.drilldown-card:hover {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  min-height: 40px;
   margin: 0 0 10px;
 }
 
@@ -3903,6 +3907,21 @@ th.amount {
     width: 21px;
     height: 21px;
     font-size: 13px;
+  }
+
+  .savings-detail-tabs {
+    min-height: 46px;
+    margin-bottom: 9px;
+  }
+
+  .savings-detail-tab {
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .savings-actions {
+    min-height: 36px;
+    margin-bottom: 9px;
   }
 
   .savings-form {

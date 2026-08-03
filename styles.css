@@ -2167,6 +2167,138 @@ th.amount {
   padding: 28px 12px;
 }
 
+@media (max-width: 1320px) and (min-width: 761px) {
+  .app-shell {
+    grid-template-columns: 204px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding: 18px 12px;
+    gap: 14px;
+  }
+
+  .brand {
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .brand h1 {
+    font-size: 19px;
+  }
+
+  .nav-tabs {
+    gap: 7px;
+  }
+
+  .nav-tab {
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .main {
+    padding: 20px 22px;
+  }
+
+  .page-header {
+    margin-bottom: 14px;
+  }
+
+  .dashboard-hero {
+    min-height: 138px;
+    padding: 20px;
+  }
+
+  .dashboard-hero::after {
+    right: 18px;
+    bottom: -4px;
+    font-size: 46px;
+  }
+
+  .dashboard-hero h2 {
+    font-size: 30px;
+  }
+
+  .hero-balance strong {
+    font-size: 28px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summary-card {
+    padding: 13px 14px;
+  }
+
+  .summary-card strong {
+    font-size: 18px;
+  }
+
+  .target-mini-grid {
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+
+  .target-mini-card {
+    flex-basis: 70px;
+    min-height: 34px;
+    padding: 5px 6px;
+  }
+
+  .target-mini-card span {
+    font-size: 9px;
+  }
+
+  .target-mini-card strong {
+    font-size: 12px;
+  }
+
+  .target-mini-detail {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  }
+
+  .dashboard-layout,
+  .analysis-layout,
+  .calendar-layout,
+  .settings-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(275px, 0.66fr);
+    gap: 12px;
+  }
+
+  .entry-form {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  #expensesView .entry-form {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  #expensesView .entry-form > #expenseDate,
+  #expensesView .entry-form > .category-field,
+  #expensesView .entry-form > .amount-field,
+  #expensesView .entry-form > .picker-field {
+    grid-column: span 3;
+  }
+
+  #expensesView .entry-form > .source-segment {
+    grid-column: span 4;
+  }
+
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: span 8;
+  }
+
+  #incomeView .income-form {
+    grid-template-columns: 145px 150px 160px minmax(220px, 1fr);
+  }
+}
+
 @media (max-width: 1100px) {
   .summary-grid,
   .target-mini-grid,

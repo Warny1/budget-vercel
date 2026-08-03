@@ -28,7 +28,7 @@ const PAYMENT_COLORS = {
   "삼성(원)": "#D8F1F0",
   "신한(원)": "#DFF0D8",
   "현대(원)": "#E5E4FF",
-  "국체(수)": "#FFD9E8",
+  "국민(수)": "#FFD9E8",
   "롯데(수)": "#FFE8B8",
   "현대(수)": "#F2DDF7",
   [ALLOWANCE_CARD_WON]: "#E0F5D9",
@@ -46,7 +46,7 @@ const DEFAULT_CARD_TARGETS = {
   "국민(원)": { primary: 300000, secondary: 0 },
   "삼성(원)": { primary: 300000, secondary: 0 },
   "신한(원)": { primary: 300000, secondary: 0 },
-  "국체(수)": { primary: 200000, secondary: 0 },
+  "국민(수)": { primary: 200000, secondary: 0 },
   "롯데(수)": { primary: 400000, secondary: 0 },
   "현대(수)": { primary: 300000, secondary: 0 },
   [ALLOWANCE_CARD_WON]: { primary: 0, secondary: 0 },
@@ -71,7 +71,7 @@ const sampleState = {
       { group: "카드(원)", name: "삼성(원)", method: "카드(원)" },
       { group: "카드(원)", name: "신한(원)", method: "카드(원)" },
       { group: "카드(원)", name: "현대(원)", method: "카드(원)" },
-      { group: "카드(수)", name: "국체(수)", method: "카드(수)" },
+      { group: "카드(수)", name: "국민(수)", method: "카드(수)" },
       { group: "카드(수)", name: "롯데(수)", method: "카드(수)" },
       { group: "카드(수)", name: "현대(수)", method: "카드(수)" },
       { group: "카드(원)", name: ALLOWANCE_CARD_WON, method: "카드(원)" },
@@ -491,18 +491,22 @@ function normalizeState(source) {
   next.settings.savingsInitialAmount = Math.max(Number(next.settings.savingsInitialAmount || 0), 0);
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
-    next.settings.cardTargets["국체(수)"] = next.settings.cardTargets["국제(수)"];
+    next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국제(수)"];
     delete next.settings.cardTargets["국제(수)"];
   }
-  delete next.settings.cardTargets["국민(수)"];
+  if (next.settings.cardTargets["국체(수)"] !== undefined) {
+    next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국체(수)"];
+    delete next.settings.cardTargets["국체(수)"];
+  }
   next.settings.cardTargets = Object.fromEntries(Object.entries(next.settings.cardTargets).map(([name, target]) => [name, normalizeCardTarget(target)]));
   next.settings.paymentItems = (next.settings.paymentItems || []).map((item) => {
-    if (item.name === "국제(수)") return { ...item, name: "국체(수)" };
+    if (item.name === "국제(수)" || item.name === "국체(수)") return { ...item, name: "국민(수)" };
     if (item.method === "카드" && (item.group === "카드(원)" || item.group === "카드(수)")) {
       return { ...item, method: item.group };
     }
     return item;
-  }).filter((item) => !["원 용돈", "수연이 용돈", "국민(수)"].includes(item.name));
+  }).filter((item) => !["원 용돈", "수연이 용돈"].includes(item.name));
+  next.settings.paymentItems = Array.from(new Map(next.settings.paymentItems.map((item) => [item.name, item])).values());
   ensurePaymentItem(next.settings.paymentItems, { group: "카드(원)", name: ALLOWANCE_CARD_WON, method: "카드(원)" });
   ensurePaymentItem(next.settings.paymentItems, { group: "카드(수)", name: ALLOWANCE_CARD_SUYEON, method: "카드(수)" });
   if (!next.settings.paymentItems.some((item) => item.method === "현금")) {
@@ -514,8 +518,7 @@ function normalizeState(source) {
     let paymentName = row.payment;
     if (legacyAllowance) paymentName = allowanceCardForSource(legacyAllowance);
     else if (sourceAllowance) paymentName = sourceAllowance;
-    else if (row.payment === "국제(수)") paymentName = "국체(수)";
-    else if (row.payment === "국민(수)") paymentName = ALLOWANCE_CARD_SUYEON;
+    else if (row.payment === "국제(수)" || row.payment === "국체(수)") paymentName = "국민(수)";
     const item = next.settings.paymentItems.find((payment) => payment.name === paymentName);
     const method = row.method === "카드" && item?.method ? item.method : row.method;
     const source = "공용";
@@ -2093,7 +2096,7 @@ function importSheetData() {
       const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(rawPayment) ? rawPayment : "";
       const sourceValue = row["지출구분"] || row["용돈구분"] || row["구분"] || legacyAllowance || "공용";
       const allowancePayment = allowanceCardForSource(legacyAllowance || sourceValue);
-      const payment = allowancePayment || (rawPayment === "국민(수)" ? ALLOWANCE_CARD_SUYEON : rawPayment);
+      const payment = allowancePayment || (rawPayment === "국체(수)" || rawPayment === "국제(수)" ? "국민(수)" : rawPayment);
       const item = getPaymentItem(payment) || getPaymentItemByGroup(row["카드그룹"]);
       const method = item?.method || row["결제수단"] || "카드(원)";
       return {

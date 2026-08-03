@@ -40,6 +40,12 @@ body {
   letter-spacing: 0;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 button,
 input,
 select {
@@ -103,6 +109,7 @@ button {
 .app-shell {
   display: grid;
   grid-template-columns: 238px minmax(0, 1fr);
+  width: 100%;
   min-height: 100vh;
 }
 
@@ -221,6 +228,7 @@ button {
 .main {
   padding: 26px clamp(20px, 3vw, 36px);
   min-width: 0;
+  max-width: 100%;
 }
 
 .view {
@@ -229,6 +237,7 @@ button {
 
 .view.active {
   display: block;
+  min-width: 0;
 }
 
 .page-header {
@@ -2721,6 +2730,12 @@ th.amount {
     grid-template-columns: 1fr;
   }
 
+  #dashboardView .dashboard-layout > .panel,
+  #dashboardView .dashboard-layout > .dashboard-open-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   #dashboardView .dashboard-layout .panel:first-child {
     grid-row: auto;
   }
@@ -2736,6 +2751,21 @@ th.amount {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  #expensesView .entry-form > #expenseDate,
+  #expensesView .entry-form > .category-field,
+  #expensesView .entry-form > .amount-field,
+  #expensesView .entry-form > .picker-field {
+    grid-column: auto;
+  }
+
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: 1 / -1;
+  }
+
+  #incomeView .income-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .payment-editor {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2743,6 +2773,87 @@ th.amount {
   .import-tools,
   .cloud-tools {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .app-shell {
+    grid-template-columns: 178px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    padding: 16px 10px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand h1 {
+    font-size: 17px;
+  }
+
+  .nav-tab {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .main {
+    padding: 16px 16px 26px;
+  }
+
+  .page-header:not(.dashboard-hero) {
+    min-height: 0;
+    padding: 14px 16px;
+  }
+
+  .dashboard-hero {
+    min-height: 126px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .hero-balance {
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .target-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    overflow: visible;
+  }
+
+  .target-mini-card {
+    flex: none;
+  }
+
+  .target-mini-detail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .target-detail-button {
+    grid-column: 1 / -1;
+  }
+
+  .budget-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
   }
 }
 

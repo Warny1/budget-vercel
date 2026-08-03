@@ -12,6 +12,12 @@ const ALLOWANCE_CARD_SUYEON = "수연 용돈카드";
 const DEFAULT_DASHBOARD_TITLE = "우리집 이번 달";
 const DASHBOARD_MEMO_LIMIT = 10;
 const SAVINGS_TYPES = ["비상금", "적금", "주식", "기타"];
+const DEFAULT_SAVINGS_DETAILS = {
+  "비상금": ["생활비", "병원비"],
+  "적금": ["청약", "여행적금"],
+  "주식": ["국내주식", "해외주식"],
+  "기타": ["기타"],
+};
 const CATEGORY_COLORS = {
   "생활": "#A7D8F0",
   "식재료": "#BFE7C2",
@@ -70,6 +76,7 @@ const sampleState = {
     dashboardMemo: DEFAULT_DASHBOARD_TITLE,
     savingsInitialAmount: 0,
     savingsInitialAmounts: {},
+    savingsDetails: DEFAULT_SAVINGS_DETAILS,
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -127,6 +134,7 @@ let activeCardUsageName = "";
 let activeExpenseFilterPicker = "";
 let activeBudgetDetailCategory = "";
 let activeSavingsType = SAVINGS_TYPES[0];
+let activeSavingsDetail = "전체";
 let viewHistory = [];
 let cloudClient = null;
 let sharedSession = loadSharedSession();
@@ -506,6 +514,15 @@ function normalizeState(source) {
     next.settings.savingsInitialAmounts[SAVINGS_TYPES[0]] = legacySavingsInitialAmount;
   }
   next.settings.savingsInitialAmount = Object.values(next.settings.savingsInitialAmounts).reduce((total, amount) => total + amount, 0);
+  next.settings.savingsDetails = Object.fromEntries(
+    SAVINGS_TYPES.map((type) => [
+      type,
+      [...new Set([
+        ...(next.settings.savingsDetails?.[type] || []),
+        ...(DEFAULT_SAVINGS_DETAILS[type] || []),
+      ].map((detail) => String(detail || "").trim()).filter(Boolean))],
+    ]),
+  );
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국제(수)"];
@@ -554,6 +571,7 @@ function normalizeState(source) {
     date: row.date || todayKey(),
     amount: Number(row.amount) || 0,
     type: SAVINGS_TYPES.includes(row.type) ? row.type : SAVINGS_TYPES[0],
+    detail: String(row.detail || "기본").trim(),
     memo: String(row.memo || "").trim(),
     ...(row.transferId ? { transferId: row.transferId } : {}),
   })).filter((row) => row.date && row.amount !== 0);
@@ -674,6 +692,12 @@ function getPaymentItemByGroup(group) {
 
 function paymentItemsForMethod(method) {
   return state.settings.paymentItems.filter((item) => item.method === method);
+}
+
+function savingsDetailsForType(type = activeSavingsType) {
+  return [...new Set(["기본", ...(state.settings.savingsDetails?.[type] || [])]
+    .map((detail) => String(detail || "").trim())
+    .filter(Boolean))];
 }
 
 function expensePaymentNames() {
@@ -940,8 +964,8 @@ function selectExpenseCategory(category) {
 function renderPaymentPickers() {
   const method = $("#expenseMethod").value || PAYMENT_METHODS[0];
   const payment = $("#expenseCard").value || "";
-  $("#expenseMethodPickerLabel").textContent = method || "결제방식";
-  $("#expenseCardPickerLabel").textContent = payment || "카드종류";
+  $("#expenseMethodPickerLabel").textContent = method || "결제수단";
+  $("#expenseCardPickerLabel").textContent = payment || "종류";
   $("#paymentMethodChoiceGrid").innerHTML = PAYMENT_METHODS.map((value) => `
     <button class="category-choice payment-choice ${value === method ? "active" : ""}" data-payment-method-choice="${escapeHtml(value)}" type="button">
       <span style="background:${METHOD_FALLBACK_COLORS[value] || "#EEF3F7"}"></span>
@@ -1577,11 +1601,18 @@ function renderSavings(data = monthlyData()) {
   if (!initialField) return;
   const savingsRows = state.savings || [];
   const selectedType = SAVINGS_TYPES.includes(activeSavingsType) ? activeSavingsType : SAVINGS_TYPES[0];
-  const typeRows = savingsRows.filter((row) => (row.type || SAVINGS_TYPES[0]) === selectedType);
+  const detailOptions = savingsDetailsForType(selectedType);
+  if (activeSavingsDetail !== "전체" && !detailOptions.includes(activeSavingsDetail)) activeSavingsDetail = "전체";
+  const typeRowsAll = savingsRows.filter((row) => (row.type || SAVINGS_TYPES[0]) === selectedType);
+  const typeRows = activeSavingsDetail === "전체"
+    ? typeRowsAll
+    : typeRowsAll.filter((row) => (row.detail || "기본") === activeSavingsDetail);
   const typeInitialAmount = Number(state.settings.savingsInitialAmounts?.[selectedType] || 0);
-  const typeMonthTotal = sum(typeRows.filter((row) => inMonth(row, data.month)));
-  const typeBalance = typeInitialAmount + sum(typeRows);
+  const typeMonthTotal = sum(typeRowsAll.filter((row) => inMonth(row, data.month)));
+  const typeBalance = typeInitialAmount + sum(typeRowsAll);
   initialField.value = typeInitialAmount || "";
+  optionList($("#savingsDetail"), detailOptions, detailOptions.includes($("#savingsDetail").value) ? $("#savingsDetail").value : detailOptions[0]);
+  optionList($("#savingsWithdrawDetail"), detailOptions, detailOptions.includes($("#savingsWithdrawDetail").value) ? $("#savingsWithdrawDetail").value : detailOptions[0]);
   const savingsPageMonth = $("#savingsPageMonth");
   if (savingsPageMonth) savingsPageMonth.textContent = monthLabel(data.month);
   $("#savingsMonthLabel").textContent = `${monthLabel(data.month)} · ${selectedType}`;
@@ -1597,6 +1628,16 @@ function renderSavings(data = monthlyData()) {
       </button>
     `;
   }).join("");
+  $("#savingsDetailTabs").innerHTML = ["전체", ...detailOptions].map((detail) => {
+    const rowsForDetail = detail === "전체" ? typeRowsAll : typeRowsAll.filter((row) => (row.detail || "기본") === detail);
+    const detailTotal = detail === "전체" ? typeBalance : sum(rowsForDetail);
+    return `
+      <button class="savings-detail-tab ${detail === activeSavingsDetail ? "active" : ""}" data-savings-detail="${escapeHtml(detail)}" type="button">
+        <span>${escapeHtml(detail)}</span>
+        <strong>${won.format(detailTotal)}</strong>
+      </button>
+    `;
+  }).join("");
   $("#savingsRows").innerHTML = typeRows.length ? typeRows
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -1604,6 +1645,7 @@ function renderSavings(data = monthlyData()) {
       <div class="savings-row ${row.amount < 0 ? "withdrawal" : ""}">
         <span>${shortDateLabel(row.date)}</span>
         <strong>${won.format(row.amount)}</strong>
+        <small>${escapeHtml(row.detail || "기본")}</small>
         <em>${escapeHtml(row.memo || (row.amount < 0 ? "저금 인출" : "저금"))}</em>
         <button class="delete-button" data-delete-saving="${row.id}" type="button">삭제</button>
       </div>
@@ -1618,6 +1660,7 @@ function addSavings() {
     date: defaultDateForMonth(),
     amount,
     type: activeSavingsType,
+    detail: $("#savingsDetail").value || "기본",
     memo: $("#savingsMemo").value.trim(),
   });
   $("#savingsAmount").value = "";
@@ -1636,6 +1679,7 @@ function withdrawSavings() {
     return;
   }
   const date = $("#savingsWithdrawDate").value || defaultDateForMonth();
+  const detail = $("#savingsWithdrawDetail").value || "기본";
   const memo = $("#savingsWithdrawMemo").value.trim() || "저금 인출";
   const transferId = newId("savings-transfer");
   if (!state.settings.incomeTypes.includes("저금 인출")) state.settings.incomeTypes.push("저금 인출");
@@ -1644,6 +1688,7 @@ function withdrawSavings() {
     date,
     amount: -amount,
     type: activeSavingsType,
+    detail,
     memo,
     transferId,
   });
@@ -1672,7 +1717,37 @@ function updateSavingsInitialAmount() {
 function activateSavingsType(type) {
   if (!SAVINGS_TYPES.includes(type)) return;
   activeSavingsType = type;
+  activeSavingsDetail = "전체";
   renderSavings();
+}
+
+function activateSavingsDetail(detail) {
+  if (detail !== "전체" && !savingsDetailsForType().includes(detail)) return;
+  activeSavingsDetail = detail;
+  renderSavings();
+}
+
+function addSavingsDetail() {
+  const field = $("#newSavingsDetail");
+  const detail = field.value.trim();
+  if (!detail) return;
+  if (detail.length > 12) {
+    alert("세부항목은 12자까지만 가능해요.");
+    return;
+  }
+  const details = savingsDetailsForType(activeSavingsType);
+  if (details.includes(detail)) {
+    field.value = "";
+    activeSavingsDetail = detail;
+    renderSavings();
+    return;
+  }
+  if (!state.settings.savingsDetails[activeSavingsType]) state.settings.savingsDetails[activeSavingsType] = [];
+  state.settings.savingsDetails[activeSavingsType].push(detail);
+  activeSavingsDetail = detail;
+  field.value = "";
+  saveState();
+  renderAll();
 }
 
 function editDashboardMemo() {
@@ -2499,6 +2574,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const savingsDetailButton = closestTarget(event, "[data-savings-detail]");
+  if (savingsDetailButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activateSavingsDetail(savingsDetailButton.dataset.savingsDetail);
+    return;
+  }
+
   const dashboardMemoButton = closestTarget(event, "[data-edit-dashboard-memo]");
   if (dashboardMemoButton) {
     event.preventDefault();
@@ -2567,10 +2650,10 @@ document.addEventListener("click", (event) => {
     },
     menuToggle: () => setMenuOpen(!$(".sidebar")?.classList.contains("menu-open")),
     mobileHomeButton: goDashboard,
-    quickHomeButton: goDashboard,
     expenseCancelToggle: toggleExpenseCancel,
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),
+    addSavingsDetail,
     addEvent: () => $("#eventForm")?.requestSubmit(),
     cancelExpenseEdit: () => {
       resetExpenseForm();

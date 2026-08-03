@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260804-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260804-2" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -51,7 +51,6 @@
       </aside>
 
       <main class="main">
-        <button class="quick-home-button" id="quickHomeButton" type="button">현재상태</button>
         <section class="view active" id="dashboardView" aria-labelledby="dashboardTitle">
           <div class="page-header dashboard-hero" data-dashboard-action="toggle-overview">
             <div>
@@ -182,6 +181,7 @@
             <div class="category-field">
               <select class="category-native-select" id="expenseCategory" required></select>
               <button class="category-picker-button" id="expenseCategoryPickerButton" type="button">
+                <span class="picker-caption">카테고리</span>
                 <span class="category-picker-dot"></span>
                 <strong id="expenseCategoryPickerLabel">카테고리</strong>
                 <span aria-hidden="true">⌄</span>
@@ -194,14 +194,16 @@
             <div class="picker-field">
               <select class="picker-native-select" id="expenseMethod" required></select>
               <button class="picker-button" id="expenseMethodPickerButton" type="button">
-                <strong id="expenseMethodPickerLabel">결제방식</strong>
+                <span class="picker-caption">결제수단</span>
+                <strong id="expenseMethodPickerLabel">결제수단</strong>
                 <span aria-hidden="true">⌄</span>
               </button>
             </div>
             <div class="picker-field">
               <select class="picker-native-select" id="expenseCard" required></select>
               <button class="picker-button" id="expenseCardPickerButton" type="button">
-                <strong id="expenseCardPickerLabel">카드종류</strong>
+                <span class="picker-caption">종류</span>
+                <strong id="expenseCardPickerLabel">종류</strong>
                 <span aria-hidden="true">⌄</span>
               </button>
             </div>
@@ -352,14 +354,21 @@
               <div><span>이번 달 순저금</span><strong id="savingsMonthTotal"></strong></div>
             </div>
             <div class="savings-type-tabs" id="savingsTypeTabs" aria-label="저축 구분"></div>
+            <div class="savings-detail-tabs" id="savingsDetailTabs" aria-label="저축 세부항목"></div>
             <div class="savings-form" id="savingsForm">
               <input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 저금액" />
+              <select id="savingsDetail" aria-label="저축 세부항목"></select>
               <input id="savingsAmount" type="number" min="0" step="10000" placeholder="이번 달 저금액" />
               <input id="savingsMemo" type="text" placeholder="메모" />
               <button class="primary-button" id="addSavings" type="button">저금 추가</button>
             </div>
+            <div class="savings-form savings-detail-form" id="savingsDetailForm">
+              <input id="newSavingsDetail" type="text" maxlength="12" placeholder="세부항목 추가 예: 청약, 병원비" />
+              <button class="ghost-button" id="addSavingsDetail" type="button">세부 추가</button>
+            </div>
             <div class="savings-form savings-withdraw-form" id="savingsWithdrawForm">
               <input id="savingsWithdrawDate" type="date" />
+              <select id="savingsWithdrawDetail" aria-label="가져올 세부항목"></select>
               <input id="savingsWithdrawAmount" type="number" min="0" step="10000" placeholder="가져올 금액" />
               <input id="savingsWithdrawMemo" type="text" placeholder="사용 메모" />
               <button class="ghost-button" id="withdrawSavings" type="button">저금에서 가져오기</button>
@@ -561,7 +570,7 @@
     <dialog class="category-dialog" id="paymentMethodDialog">
       <div class="category-dialog-sheet">
         <div class="category-dialog-header">
-          <strong>결제방식 선택</strong>
+          <strong>결제수단 선택</strong>
           <button class="dialog-close-button" id="closePaymentMethodDialog" type="button" aria-label="닫기">×</button>
         </div>
         <div class="category-choice-grid payment-choice-grid" id="paymentMethodChoiceGrid"></div>
@@ -570,7 +579,7 @@
     <dialog class="category-dialog" id="paymentCardDialog">
       <div class="category-dialog-sheet">
         <div class="category-dialog-header">
-          <strong>카드종류 선택</strong>
+          <strong>종류 선택</strong>
           <button class="dialog-close-button" id="closePaymentCardDialog" type="button" aria-label="닫기">×</button>
         </div>
         <div class="category-choice-grid payment-choice-grid" id="paymentCardChoiceGrid"></div>

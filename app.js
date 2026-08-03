@@ -1393,7 +1393,8 @@ function renderCardTargetMini() {
 function renderChart() {
   const panel = $("#categoryBreakdown");
   if (!panel) return;
-  panel.innerHTML = categoryBreakdownHtml(3, false);
+  const limit = window.matchMedia("(max-width: 760px)").matches ? 2 : 3;
+  panel.innerHTML = categoryBreakdownHtml(limit, false);
 }
 
 function renderExpenses() {

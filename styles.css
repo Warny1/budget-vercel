@@ -2746,12 +2746,13 @@ th.amount {
   body {
     background: linear-gradient(180deg, #f7fbfb 0%, #fbf7fd 100%);
     font-size: 13px;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
   }
 
   .app-shell {
     display: block;
     min-height: 100vh;
+    padding-bottom: max(22px, env(safe-area-inset-bottom));
   }
 
   .sidebar {
@@ -2925,7 +2926,7 @@ th.amount {
   }
 
   .main {
-    padding: 12px 9px 0;
+    padding: 12px 9px calc(46px + env(safe-area-inset-bottom));
   }
 
   .page-header {
@@ -3323,8 +3324,71 @@ th.amount {
     gap: 7px;
   }
 
+  #dashboardView .dashboard-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
   #dashboardView .dashboard-layout .panel:first-child {
     grid-row: auto;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="distribution"] {
+    order: 1;
+    padding: 8px;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="budget"] {
+    order: 2;
+  }
+
+  #dashboardView .dashboard-layout .recent-panel {
+    order: 3;
+  }
+
+  #dashboardView .dashboard-layout > .panel:not(.dashboard-open-panel) {
+    order: 4;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="distribution"] .panel-title {
+    margin-bottom: 4px;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="distribution"] .panel-title h3 {
+    font-size: 14px;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="distribution"] .panel-title span {
+    font-size: 10px;
+  }
+
+  #categoryBreakdown {
+    gap: 4px;
+  }
+
+  #categoryBreakdown .category-breakdown-row:nth-child(n+3) {
+    display: none;
+  }
+
+  #categoryBreakdown .category-breakdown-row {
+    min-height: 34px;
+    padding: 5px 6px;
+    border-radius: 10px;
+  }
+
+  #categoryBreakdown .category-rank {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+
+  #categoryBreakdown .category-breakdown-main > span,
+  #categoryBreakdown .category-breakdown-main b {
+    font-size: 10.5px;
+  }
+
+  #categoryBreakdown .category-breakdown-bar {
+    height: 5px;
   }
 
   .calendar-grid {

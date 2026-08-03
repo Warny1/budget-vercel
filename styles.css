@@ -151,6 +151,17 @@ button {
   font-size: 22px;
 }
 
+.dashboard-title-button {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.dashboard-title-button:hover {
+  color: #315b75;
+}
+
 .brand p,
 .page-header p,
 .panel-title span {
@@ -1001,6 +1012,44 @@ button.drilldown-card:hover {
   display: block;
   margin-top: 4px;
   font-size: 22px;
+}
+
+.savings-type-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.savings-type-tab {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  border: 1px solid rgba(205, 224, 233, 0.9);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.savings-type-tab span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.savings-type-tab strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savings-type-tab.active {
+  border-color: rgba(105, 157, 135, 0.35);
+  background: linear-gradient(135deg, #e9f8ee, #fff7df);
+  box-shadow: 0 8px 18px rgba(105, 157, 135, 0.12);
 }
 
 .savings-form {
@@ -2415,26 +2464,26 @@ th.amount {
   .mobile-top-controls {
     width: 100%;
     display: grid;
-    grid-template-columns: 38px 42px minmax(54px, 1fr) 34px 58px 34px;
+    grid-template-columns: 40px minmax(64px, 1fr) 38px 64px 38px;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     justify-self: stretch;
   }
 
   .mobile-home-button,
-  .mobile-back-button,
   .menu-toggle-button,
   .month-shift-button,
   .month-stepper-label {
-    min-height: 36px;
+    height: 38px;
+    min-height: 38px;
     border: 1px solid rgba(205, 224, 233, 0.9);
     border-radius: 13px;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 12px rgba(55, 79, 101, 0.06);
+    line-height: 1;
   }
 
-  .mobile-home-button,
-  .mobile-back-button {
+  .mobile-home-button {
     color: #315b75;
     padding: 0 6px;
     font-size: 11px;
@@ -2445,41 +2494,39 @@ th.amount {
     grid-column: 1;
   }
 
-  .mobile-back-button {
-    grid-column: 2;
-  }
-
   .menu-toggle-button {
-    grid-column: 3;
+    grid-column: 2;
     color: #344657;
     padding: 0 8px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 900;
   }
 
   .month-shift-button {
+    display: grid;
+    place-items: center;
     color: #5f7282;
     padding: 0;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 900;
   }
 
   .month-shift-button[data-month-shift="-1"] {
-    grid-column: 4;
+    grid-column: 3;
     grid-row: 1;
   }
 
   .month-shift-button[data-month-shift="1"] {
-    grid-column: 6;
+    grid-column: 5;
     grid-row: 1;
   }
 
   .month-stepper-label {
-    grid-column: 5;
+    grid-column: 4;
     display: grid;
     place-items: center;
     color: #344657;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 950;
     text-align: center;
     white-space: nowrap;
@@ -3421,6 +3468,16 @@ th.amount {
 
   .savings-overview > div {
     padding: 10px 11px;
+  }
+
+  .savings-type-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .savings-type-tab {
+    min-height: 52px;
+    padding: 8px 10px;
   }
 
   .savings-form {

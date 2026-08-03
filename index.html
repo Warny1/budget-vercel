@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260803-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260804-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -29,7 +29,6 @@
         </div>
         <div class="mobile-top-controls">
           <button class="mobile-home-button" id="mobileHomeButton" type="button" aria-label="현재상태로 이동">홈</button>
-          <button class="mobile-back-button" id="mobileBackButton" type="button" aria-label="이전 화면">뒤로</button>
           <button class="menu-toggle-button" id="menuToggle" type="button" aria-expanded="false">메뉴</button>
           <button class="month-shift-button" data-month-shift="-1" type="button" aria-label="이전 달">‹</button>
           <span class="month-stepper-label" id="monthStepperLabel">이번 달</span>
@@ -57,7 +56,7 @@
           <div class="page-header dashboard-hero" data-dashboard-action="toggle-overview">
             <div>
               <span class="eyebrow" id="dashboardMonth"></span>
-              <h2 id="dashboardTitle">우리집 이번 달</h2>
+              <h2 id="dashboardTitle" class="dashboard-title-button" data-edit-dashboard-memo title="누르면 10자 메모를 남길 수 있어요">우리집 이번 달</h2>
               <div class="monthly-insight-list" id="monthlyInsight"></div>
             </div>
             <div class="hero-balance">
@@ -352,6 +351,7 @@
               <div><span>모아둔 금액</span><strong id="savingsBalance"></strong></div>
               <div><span>이번 달 순저금</span><strong id="savingsMonthTotal"></strong></div>
             </div>
+            <div class="savings-type-tabs" id="savingsTypeTabs" aria-label="저축 구분"></div>
             <div class="savings-form" id="savingsForm">
               <input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 저금액" />
               <input id="savingsAmount" type="number" min="0" step="10000" placeholder="이번 달 저금액" />

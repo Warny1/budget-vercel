@@ -514,13 +514,13 @@ function normalizeState(source) {
     next.settings.savingsInitialAmounts[SAVINGS_TYPES[0]] = legacySavingsInitialAmount;
   }
   next.settings.savingsInitialAmount = Object.values(next.settings.savingsInitialAmounts).reduce((total, amount) => total + amount, 0);
+  const hasSavingsDetails = next.settings.savingsDetails && typeof next.settings.savingsDetails === "object";
   next.settings.savingsDetails = Object.fromEntries(
     SAVINGS_TYPES.map((type) => [
       type,
       [...new Set([
-        ...(next.settings.savingsDetails?.[type] || []),
-        ...(DEFAULT_SAVINGS_DETAILS[type] || []),
-      ].map((detail) => String(detail || "").trim()).filter(Boolean))],
+        ...((hasSavingsDetails ? next.settings.savingsDetails?.[type] : DEFAULT_SAVINGS_DETAILS[type]) || []),
+      ].map((detail) => String(detail || "").trim()).filter(Boolean).filter((detail) => detail !== "기본"))],
     ]),
   );
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
@@ -1632,10 +1632,13 @@ function renderSavings(data = monthlyData()) {
     const rowsForDetail = detail === "전체" ? typeRowsAll : typeRowsAll.filter((row) => (row.detail || "기본") === detail);
     const detailTotal = detail === "전체" ? typeBalance : sum(rowsForDetail);
     return `
-      <button class="savings-detail-tab ${detail === activeSavingsDetail ? "active" : ""}" data-savings-detail="${escapeHtml(detail)}" type="button">
-        <span>${escapeHtml(detail)}</span>
-        <strong>${won.format(detailTotal)}</strong>
-      </button>
+      <div class="savings-detail-tab ${detail === activeSavingsDetail ? "active" : ""}">
+        <button class="savings-detail-select" data-savings-detail="${escapeHtml(detail)}" type="button">
+          <span>${escapeHtml(detail)}</span>
+          <strong>${won.format(detailTotal)}</strong>
+        </button>
+        ${detail === "전체" || detail === "기본" ? "" : `<button class="savings-detail-delete" data-delete-savings-detail="${escapeHtml(detail)}" type="button" aria-label="${escapeHtml(detail)} 삭제">×</button>`}
+      </div>
     `;
   }).join("");
   $("#savingsRows").innerHTML = typeRows.length ? typeRows
@@ -1746,6 +1749,22 @@ function addSavingsDetail() {
   state.settings.savingsDetails[activeSavingsType].push(detail);
   activeSavingsDetail = detail;
   field.value = "";
+  saveState();
+  renderAll();
+}
+
+function deleteSavingsDetail(detail) {
+  if (!detail || detail === "전체" || detail === "기본") return;
+  const details = savingsDetailsForType(activeSavingsType);
+  if (!details.includes(detail)) return;
+  const usedCount = (state.savings || []).filter((row) => (row.type || SAVINGS_TYPES[0]) === activeSavingsType && (row.detail || "기본") === detail).length;
+  if (usedCount && !confirm(`${detail} 세부항목에 기록 ${usedCount}건이 있어요. 삭제하면 해당 기록은 기본으로 옮겨둘게요.`)) return;
+  state.settings.savingsDetails[activeSavingsType] = (state.settings.savingsDetails[activeSavingsType] || []).filter((item) => item !== detail);
+  state.savings = (state.savings || []).map((row) => {
+    if ((row.type || SAVINGS_TYPES[0]) !== activeSavingsType || (row.detail || "기본") !== detail) return row;
+    return { ...row, detail: "기본" };
+  });
+  if (activeSavingsDetail === detail) activeSavingsDetail = "전체";
   saveState();
   renderAll();
 }
@@ -2579,6 +2598,14 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
     activateSavingsDetail(savingsDetailButton.dataset.savingsDetail);
+    return;
+  }
+
+  const deleteSavingsDetailButton = closestTarget(event, "[data-delete-savings-detail]");
+  if (deleteSavingsDetailButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    deleteSavingsDetail(deleteSavingsDetailButton.dataset.deleteSavingsDetail);
     return;
   }
 

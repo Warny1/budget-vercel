@@ -1713,11 +1713,16 @@ function renderSavings(data = monthlyData()) {
   initialField.disabled = activeSavingsDetail === "전체";
   initialField.placeholder = activeSavingsDetail === "전체" ? "세부항목 선택 후 입력" : `${activeSavingsDetail} 기존 금액`;
   initialField.value = activeSavingsDetail === "전체" ? "" : selectedDetailInitialAmount || "";
-  optionList($("#savingsDetail"), detailOptions, detailOptions.includes($("#savingsDetail").value) ? $("#savingsDetail").value : detailOptions[0]);
-  optionList($("#savingsWithdrawDetail"), detailOptions, detailOptions.includes($("#savingsWithdrawDetail").value) ? $("#savingsWithdrawDetail").value : detailOptions[0]);
+  const preferredDetail = activeSavingsDetail !== "전체" && detailOptions.includes(activeSavingsDetail) ? activeSavingsDetail : "";
+  optionList($("#savingsDetail"), detailOptions, preferredDetail || (detailOptions.includes($("#savingsDetail").value) ? $("#savingsDetail").value : detailOptions[0]));
+  optionList($("#savingsWithdrawDetail"), detailOptions, preferredDetail || (detailOptions.includes($("#savingsWithdrawDetail").value) ? $("#savingsWithdrawDetail").value : detailOptions[0]));
   const savingsPageMonth = $("#savingsPageMonth");
   if (savingsPageMonth) savingsPageMonth.textContent = monthLabel(data.month);
   $("#savingsMonthLabel").textContent = `${monthLabel(data.month)} · ${selectedType}`;
+  const depositLabel = $("#savingsDepositDialogLabel");
+  const withdrawLabel = $("#savingsWithdrawDialogLabel");
+  if (depositLabel) depositLabel.textContent = `${selectedType} · ${activeSavingsDetail}`;
+  if (withdrawLabel) withdrawLabel.textContent = `${selectedType} · ${activeSavingsDetail}`;
   $("#savingsBalance").textContent = won.format(typeBalance);
   $("#savingsMonthTotal").textContent = won.format(typeMonthTotal);
   $("#savingsTypeTabs").innerHTML = SAVINGS_TYPES.map((type) => {
@@ -1774,6 +1779,7 @@ function addSavings() {
   $("#savingsMemo").value = "";
   saveState();
   renderAll();
+  closeSavingsDepositDialog();
 }
 
 function withdrawSavings() {
@@ -1812,6 +1818,7 @@ function withdrawSavings() {
   $("#savingsWithdrawDate").value = defaultDateForMonth();
   saveState();
   renderAll();
+  closeSavingsWithdrawDialog();
 }
 
 function updateSavingsInitialAmount() {
@@ -1877,6 +1884,30 @@ function addSavingsDetail() {
   field.value = "";
   saveState();
   renderAll();
+}
+
+function openSavingsDepositDialog() {
+  if (activeSavingsDetail === "전체") {
+    const firstDetail = savingsDetailsForType(activeSavingsType)[0];
+    if (firstDetail) activeSavingsDetail = firstDetail;
+  }
+  renderSavings();
+  const dialog = $("#savingsDepositDialog");
+  if (dialog?.showModal) dialog.showModal();
+}
+
+function closeSavingsDepositDialog() {
+  closePickerDialog("savingsDepositDialog");
+}
+
+function openSavingsWithdrawDialog() {
+  renderSavings();
+  const dialog = $("#savingsWithdrawDialog");
+  if (dialog?.showModal) dialog.showModal();
+}
+
+function closeSavingsWithdrawDialog() {
+  closePickerDialog("savingsWithdrawDialog");
 }
 
 function deleteSavingsDetail(detail) {
@@ -2848,6 +2879,10 @@ document.addEventListener("click", (event) => {
     expenseCancelToggle: toggleExpenseCancel,
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),
+    openSavingsDeposit: openSavingsDepositDialog,
+    openSavingsWithdraw: openSavingsWithdrawDialog,
+    closeSavingsDepositDialog: closeSavingsDepositDialog,
+    closeSavingsWithdrawDialog: closeSavingsWithdrawDialog,
     addSavingsDetail,
     addEvent: () => $("#eventForm")?.requestSubmit(),
     cancelExpenseEdit: () => {
@@ -2999,6 +3034,12 @@ on("#budgetDetailDialog", "close", () => {
 on("#closeDashboardDetailDialog", "click", closeDashboardDetailDialog);
 on("#dashboardDetailDialog", "click", (event) => {
   if (event.target === $("#dashboardDetailDialog")) closeDashboardDetailDialog();
+});
+on("#savingsDepositDialog", "click", (event) => {
+  if (event.target === $("#savingsDepositDialog")) closeSavingsDepositDialog();
+});
+on("#savingsWithdrawDialog", "click", (event) => {
+  if (event.target === $("#savingsWithdrawDialog")) closeSavingsWithdrawDialog();
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);

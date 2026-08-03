@@ -3058,8 +3058,14 @@ th.amount {
   .entry-form select,
   .setting-editor input,
   .cloud-tools input {
-    height: 36px;
+    height: 48px;
     border-radius: 10px;
+  }
+
+  .date-tools .ghost-button,
+  .header-actions .ghost-button,
+  .header-actions .primary-button {
+    height: 36px;
   }
 
   .category-picker-button,
@@ -3070,6 +3076,13 @@ th.amount {
 
   .picker-caption {
     font-size: 9.5px;
+  }
+
+  #expenseDate,
+  #incomeDate,
+  .category-picker-button,
+  .picker-button {
+    min-height: 48px;
   }
 
   .category-dialog {
@@ -3849,7 +3862,8 @@ th.amount {
   }
 
   .budget-summary > div {
-    padding: 9px 8px;
+    padding: 7px 8px;
+    min-height: 58px;
   }
 
   .budget-summary span {
@@ -3857,7 +3871,8 @@ th.amount {
   }
 
   .budget-summary strong {
-    font-size: 13px;
+    margin-top: 3px;
+    font-size: 12px;
     overflow-wrap: anywhere;
   }
 
@@ -3918,11 +3933,27 @@ th.amount {
   }
 
   .budget-row {
-    padding: 10px;
+    padding: 8px 9px;
+    border-radius: 12px;
   }
 
   .budget-amounts strong {
-    font-size: 15px;
+    font-size: 14px;
+  }
+
+  .budget-row-head em,
+  .budget-amounts span,
+  .budget-edit-hint {
+    font-size: 10px;
+  }
+
+  .budget-amounts {
+    margin-top: 6px;
+  }
+
+  .budget-progress {
+    height: 7px;
+    margin-top: 6px;
   }
 
   .budget-setting-row {

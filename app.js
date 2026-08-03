@@ -976,7 +976,7 @@ function renderCategoryPicker() {
   const selected = select.value || state.settings.categories[0] || "";
   const label = $("#expenseCategoryPickerLabel");
   const dot = $(".category-picker-dot");
-  if (label) label.textContent = selected || "카테고리";
+  if (label) label.textContent = "카테고리";
   if (dot) dot.style.background = categoryColor(selected);
   $("#categoryChoiceGrid").innerHTML = state.settings.categories.map((category) => `
     <button class="category-choice ${category === selected ? "active" : ""}" data-category-choice="${escapeHtml(category)}" type="button">
@@ -1007,8 +1007,8 @@ function selectExpenseCategory(category) {
 function renderPaymentPickers() {
   const method = $("#expenseMethod").value || PAYMENT_METHODS[0];
   const payment = $("#expenseCard").value || "";
-  $("#expenseMethodPickerLabel").textContent = method || "결제수단";
-  $("#expenseCardPickerLabel").textContent = payment || "종류";
+  $("#expenseMethodPickerLabel").textContent = "결제수단";
+  $("#expenseCardPickerLabel").textContent = "종류";
   $("#paymentMethodChoiceGrid").innerHTML = PAYMENT_METHODS.map((value) => `
     <button class="category-choice payment-choice ${value === method ? "active" : ""}" data-payment-method-choice="${escapeHtml(value)}" type="button">
       <span style="background:${METHOD_FALLBACK_COLORS[value] || "#EEF3F7"}"></span>
@@ -1027,7 +1027,7 @@ function renderPaymentPickers() {
 function renderIncomeTypePicker() {
   const select = $("#incomeType");
   const selected = select.value || state.settings.incomeTypes[0] || "";
-  $("#incomeTypePickerLabel").textContent = selected || "수입항목";
+  $("#incomeTypePickerLabel").textContent = "수입";
   $("#incomeTypeChoiceGrid").innerHTML = state.settings.incomeTypes.map((type, index) => `
     <button class="category-choice payment-choice ${type === selected ? "active" : ""}" data-income-type-choice="${escapeHtml(type)}" type="button">
       <span style="background:${FALLBACK_COLORS[index % FALLBACK_COLORS.length]}"></span>

@@ -1758,7 +1758,10 @@ function deleteSavingsDetail(detail) {
   const details = savingsDetailsForType(activeSavingsType);
   if (!details.includes(detail)) return;
   const usedCount = (state.savings || []).filter((row) => (row.type || SAVINGS_TYPES[0]) === activeSavingsType && (row.detail || "기본") === detail).length;
-  if (usedCount && !confirm(`${detail} 세부항목에 기록 ${usedCount}건이 있어요. 삭제하면 해당 기록은 기본으로 옮겨둘게요.`)) return;
+  const message = usedCount
+    ? `${detail} 세부항목에 기록 ${usedCount}건이 있어요. 삭제하면 해당 기록은 기본으로 옮겨둘게요. 삭제할까요?`
+    : `${detail} 세부항목을 삭제할까요?`;
+  if (!confirm(message)) return;
   state.settings.savingsDetails[activeSavingsType] = (state.settings.savingsDetails[activeSavingsType] || []).filter((item) => item !== detail);
   state.savings = (state.savings || []).map((row) => {
     if ((row.type || SAVINGS_TYPES[0]) !== activeSavingsType || (row.detail || "기본") !== detail) return row;

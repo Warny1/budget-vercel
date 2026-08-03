@@ -1287,26 +1287,64 @@ function renderMethodList() {
   }).join("");
 }
 
-function renderRecentList() {
-  const list = $("#recentList");
-  if (!list) return;
-  const rows = state.expenses
+function recentRowsForMonth(limit = 5) {
+  return state.expenses
     .filter((row) => inMonth(row, currentMonth()))
     .slice()
     .sort((a, b) => `${b.date}-${b.id}`.localeCompare(`${a.date}-${a.id}`))
-    .slice(0, 5);
-  list.innerHTML = rows.length ? rows.map((row) => {
+    .slice(0, limit);
+}
+
+function recentListHtml(limit = 5, interactive = false) {
+  const rows = recentRowsForMonth(limit);
+  if (!rows.length) return `<p class="empty-card">이번 달 기록이 아직 없어요.</p>`;
+  return rows.map((row) => {
+    const tag = interactive ? "button" : "div";
+    const actionAttrs = interactive ? ` data-dashboard-action="category" data-dashboard-value="${escapeHtml(row.category)}" type="button"` : "";
     return `
-      <button class="recent-item" data-dashboard-action="category" data-dashboard-value="${escapeHtml(row.category)}" type="button">
+      <${tag} class="recent-item"${actionAttrs}>
         <span class="recent-dot" style="background:${categoryColor(row.category)}"></span>
         <span class="recent-main">
           <strong>${escapeHtml(row.category)}</strong>
           <small>${shortDateLabel(row.date)} · ${escapeHtml(row.payment)}</small>
         </span>
         <b class="${isCancellationExpense(row) ? "positive" : ""}">${formatExpenseAmount(row)}</b>
-      </button>
+      </${tag}>
     `;
-  }).join("") : `<p class="empty-card">이번 달 기록이 아직 없어요.</p>`;
+  }).join("");
+}
+
+function renderRecentList() {
+  const list = $("#recentList");
+  if (!list) return;
+  list.innerHTML = recentListHtml(3, false);
+}
+
+function categoryBreakdownHtml(limit = 5, interactive = true) {
+  const data = monthlyData();
+  const entries = Object.entries(data.categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
+  if (!entries.length || !data.expenseTotal) return `<p class="empty-card">이번 달 지출이 아직 없어요.</p>`;
+  const topTotal = entries.slice(0, limit).reduce((total, [, value]) => total + value, 0);
+  const otherTotal = Math.max(data.expenseTotal - topTotal, 0);
+  const displayRows = [
+    ...entries.slice(0, limit),
+    ...(otherTotal > 0 ? [["그 외", otherTotal]] : []),
+  ];
+  return displayRows.map(([label, value], index) => {
+    const percent = Math.round((value / data.expenseTotal) * 100);
+    const tag = interactive ? "button" : "div";
+    const actionAttrs = interactive ? ` data-dashboard-action="category" data-dashboard-value="${label === "그 외" ? "" : escapeHtml(label)}" type="button"` : "";
+    return `
+      <${tag} class="category-breakdown-row"${actionAttrs}>
+        <span class="category-rank">${index + 1}</span>
+        <span class="category-breakdown-main">
+          <span><i style="background:${categoryColor(label)}"></i>${escapeHtml(label)}</span>
+          <b>${won.format(value)} · ${percent}%</b>
+        </span>
+        <span class="category-breakdown-bar"><i style="width:${percent}%; background:${categoryColor(label)}"></i></span>
+      </${tag}>
+    `;
+  }).join("");
 }
 
 function renderCardTargetMini() {
@@ -1354,34 +1392,8 @@ function renderCardTargetMini() {
 
 function renderChart() {
   const panel = $("#categoryBreakdown");
-  const data = monthlyData();
-  const entries = Object.entries(data.categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
   if (!panel) return;
-  if (!entries.length || !data.expenseTotal) {
-    panel.innerHTML = `<p class="empty-card">이번 달 지출이 아직 없어요.</p>`;
-    return;
-  }
-  const topTotal = entries.slice(0, 5).reduce((total, [, value]) => total + value, 0);
-  const otherTotal = Math.max(data.expenseTotal - topTotal, 0);
-  const rows = [
-    ...entries.slice(0, 5),
-    ...(otherTotal > 0 ? [["그 외", otherTotal]] : []),
-  ];
-  panel.innerHTML = `
-    ${rows.map(([label, value], index) => {
-      const percent = Math.round((value / data.expenseTotal) * 100);
-      return `
-        <button class="category-breakdown-row" data-dashboard-action="category" data-dashboard-value="${label === "그 외" ? "" : escapeHtml(label)}" type="button">
-          <span class="category-rank">${index + 1}</span>
-          <span class="category-breakdown-main">
-            <span><i style="background:${categoryColor(label)}"></i>${escapeHtml(label)}</span>
-            <b>${won.format(value)} · ${percent}%</b>
-          </span>
-          <span class="category-breakdown-bar"><i style="width:${percent}%; background:${categoryColor(label)}"></i></span>
-        </button>
-      `;
-    }).join("")}
-  `;
+  panel.innerHTML = categoryBreakdownHtml(3, false);
 }
 
 function renderExpenses() {
@@ -1541,6 +1553,50 @@ function budgetEntries(data = monthlyData()) {
       type: "saving",
     }] : []),
   ];
+}
+
+function budgetEntryStatus(entry) {
+  const rate = entry.target ? Math.round((entry.actual / entry.target) * 100) : 0;
+  const difference = entry.target - entry.actual;
+  const isOver = entry.type === "expense" && entry.target > 0 && difference < 0;
+  const achieved = entry.type === "saving" && entry.target > 0 && difference <= 0;
+  const status = !entry.target
+    ? "목표 미설정"
+    : entry.type === "saving"
+      ? achieved
+        ? `${won.format(Math.abs(difference))} 더 모음`
+        : `${won.format(difference)} 부족`
+      : isOver
+        ? `${won.format(Math.abs(difference))} 초과`
+        : `${won.format(difference)} 아낌`;
+  return { rate, difference, isOver, achieved, status };
+}
+
+function budgetRowsHtml(entries, editable = false) {
+  return entries.map((entry) => {
+    const { rate, isOver, achieved, status } = budgetEntryStatus(entry);
+    const tag = editable ? "button" : "article";
+    const attrs = editable ? ` data-budget-detail-open="${escapeHtml(entry.name)}" type="button"` : "";
+    return `
+      <${tag} class="budget-row ${editable ? "editable" : ""} ${isOver ? "over" : ""} ${achieved ? "achieved" : ""}"${attrs}>
+        <div class="budget-row-head">
+          <div>
+            <span class="category-dot" style="background:${entry.type === "saving" ? "#8FCFA4" : categoryColor(entry.name)}"></span>
+            <strong>${escapeHtml(entry.name)}</strong>
+          </div>
+          <em>${escapeHtml(status)}</em>
+        </div>
+        <div class="budget-amounts">
+          <strong>${won.format(entry.actual)}</strong>
+          <span>/ ${won.format(entry.target)}</span>
+        </div>
+        <div class="budget-progress" aria-label="${escapeHtml(entry.name)} ${rate}%">
+          <span style="width:${Math.min(rate, 100)}%"></span>
+        </div>
+        ${editable ? `<small class="budget-edit-hint">눌러서 예산 수정</small>` : ""}
+      </${tag}>
+    `;
+  }).join("");
 }
 
 function budgetSettingNames() {
@@ -1887,39 +1943,30 @@ function renderBudget() {
       : `${won.format(Math.abs(remaining))} 초과`;
   $("#budgetTotalStatus").classList.toggle("over", remaining < 0);
   renderSavings(data);
-  $("#budgetRows").innerHTML = entries.map((entry) => {
-    const rate = entry.target ? Math.round((entry.actual / entry.target) * 100) : 0;
-    const difference = entry.target - entry.actual;
-    const isOver = entry.type === "expense" && entry.target > 0 && difference < 0;
-    const achieved = entry.type === "saving" && entry.target > 0 && difference <= 0;
-    const status = !entry.target
-      ? "목표 미설정"
-      : entry.type === "saving"
-        ? achieved
-          ? `${won.format(Math.abs(difference))} 더 모음`
-          : `${won.format(difference)} 부족`
-        : isOver
-          ? `${won.format(Math.abs(difference))} 초과`
-          : `${won.format(difference)} 아낌`;
-    return `
-      <article class="budget-row ${isOver ? "over" : ""} ${achieved ? "achieved" : ""}">
-        <div class="budget-row-head">
-          <div>
-            <span class="category-dot" style="background:${entry.type === "saving" ? "#8FCFA4" : categoryColor(entry.name)}"></span>
-            <strong>${escapeHtml(entry.name)}</strong>
-          </div>
-          <em>${escapeHtml(status)}</em>
-        </div>
-        <div class="budget-amounts">
-          <strong>${won.format(entry.actual)}</strong>
-          <span>/ ${won.format(entry.target)}</span>
-        </div>
-        <div class="budget-progress" aria-label="${escapeHtml(entry.name)} ${rate}%">
-          <span style="width:${Math.min(rate, 100)}%"></span>
-        </div>
-      </article>
-    `;
-  }).join("");
+  $("#budgetRows").innerHTML = budgetRowsHtml(entries, true);
+  renderDashboardBudgetPreview(entries, totalTarget, totalActual, remaining);
+}
+
+function renderDashboardBudgetPreview(entries = budgetEntries(), totalTarget = 0, totalActual = 0, remaining = 0) {
+  const preview = $("#dashboardBudgetPreview");
+  if (!preview) return;
+  const expenseEntries = entries.filter((entry) => entry.type === "expense");
+  const overEntries = expenseEntries.filter((entry) => budgetEntryStatus(entry).isOver);
+  const percent = totalTarget ? Math.min(Math.round((totalActual / totalTarget) * 100), 100) : 0;
+  $("#dashboardBudgetStatus").textContent = !totalTarget
+    ? "설정 필요"
+    : remaining >= 0
+      ? `${won.format(remaining)} 남음`
+      : `${won.format(Math.abs(remaining))} 초과`;
+  $("#dashboardBudgetStatus").classList.toggle("over", remaining < 0);
+  preview.innerHTML = `
+    <div class="dashboard-budget-meter">
+      <strong>${won.format(totalActual)}</strong>
+      <span>/ ${won.format(totalTarget)}</span>
+      <i><b style="width:${percent}%"></b></i>
+    </div>
+    <p>${overEntries.length ? `${escapeHtml(overEntries[0].name)} 예산 초과 확인` : "이번 달 예산 흐름 보기"}</p>
+  `;
 }
 
 function renderEventAlert() {
@@ -1937,6 +1984,32 @@ function renderEventAlert() {
       <span>등록된 일정이 없어요.</span>
     </div>
   `;
+}
+
+function openDashboardDetailDialog(type) {
+  const dialog = $("#dashboardDetailDialog");
+  const title = $("#dashboardDetailTitle");
+  const body = $("#dashboardDetailBody");
+  if (!dialog || !title || !body) return;
+  const data = monthlyData();
+  if (type === "distribution") {
+    title.textContent = "지출 분포";
+    body.innerHTML = `<div class="category-breakdown detail-breakdown">${categoryBreakdownHtml(10, true)}</div>`;
+  } else if (type === "recent") {
+    title.textContent = "최근 기록";
+    body.innerHTML = `<div class="recent-list detail-recent-list">${recentListHtml(30, true)}</div>`;
+  } else if (type === "budget") {
+    const entries = budgetEntries(data);
+    title.textContent = "예산 현황";
+    body.innerHTML = `<section class="budget-list detail-budget-list">${budgetRowsHtml(entries, false)}</section>`;
+  } else {
+    return;
+  }
+  if (dialog.showModal) dialog.showModal();
+}
+
+function closeDashboardDetailDialog() {
+  closePickerDialog("dashboardDetailDialog");
 }
 
 function renderCalendar() {
@@ -2741,6 +2814,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const dashboardDetailButton = closestTarget(event, "[data-dashboard-detail]");
+  if (dashboardDetailButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openDashboardDetailDialog(dashboardDetailButton.dataset.dashboardDetail);
+    return;
+  }
+
   const dashboardButton = closestTarget(event, "[data-dashboard-action]");
   if (dashboardButton) {
     if (dashboardButton.classList.contains("dashboard-hero") && closestTarget(event, "button,label,input")) {
@@ -2914,6 +2995,10 @@ on("#budgetDetailDialog", "click", (event) => {
 });
 on("#budgetDetailDialog", "close", () => {
   activeBudgetDetailCategory = "";
+});
+on("#closeDashboardDetailDialog", "click", closeDashboardDetailDialog);
+on("#dashboardDetailDialog", "click", (event) => {
+  if (event.target === $("#dashboardDetailDialog")) closeDashboardDetailDialog();
 });
 on("#incomeDate", "change", (event) => {
   moveToDateMonth(event.target.value);

@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260804-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260804-3" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -77,7 +77,7 @@
           <section class="event-alert-panel" id="eventAlertPanel"></section>
 
           <div class="dashboard-layout">
-            <section class="panel">
+            <button class="panel dashboard-open-panel" data-dashboard-detail="distribution" type="button">
               <div class="panel-title">
                 <h3>지출 분포</h3>
                 <span id="topCategoryLabel"></span>
@@ -85,7 +85,7 @@
               <div class="chart-wrap">
                 <div class="category-breakdown" id="categoryBreakdown"></div>
               </div>
-            </section>
+            </button>
             <section class="panel">
               <div class="panel-title">
                 <h3>결제수단</h3>
@@ -93,13 +93,20 @@
               </div>
               <div class="method-list" id="methodList"></div>
             </section>
-            <section class="panel recent-panel">
+            <button class="panel recent-panel dashboard-open-panel" data-dashboard-detail="recent" type="button">
               <div class="panel-title">
                 <h3>최근 기록</h3>
                 <span>이번 달</span>
               </div>
               <div class="recent-list" id="recentList"></div>
-            </section>
+            </button>
+            <button class="panel dashboard-open-panel" data-dashboard-detail="budget" type="button">
+              <div class="panel-title">
+                <h3>예산 현황</h3>
+                <span id="dashboardBudgetStatus">이번 달</span>
+              </div>
+              <div class="dashboard-budget-preview" id="dashboardBudgetPreview"></div>
+            </button>
           </div>
         </section>
 
@@ -615,6 +622,15 @@
         <div class="budget-detail-rows" id="budgetDetailRows"></div>
         <button class="ghost-button budget-detail-add" id="addBudgetDetail" type="button">+ 세부 항목 추가</button>
         <button class="primary-button budget-detail-done" id="closeBudgetDetailDone" type="button">수정 완료</button>
+      </div>
+    </dialog>
+    <dialog class="category-dialog dashboard-detail-dialog" id="dashboardDetailDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <strong id="dashboardDetailTitle">상세 보기</strong>
+          <button class="dialog-close-button" id="closeDashboardDetailDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="dashboard-detail-body" id="dashboardDetailBody"></div>
       </div>
     </dialog>
     <script defer src="./app.js?v=20260803-2"></script>

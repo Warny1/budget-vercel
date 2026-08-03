@@ -5,8 +5,10 @@ const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@
 const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
-const EXPENSE_SOURCES = ["공용", "원 용돈", "수연이 용돈"];
+const EXPENSE_SOURCES = ["공용"];
 const CANCELLATION_CATEGORY = "취소";
+const ALLOWANCE_CARD_WON = "원 용돈카드";
+const ALLOWANCE_CARD_SUYEON = "수연 용돈카드";
 const CATEGORY_COLORS = {
   "생활": "#A7D8F0",
   "식재료": "#BFE7C2",
@@ -26,12 +28,11 @@ const PAYMENT_COLORS = {
   "삼성(원)": "#D8F1F0",
   "신한(원)": "#DFF0D8",
   "현대(원)": "#E5E4FF",
-  "국민(수)": "#FFE1D4",
   "국체(수)": "#FFD9E8",
   "롯데(수)": "#FFE8B8",
   "현대(수)": "#F2DDF7",
-  "원 용돈": "#E0F5D9",
-  "수연이 용돈": "#FFE0CC",
+  [ALLOWANCE_CARD_WON]: "#E0F5D9",
+  [ALLOWANCE_CARD_SUYEON]: "#FFE0CC",
   "원": "#D7ECFF",
   "수연": "#FFD7C9",
 };
@@ -45,10 +46,11 @@ const DEFAULT_CARD_TARGETS = {
   "국민(원)": { primary: 300000, secondary: 0 },
   "삼성(원)": { primary: 300000, secondary: 0 },
   "신한(원)": { primary: 300000, secondary: 0 },
-  "국민(수)": { primary: 300000, secondary: 0 },
   "국체(수)": { primary: 200000, secondary: 0 },
   "롯데(수)": { primary: 400000, secondary: 0 },
   "현대(수)": { primary: 300000, secondary: 0 },
+  [ALLOWANCE_CARD_WON]: { primary: 0, secondary: 0 },
+  [ALLOWANCE_CARD_SUYEON]: { primary: 0, secondary: 0 },
 };
 const DEFAULT_BUDGET_DETAILS = {
   "고정": ["은행이자", "관리비", "통신비", "보험"],
@@ -69,10 +71,11 @@ const sampleState = {
       { group: "카드(원)", name: "삼성(원)", method: "카드(원)" },
       { group: "카드(원)", name: "신한(원)", method: "카드(원)" },
       { group: "카드(원)", name: "현대(원)", method: "카드(원)" },
-      { group: "카드(수)", name: "국민(수)", method: "카드(수)" },
       { group: "카드(수)", name: "국체(수)", method: "카드(수)" },
       { group: "카드(수)", name: "롯데(수)", method: "카드(수)" },
       { group: "카드(수)", name: "현대(수)", method: "카드(수)" },
+      { group: "카드(원)", name: ALLOWANCE_CARD_WON, method: "카드(원)" },
+      { group: "카드(수)", name: ALLOWANCE_CARD_SUYEON, method: "카드(수)" },
       { group: "현금", name: "현금", method: "현금" },
       { group: "계좌이체", name: "원", method: "계좌이체" },
       { group: "계좌이체", name: "수연", method: "계좌이체" },
@@ -118,6 +121,7 @@ let dashboardOverviewOpen = false;
 let activeCardUsageName = "";
 let activeExpenseFilterPicker = "";
 let activeBudgetDetailCategory = "";
+let viewHistory = [];
 let cloudClient = null;
 let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
@@ -490,6 +494,7 @@ function normalizeState(source) {
     next.settings.cardTargets["국체(수)"] = next.settings.cardTargets["국제(수)"];
     delete next.settings.cardTargets["국제(수)"];
   }
+  delete next.settings.cardTargets["국민(수)"];
   next.settings.cardTargets = Object.fromEntries(Object.entries(next.settings.cardTargets).map(([name, target]) => [name, normalizeCardTarget(target)]));
   next.settings.paymentItems = (next.settings.paymentItems || []).map((item) => {
     if (item.name === "국제(수)") return { ...item, name: "국체(수)" };
@@ -497,21 +502,28 @@ function normalizeState(source) {
       return { ...item, method: item.group };
     }
     return item;
-  }).filter((item) => !["원 용돈", "수연이 용돈"].includes(item.name));
+  }).filter((item) => !["원 용돈", "수연이 용돈", "국민(수)"].includes(item.name));
+  ensurePaymentItem(next.settings.paymentItems, { group: "카드(원)", name: ALLOWANCE_CARD_WON, method: "카드(원)" });
+  ensurePaymentItem(next.settings.paymentItems, { group: "카드(수)", name: ALLOWANCE_CARD_SUYEON, method: "카드(수)" });
   if (!next.settings.paymentItems.some((item) => item.method === "현금")) {
     next.settings.paymentItems.push({ group: "현금", name: "현금", method: "현금" });
   }
   next.expenses = next.expenses.map((row) => {
     const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(row.payment) ? row.payment : "";
-    const paymentName = legacyAllowance ? "현금" : row.payment === "국제(수)" ? "국체(수)" : row.payment;
+    const sourceAllowance = allowanceCardForSource(row.source);
+    let paymentName = row.payment;
+    if (legacyAllowance) paymentName = allowanceCardForSource(legacyAllowance);
+    else if (sourceAllowance) paymentName = sourceAllowance;
+    else if (row.payment === "국제(수)") paymentName = "국체(수)";
+    else if (row.payment === "국민(수)") paymentName = ALLOWANCE_CARD_SUYEON;
     const item = next.settings.paymentItems.find((payment) => payment.name === paymentName);
     const method = row.method === "카드" && item?.method ? item.method : row.method;
-    const source = EXPENSE_SOURCES.includes(row.source) ? row.source : legacyAllowance || "공용";
+    const source = "공용";
     return {
       ...row,
       category: row.category === CANCELLATION_CATEGORY ? "기타" : row.category,
       amount: Math.abs(Number(row.amount || 0)),
-      method: legacyAllowance ? "현금" : method,
+      method: item?.method || method || "현금",
       payment: paymentName || "현금",
       source,
       cancelled: Boolean(row.cancelled || row.category === CANCELLATION_CATEGORY),
@@ -554,6 +566,16 @@ function normalizeCardTarget(target) {
     primary: Number(target?.primary || 0),
     secondary: Number(target?.secondary || 0),
   };
+}
+
+function ensurePaymentItem(items, item) {
+  if (!items.some((row) => row.name === item.name)) items.push(item);
+}
+
+function allowanceCardForSource(source) {
+  if (source === "원 용돈") return ALLOWANCE_CARD_WON;
+  if (source === "수연이 용돈") return ALLOWANCE_CARD_SUYEON;
+  return "";
 }
 
 function saveState() {
@@ -700,7 +722,6 @@ function cardTargetEntries(data = monthlyData()) {
 function totalForPaymentLabel(data, label) {
   if (label === "원 계좌이체") return expenseSum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "원"));
   if (label === "수연 계좌이체") return expenseSum(data.expenses.filter((row) => row.method === "계좌이체" && row.payment === "수연"));
-  if (label === "원 용돈" || label === "수연이 용돈") return expenseSum(data.expenses.filter((row) => row.source === label));
   return data.groupTotals[label] || 0;
 }
 
@@ -1162,7 +1183,7 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
 
 function renderMethodList() {
   const data = monthlyData();
-  const order = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금", "원 용돈", "수연이 용돈"];
+  const order = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금"];
   $("#methodList").innerHTML = order.map((group) => {
     const value = totalForPaymentLabel(data, group);
     const width = data.expenseTotal > 0 ? Math.max(Math.round((value / data.expenseTotal) * 100), 0) : 0;
@@ -1185,13 +1206,12 @@ function renderRecentList() {
     .sort((a, b) => `${b.date}-${b.id}`.localeCompare(`${a.date}-${a.id}`))
     .slice(0, 5);
   list.innerHTML = rows.length ? rows.map((row) => {
-    const source = row.source && row.source !== "공용" ? ` · ${row.source.replace(" 용돈", "")}` : "";
     return `
       <button class="recent-item" data-dashboard-action="category" data-dashboard-value="${escapeHtml(row.category)}" type="button">
         <span class="recent-dot" style="background:${categoryColor(row.category)}"></span>
         <span class="recent-main">
           <strong>${escapeHtml(row.category)}</strong>
-          <small>${shortDateLabel(row.date)} · ${escapeHtml(row.payment)}${escapeHtml(source)}</small>
+          <small>${shortDateLabel(row.date)} · ${escapeHtml(row.payment)}</small>
         </span>
         <b class="${isCancellationExpense(row) ? "positive" : ""}">${formatExpenseAmount(row)}</b>
       </button>
@@ -1294,9 +1314,16 @@ function renderExpenseRows(rows) {
     date: "날짜",
     category: "카테고리",
     method: "결제수단",
+    card: "카드사",
   };
   const grouped = rows.reduce((map, row) => {
-    const key = expenseViewMode === "date" ? row.date : expenseViewMode === "category" ? row.category : row.method;
+    const key = expenseViewMode === "date"
+      ? row.date
+      : expenseViewMode === "category"
+        ? row.category
+        : expenseViewMode === "card"
+          ? row.payment
+          : row.method;
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(row);
     return map;
@@ -1338,7 +1365,6 @@ function renderExpenseRows(rows) {
 }
 
 function renderExpenseRow(row) {
-  const source = row.source && row.source !== "공용" ? row.source : "";
   return `
     <tr class="${isCancellationExpense(row) ? "cancellation-row" : ""}">
       <td>${row.date}</td>
@@ -1347,7 +1373,6 @@ function renderExpenseRow(row) {
       <td>${escapeHtml(row.method)}</td>
       <td class="payment-cell">
         <span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span>
-        ${source ? `<span class="soft-badge source-badge source-${source === "원 용돈" ? "won" : "suyeon"}">${escapeHtml(source)}</span>` : ""}
       </td>
       <td class="source-cell"></td>
       <td class="expense-memo">${escapeHtml(row.memo)}</td>
@@ -1384,7 +1409,7 @@ function renderIncomes() {
 
 function renderAnalysis() {
   const data = monthlyData();
-  const groupOrder = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금", "원 용돈", "수연이 용돈"];
+  const groupOrder = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금"];
   $("#analysisStrip").innerHTML = [
     ...groupOrder.map((group) => [group, won.format(totalForPaymentLabel(data, group))]),
     ["총지출", won.format(data.expenseTotal)],
@@ -1529,6 +1554,8 @@ function renderSavings(data = monthlyData()) {
   if (!initialField) return;
   const savingsRows = state.savings || [];
   initialField.value = Number(state.settings.savingsInitialAmount || 0) || "";
+  const savingsPageMonth = $("#savingsPageMonth");
+  if (savingsPageMonth) savingsPageMonth.textContent = monthLabel(data.month);
   $("#savingsMonthLabel").textContent = monthLabel(data.month);
   $("#savingsBalance").textContent = won.format(data.savingsBalance);
   $("#savingsMonthTotal").textContent = won.format(data.savingsTotal);
@@ -2064,10 +2091,11 @@ function importSheetData() {
     const imported = rows.map((row) => {
       const rawPayment = row["상세수단"] || row["카드사"] || row["결제수단상세"] || row["상세결제수단"] || row["카드"] || "";
       const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(rawPayment) ? rawPayment : "";
-      const payment = legacyAllowance ? "현금" : rawPayment;
-      const item = getPaymentItem(payment) || getPaymentItemByGroup(row["카드그룹"]);
-      const method = legacyAllowance ? "현금" : item?.method || row["결제수단"] || "카드(원)";
       const sourceValue = row["지출구분"] || row["용돈구분"] || row["구분"] || legacyAllowance || "공용";
+      const allowancePayment = allowanceCardForSource(legacyAllowance || sourceValue);
+      const payment = allowancePayment || (rawPayment === "국민(수)" ? ALLOWANCE_CARD_SUYEON : rawPayment);
+      const item = getPaymentItem(payment) || getPaymentItemByGroup(row["카드그룹"]);
+      const method = item?.method || row["결제수단"] || "카드(원)";
       return {
         id: newId("expense-import"),
         date: parseDate(row["날짜"]),
@@ -2075,7 +2103,7 @@ function importSheetData() {
         amount: parseMoney(row["금액"]),
         method,
         payment: payment || item?.name || "",
-        source: EXPENSE_SOURCES.includes(sourceValue) ? sourceValue : "공용",
+        source: "공용",
         memo: row["메모"] || "",
       };
     }).filter((row) => row.date && row.amount > 0);
@@ -2146,10 +2174,6 @@ function openPaymentLabel(label) {
     openExpenseList({ method: "계좌이체", payment: "수연" });
     return;
   }
-  if (label === "원 용돈" || label === "수연이 용돈") {
-    openExpenseList({ source: label });
-    return;
-  }
   openExpenseList({ method: label, view: "method", group: label });
 }
 
@@ -2201,9 +2225,12 @@ function handleDashboardAction(action, value) {
   if (action === "method") openPaymentLabel(value);
 }
 
-function activateView(viewName) {
+function activateView(viewName, options = {}) {
   const view = $(`#${viewName}View`);
   if (!view) return;
+  const currentView = activeViewName();
+  const shouldTrack = options.track !== false && currentView !== viewName;
+  if (shouldTrack && currentView) viewHistory.push(currentView);
   $$(".nav-tab").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   $$(".view").forEach((item) => item.classList.toggle("active", item === view));
   setMenuOpen(false);
@@ -2219,6 +2246,17 @@ function navigateViewByOffset(offset) {
   const index = tabs.findIndex((button) => button.dataset.view === activeViewName());
   const nextIndex = Math.min(Math.max(index + offset, 0), tabs.length - 1);
   if (nextIndex !== index && tabs[nextIndex]) activateView(tabs[nextIndex].dataset.view);
+}
+
+function goBackView() {
+  const previous = viewHistory.pop();
+  if (previous) activateView(previous, { track: false });
+  else activateView("dashboard", { track: false });
+}
+
+function goDashboard() {
+  viewHistory = [];
+  activateView("dashboard", { track: false });
 }
 
 function renderMonthStepper() {
@@ -2450,6 +2488,9 @@ document.addEventListener("click", (event) => {
       renderExpenses();
     },
     menuToggle: () => setMenuOpen(!$(".sidebar")?.classList.contains("menu-open")),
+    mobileBackButton: goBackView,
+    mobileHomeButton: goDashboard,
+    quickHomeButton: goDashboard,
     expenseCancelToggle: toggleExpenseCancel,
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),

@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260803-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260803-2" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -28,6 +28,8 @@
           </div>
         </div>
         <div class="mobile-top-controls">
+          <button class="mobile-home-button" id="mobileHomeButton" type="button" aria-label="현재상태로 이동">홈</button>
+          <button class="mobile-back-button" id="mobileBackButton" type="button" aria-label="이전 화면">뒤로</button>
           <button class="menu-toggle-button" id="menuToggle" type="button" aria-expanded="false">메뉴</button>
           <button class="month-shift-button" data-month-shift="-1" type="button" aria-label="이전 달">‹</button>
           <span class="month-stepper-label" id="monthStepperLabel">이번 달</span>
@@ -40,6 +42,7 @@
           <button class="nav-tab" data-view="analysis" type="button">월별분석</button>
           <button class="nav-tab" data-view="calendar" type="button">캘린더</button>
           <button class="nav-tab" data-view="budget" type="button">예산</button>
+          <button class="nav-tab" data-view="savings" type="button">저축</button>
           <button class="nav-tab" data-view="settings" type="button">설정</button>
         </nav>
         <div class="month-control">
@@ -49,6 +52,7 @@
       </aside>
 
       <main class="main">
+        <button class="quick-home-button" id="quickHomeButton" type="button">현재상태</button>
         <section class="view active" id="dashboardView" aria-labelledby="dashboardTitle">
           <div class="page-header dashboard-hero" data-dashboard-action="toggle-overview">
             <div>
@@ -204,10 +208,7 @@
             </div>
             <select id="expenseSource" aria-label="지출 구분" required>
               <option value="공용">공용</option>
-              <option value="원 용돈">원 용돈</option>
-              <option value="수연이 용돈">수연이 용돈</option>
             </select>
-            <div class="source-segment" id="expenseSourceSegment" aria-label="지출 구분 선택"></div>
             <input id="expenseMemo" type="text" placeholder="메모" />
           </form>
           <div class="date-tools" aria-label="지출 날짜 빠른 선택">
@@ -220,6 +221,7 @@
             <button class="switch-button" data-expense-view="date" type="button">날짜별</button>
             <button class="switch-button" data-expense-view="category" type="button">카테고리별</button>
             <button class="switch-button" data-expense-view="method" type="button">결제수단별</button>
+            <button class="switch-button" data-expense-view="card" type="button">카드사별</button>
           </div>
           <div class="expense-filters" aria-label="지출 필터">
             <div class="picker-field filter-picker-field">
@@ -328,6 +330,19 @@
             <div><span>현재 지출</span><strong id="budgetTotalActual"></strong></div>
             <div><span>예산 상태</span><strong id="budgetTotalStatus"></strong></div>
           </section>
+          <section class="budget-list" id="budgetRows"></section>
+        </section>
+
+        <section class="view" id="savingsView" aria-labelledby="savingsTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="savingsTitle">저축</h2>
+              <p id="savingsPageMonth"></p>
+            </div>
+            <div class="header-actions">
+              <button class="ghost-button" data-dashboard-action="budget" type="button">예산 보기</button>
+            </div>
+          </div>
           <section class="panel savings-panel">
             <div class="panel-title">
               <h3>저금 통장</h3>
@@ -351,7 +366,6 @@
             </div>
             <div class="savings-list" id="savingsRows"></div>
           </section>
-          <section class="budget-list" id="budgetRows"></section>
         </section>
 
         <section class="view" id="analysisView" aria-labelledby="analysisTitle">
@@ -594,6 +608,6 @@
         <button class="primary-button budget-detail-done" id="closeBudgetDetailDone" type="button">수정 완료</button>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20260730-2"></script>
+    <script defer src="./app.js?v=20260803-2"></script>
   </body>
 </html>

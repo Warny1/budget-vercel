@@ -4562,3 +4562,124 @@ th.amount {
     width: 100%;
   }
 }
+
+@media (min-width: 761px) {
+  .nav-tabs {
+    grid-auto-rows: 42px;
+  }
+
+  .nav-tab {
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+  }
+
+  #dashboardView .dashboard-layout {
+    align-items: stretch;
+  }
+
+  #dashboardView .dashboard-layout > .panel,
+  #dashboardView .dashboard-layout > .dashboard-open-panel {
+    min-height: 214px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #dashboardView .dashboard-layout .panel:first-child {
+    min-height: 442px;
+  }
+
+  #dashboardView .dashboard-layout .panel:nth-child(4) {
+    min-height: 214px;
+  }
+
+  #dashboardView .panel-title {
+    min-height: 34px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  #dashboardView .chart-wrap,
+  #dashboardView .method-list,
+  #dashboardView .recent-list,
+  #dashboardView .dashboard-budget-preview {
+    flex: 1;
+    min-height: 0;
+  }
+
+  #dashboardView .method-list,
+  #dashboardView .recent-list,
+  #dashboardView .category-breakdown,
+  #dashboardView .dashboard-budget-preview {
+    display: grid;
+    align-content: start;
+    gap: 9px;
+  }
+
+  #dashboardView .category-breakdown-row,
+  #dashboardView .method-row,
+  #dashboardView .recent-item {
+    min-height: 56px;
+    height: 56px;
+    box-sizing: border-box;
+  }
+
+  #dashboardView .dashboard-budget-meter {
+    min-height: 92px;
+    display: grid;
+    align-content: center;
+  }
+
+  #dashboardView .dashboard-budget-preview p {
+    margin-top: auto;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .nav-tabs {
+    grid-auto-rows: 38px;
+  }
+
+  .nav-tab {
+    height: 38px;
+    min-height: 38px;
+  }
+
+  #dashboardView .dashboard-layout > .panel,
+  #dashboardView .dashboard-layout > .dashboard-open-panel,
+  #dashboardView .dashboard-layout .panel:first-child,
+  #dashboardView .dashboard-layout .panel:nth-child(4) {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .nav-tabs {
+    grid-auto-rows: 38px;
+  }
+
+  .nav-tab {
+    height: 38px;
+    min-height: 38px;
+    display: grid;
+    place-items: center;
+  }
+
+  #dashboardView .dashboard-layout > .panel,
+  #dashboardView .dashboard-layout > .dashboard-open-panel {
+    min-height: 132px;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="distribution"] {
+    min-height: 118px;
+  }
+
+  #dashboardView .dashboard-layout .dashboard-open-panel[data-dashboard-detail="budget"],
+  #dashboardView .dashboard-layout .recent-panel {
+    min-height: 132px;
+  }
+}

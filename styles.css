@@ -4108,3 +4108,457 @@ th.amount {
     height: 36px;
   }
 }
+
+@media (min-width: 761px) {
+  :root {
+    --desktop-card-radius: 18px;
+    --desktop-control-radius: 13px;
+    --desktop-card-shadow: 0 10px 24px rgba(85, 112, 130, 0.07);
+  }
+
+  .app-shell {
+    grid-template-columns: 204px minmax(0, 1fr);
+  }
+
+  .main {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 24px 34px;
+  }
+
+  .view.active {
+    display: grid;
+    gap: 14px;
+  }
+
+  .page-header {
+    margin-bottom: 0;
+  }
+
+  .page-header:not(.dashboard-hero) {
+    min-height: 0;
+    align-items: center;
+    padding: 16px 18px;
+    border: 1px solid rgba(205, 224, 233, 0.76);
+    border-radius: var(--desktop-card-radius);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--desktop-card-shadow);
+  }
+
+  .page-header h2 {
+    font-size: 26px;
+    line-height: 1.05;
+  }
+
+  .page-header p,
+  .page-header .eyebrow {
+    font-size: 13px;
+  }
+
+  .dashboard-hero {
+    min-height: 136px;
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .dashboard-hero::after {
+    right: 18px;
+    bottom: -6px;
+    font-size: 44px;
+  }
+
+  .dashboard-hero h2 {
+    font-size: 30px;
+  }
+
+  .hero-balance {
+    min-width: 180px;
+  }
+
+  .hero-balance strong {
+    font-size: 27px;
+  }
+
+  .header-actions {
+    align-items: center;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 0;
+  }
+
+  .summary-card {
+    min-height: 78px;
+    padding: 13px 14px 12px;
+    border-radius: 16px;
+    box-shadow: var(--desktop-card-shadow);
+  }
+
+  .summary-card span {
+    font-size: 12px;
+  }
+
+  .summary-card strong {
+    margin-top: 6px;
+    font-size: 18px;
+  }
+
+  .target-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 7px;
+    margin-bottom: 0;
+    overflow: visible;
+  }
+
+  .target-mini-card {
+    min-height: 42px;
+    padding: 7px 8px;
+    border-radius: 13px;
+  }
+
+  .event-alert-panel > div {
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: 15px;
+    box-shadow: var(--desktop-card-shadow);
+  }
+
+  .dashboard-layout,
+  .analysis-layout,
+  .calendar-layout,
+  .settings-grid {
+    gap: 14px;
+  }
+
+  #dashboardView .dashboard-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.9fr) minmax(250px, 0.9fr);
+  }
+
+  #dashboardView .dashboard-layout .panel:first-child {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  #dashboardView .dashboard-layout .panel:nth-child(2) {
+    grid-column: 2;
+  }
+
+  #dashboardView .dashboard-layout .panel:nth-child(3) {
+    grid-column: 3;
+  }
+
+  #dashboardView .dashboard-layout .panel:nth-child(4) {
+    grid-column: 2 / 4;
+  }
+
+  .panel,
+  .dashboard-open-panel,
+  .budget-row,
+  .table-panel {
+    border-radius: var(--desktop-card-radius);
+    box-shadow: var(--desktop-card-shadow);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel-title {
+    margin-bottom: 11px;
+  }
+
+  .panel-title h3 {
+    font-size: 22px;
+    line-height: 1.05;
+  }
+
+  .method-row,
+  .recent-item,
+  .category-breakdown-row {
+    min-height: 54px;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  .method-row strong,
+  .recent-item strong,
+  .category-breakdown-row strong {
+    font-size: 16px;
+  }
+
+  .entry-form,
+  .income-form,
+  .event-form {
+    gap: 9px;
+    margin-bottom: 0;
+    padding: 12px;
+    border-radius: var(--desktop-card-radius);
+    box-shadow: var(--desktop-card-shadow);
+  }
+
+  #expensesView .entry-form {
+    grid-template-columns: 155px 150px minmax(150px, 1fr) 112px 150px 150px minmax(150px, 1fr);
+  }
+
+  #incomeView .income-form {
+    grid-template-columns: 155px 170px minmax(170px, 1fr) minmax(190px, 1.2fr);
+  }
+
+  #calendarView .event-form {
+    grid-template-columns: minmax(160px, 1fr) 110px 120px 150px minmax(150px, 1fr);
+  }
+
+  #calendarView .event-form .ghost-button,
+  #calendarView .event-form .primary-button {
+    min-width: 76px;
+  }
+
+  .entry-form input,
+  .entry-form select,
+  .income-form input,
+  .income-form select,
+  .event-form input,
+  .event-form select,
+  .category-picker-button,
+  .picker-button {
+    height: 42px;
+    border-radius: var(--desktop-control-radius);
+  }
+
+  .category-picker-button,
+  .picker-button {
+    grid-template-rows: 12px minmax(0, 1fr);
+    padding: 6px 10px;
+  }
+
+  .category-picker-button strong,
+  .picker-button strong {
+    font-size: 13px;
+  }
+
+  .picker-caption {
+    font-size: 10px;
+  }
+
+  .amount-field {
+    grid-template-columns: minmax(0, 1fr) 54px;
+  }
+
+  .cancel-toggle-button,
+  .primary-button,
+  .ghost-button {
+    height: 42px;
+    border-radius: var(--desktop-control-radius);
+  }
+
+  .view-switch,
+  .settings-tabs {
+    margin-bottom: 0;
+    border-radius: 14px;
+  }
+
+  .date-tools {
+    margin: 0;
+  }
+
+  .date-tools .ghost-button {
+    height: 34px;
+  }
+
+  .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 680px;
+  }
+
+  th,
+  td {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .budget-summary {
+    gap: 10px;
+    margin-bottom: 0;
+  }
+
+  .budget-summary > div {
+    min-height: 78px;
+    padding: 14px;
+    border-radius: 16px;
+    box-shadow: var(--desktop-card-shadow);
+  }
+
+  .budget-summary strong {
+    font-size: 21px;
+  }
+
+  .budget-list {
+    grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+    gap: 10px;
+  }
+
+  .budget-row {
+    padding: 13px;
+  }
+
+  .budget-row-head,
+  .budget-amounts {
+    gap: 8px;
+  }
+
+  .savings-panel {
+    width: min(100%, 900px);
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .savings-overview {
+    gap: 10px;
+  }
+
+  .savings-overview > div {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .savings-overview strong {
+    font-size: 22px;
+  }
+
+  .savings-type-tabs {
+    gap: 8px;
+  }
+
+  .savings-type-tab {
+    min-height: 54px;
+    padding: 8px 10px;
+    border-radius: 15px;
+  }
+
+  .savings-detail-tabs {
+    min-height: 42px;
+    margin: 0 0 10px;
+  }
+
+  .savings-detail-tab {
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .savings-actions {
+    width: min(100%, 420px);
+    min-height: 40px;
+    margin: 0 auto 10px;
+  }
+
+  .savings-row {
+    min-height: 38px;
+    padding: 7px 9px;
+    border-radius: 12px;
+  }
+
+  .calendar-cell {
+    min-height: 66px;
+    border-radius: 12px;
+  }
+
+  .calendar-event-dot {
+    min-height: 19px;
+    font-size: 10px;
+  }
+
+  .analysis-strip {
+    gap: 0;
+    padding: 12px;
+  }
+
+  .analysis-strip div {
+    padding: 0 12px;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .app-shell {
+    grid-template-columns: 176px minmax(0, 1fr);
+  }
+
+  .main {
+    max-width: 100%;
+    padding: 16px 16px 28px;
+  }
+
+  .sidebar {
+    padding: 16px 10px;
+  }
+
+  .page-header:not(.dashboard-hero) {
+    padding: 13px 15px;
+  }
+
+  .page-header h2 {
+    font-size: 24px;
+  }
+
+  .dashboard-hero {
+    min-height: 118px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .dashboard-hero .header-actions {
+    justify-content: flex-start;
+  }
+
+  .hero-balance {
+    justify-items: start;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #dashboardView .dashboard-layout,
+  .analysis-layout,
+  .calendar-layout,
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #dashboardView .dashboard-layout > .panel,
+  #dashboardView .dashboard-layout > .dashboard-open-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  #expensesView .entry-form,
+  #incomeView .income-form,
+  #calendarView .event-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: 1 / -1;
+  }
+
+  #calendarView .event-form > input:first-child,
+  #calendarView .event-form > input:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .budget-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .savings-panel {
+    width: 100%;
+  }
+}

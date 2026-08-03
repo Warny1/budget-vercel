@@ -3566,6 +3566,12 @@ th.amount {
     padding: 8px 10px;
   }
 
+  .savings-detail-delete {
+    width: 21px;
+    height: 21px;
+    font-size: 13px;
+  }
+
   .savings-form {
     gap: 7px;
   }

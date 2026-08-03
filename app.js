@@ -78,6 +78,7 @@ const sampleState = {
     savingsInitialAmounts: {},
     savingsInitialDetailAmounts: {},
     savingsDetails: DEFAULT_SAVINGS_DETAILS,
+    savingsHiddenDefaultTypes: [],
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -513,12 +514,19 @@ function normalizeState(source) {
       ].map((detail) => String(detail || "").trim()).filter(Boolean).filter((detail) => detail !== "기본"))],
     ]),
   );
+  next.settings.savingsHiddenDefaultTypes = [...new Set(next.settings.savingsHiddenDefaultTypes || [])]
+    .filter((type) => SAVINGS_TYPES.includes(type));
+  next.settings.savingsHiddenDefaultTypes = next.settings.savingsHiddenDefaultTypes
+    .filter((type) => (next.settings.savingsDetails[type] || []).length > 0);
   const legacySavingsInitialAmount = Math.max(Number(next.settings.savingsInitialAmount || 0), 0);
   const legacyTypeInitialAmounts = next.settings.savingsInitialAmounts || {};
   const hasDetailInitialAmounts = next.settings.savingsInitialDetailAmounts && typeof next.settings.savingsInitialDetailAmounts === "object";
   next.settings.savingsInitialDetailAmounts = Object.fromEntries(
     SAVINGS_TYPES.map((type) => {
-      const details = ["기본", ...(next.settings.savingsDetails[type] || [])];
+      const details = [
+        ...(next.settings.savingsHiddenDefaultTypes.includes(type) ? [] : ["기본"]),
+        ...(next.settings.savingsDetails[type] || []),
+      ];
       const detailAmounts = Object.fromEntries(details.map((detail) => [
         detail,
         Math.max(Number(next.settings.savingsInitialDetailAmounts?.[type]?.[detail] || 0), 0),
@@ -711,7 +719,8 @@ function paymentItemsForMethod(method) {
 }
 
 function savingsDetailsForType(type = activeSavingsType) {
-  return [...new Set(["기본", ...(state.settings.savingsDetails?.[type] || [])]
+  const baseDetails = state.settings.savingsHiddenDefaultTypes?.includes(type) ? [] : ["기본"];
+  return [...new Set([...baseDetails, ...(state.settings.savingsDetails?.[type] || [])]
     .map((detail) => String(detail || "").trim())
     .filter(Boolean))];
 }
@@ -1676,7 +1685,7 @@ function renderSavings(data = monthlyData()) {
           <span>${escapeHtml(detail)}</span>
           <strong>${won.format(detailTotal)}</strong>
         </button>
-        ${detail === "전체" || detail === "기본" ? "" : `<button class="savings-detail-delete" data-delete-savings-detail="${escapeHtml(detail)}" type="button" aria-label="${escapeHtml(detail)} 삭제">×</button>`}
+        ${detail === "전체" ? "" : `<button class="savings-detail-delete" data-delete-savings-detail="${escapeHtml(detail)}" type="button" aria-label="${escapeHtml(detail)} 삭제">×</button>`}
       </div>
     `;
   }).join("");
@@ -1783,6 +1792,18 @@ function addSavingsDetail() {
     alert("세부항목은 12자까지만 가능해요.");
     return;
   }
+  if (detail === "기본") {
+    state.settings.savingsHiddenDefaultTypes = (state.settings.savingsHiddenDefaultTypes || []).filter((type) => type !== activeSavingsType);
+    if (!state.settings.savingsInitialDetailAmounts[activeSavingsType]) state.settings.savingsInitialDetailAmounts[activeSavingsType] = {};
+    if (state.settings.savingsInitialDetailAmounts[activeSavingsType]["기본"] === undefined) {
+      state.settings.savingsInitialDetailAmounts[activeSavingsType]["기본"] = 0;
+    }
+    activeSavingsDetail = "기본";
+    field.value = "";
+    saveState();
+    renderAll();
+    return;
+  }
   const details = savingsDetailsForType(activeSavingsType);
   if (details.includes(detail)) {
     field.value = "";
@@ -1803,22 +1824,31 @@ function addSavingsDetail() {
 }
 
 function deleteSavingsDetail(detail) {
-  if (!detail || detail === "전체" || detail === "기본") return;
+  if (!detail || detail === "전체") return;
   const details = savingsDetailsForType(activeSavingsType);
   if (!details.includes(detail)) return;
+  const fallbackDetail = details.find((item) => item !== detail);
+  if (!fallbackDetail) {
+    alert("세부항목을 모두 지울 수는 없어요. 다른 세부항목을 먼저 추가해줘.");
+    return;
+  }
   const usedCount = (state.savings || []).filter((row) => (row.type || SAVINGS_TYPES[0]) === activeSavingsType && (row.detail || "기본") === detail).length;
-  const message = usedCount
-    ? `${detail} 세부항목에 기록 ${usedCount}건이 있어요. 삭제하면 해당 기록은 기본으로 옮겨둘게요. 삭제할까요?`
-    : `${detail} 세부항목을 삭제할까요?`;
-  if (!confirm(message)) return;
-  state.settings.savingsDetails[activeSavingsType] = (state.settings.savingsDetails[activeSavingsType] || []).filter((item) => item !== detail);
   const detailInitialAmount = Number(state.settings.savingsInitialDetailAmounts?.[activeSavingsType]?.[detail] || 0);
+  const message = usedCount
+    ? `${detail} 세부항목에 기록 ${usedCount}건이 있어요. 삭제하면 해당 기록과 기존 금액은 ${fallbackDetail}으로 옮겨둘게요. 삭제할까요?`
+    : `${detail} 세부항목을 삭제할까요?${detailInitialAmount ? ` 기존 금액은 ${fallbackDetail}으로 옮겨둘게요.` : ""}`;
+  if (!confirm(message)) return;
+  if (detail === "기본") {
+    if (!state.settings.savingsHiddenDefaultTypes.includes(activeSavingsType)) state.settings.savingsHiddenDefaultTypes.push(activeSavingsType);
+  } else {
+    state.settings.savingsDetails[activeSavingsType] = (state.settings.savingsDetails[activeSavingsType] || []).filter((item) => item !== detail);
+  }
   if (!state.settings.savingsInitialDetailAmounts[activeSavingsType]) state.settings.savingsInitialDetailAmounts[activeSavingsType] = {};
-  state.settings.savingsInitialDetailAmounts[activeSavingsType]["기본"] = Number(state.settings.savingsInitialDetailAmounts[activeSavingsType]["기본"] || 0) + detailInitialAmount;
+  state.settings.savingsInitialDetailAmounts[activeSavingsType][fallbackDetail] = Number(state.settings.savingsInitialDetailAmounts[activeSavingsType][fallbackDetail] || 0) + detailInitialAmount;
   delete state.settings.savingsInitialDetailAmounts[activeSavingsType][detail];
   state.savings = (state.savings || []).map((row) => {
     if ((row.type || SAVINGS_TYPES[0]) !== activeSavingsType || (row.detail || "기본") !== detail) return row;
-    return { ...row, detail: "기본" };
+    return { ...row, detail: fallbackDetail };
   });
   if (activeSavingsDetail === detail) activeSavingsDetail = "전체";
   syncSavingsInitialTotals();

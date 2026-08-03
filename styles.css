@@ -4708,3 +4708,83 @@ th.amount {
     height: 100%;
   }
 }
+
+@media (min-width: 761px) {
+  .view.active > .page-header,
+  .view.active > .entry-form,
+  .view.active > .date-tools,
+  .view.active > .view-switch,
+  .view.active > .expense-filters,
+  .view.active > .panel,
+  .view.active > .dashboard-layout,
+  .view.active > .analysis-strip,
+  .view.active > .analysis-layout,
+  .view.active > .calendar-layout,
+  .view.active > .settings-grid,
+  .view.active > .budget-summary,
+  .view.active > .budget-list,
+  .view.active > .savings-panel {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-self: stretch;
+  }
+
+  .nav-tabs {
+    width: 100%;
+  }
+
+  .nav-tab {
+    border-color: rgba(205, 224, 233, 0.28);
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .date-tools {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    gap: 8px;
+  }
+
+  .view-switch,
+  .settings-tabs {
+    display: flex;
+    align-items: center;
+  }
+
+  .view-switch {
+    padding: 6px;
+  }
+
+  .switch-button,
+  .settings-tab {
+    min-width: 92px;
+  }
+
+  .table-panel,
+  .table-scroll,
+  .table-scroll table {
+    width: 100%;
+  }
+
+  #analysisView .analysis-layout,
+  #settingsView .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #calendarView .calendar-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  #savingsView .savings-panel {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  #analysisView .analysis-layout,
+  #settingsView .settings-grid,
+  #calendarView .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}

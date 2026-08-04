@@ -4788,3 +4788,107 @@ th.amount {
     grid-template-columns: 1fr;
   }
 }
+
+@media (min-width: 761px) {
+  #expensesView .entry-form {
+    grid-template-columns: 170px 180px minmax(250px, 1.45fr) 165px 165px minmax(210px, 1fr);
+    align-items: stretch;
+  }
+
+  #expensesView .entry-form > #expenseDate,
+  #expensesView .entry-form > .category-field,
+  #expensesView .entry-form > .amount-field,
+  #expensesView .entry-form > .picker-field,
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: auto;
+    min-width: 0;
+  }
+
+  #expensesView .entry-form > #expenseSource {
+    display: none;
+  }
+
+  #expensesView .amount-field {
+    grid-template-columns: minmax(0, 1fr) 56px;
+    gap: 8px;
+  }
+
+  #expenseAmount {
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -0.2px;
+  }
+
+  #expenseAmount::placeholder {
+    font-size: 16px;
+    font-weight: 850;
+  }
+
+  #expensesView .category-picker-button,
+  #expensesView .picker-button,
+  #expensesView .entry-form input,
+  #expensesView .cancel-toggle-button {
+    height: 52px;
+  }
+
+  #expensesView .category-picker-button,
+  #expensesView .picker-button {
+    grid-template-rows: 13px minmax(0, 1fr);
+    row-gap: 3px;
+    padding: 7px 12px;
+  }
+
+  #expensesView .category-picker-button strong,
+  #expensesView .picker-button strong {
+    font-size: 15px;
+    font-weight: 950;
+  }
+
+  #expensesView .picker-caption {
+    color: #6e7f8f;
+    font-size: 10.5px;
+    letter-spacing: -0.1px;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1380px) {
+  #expensesView .entry-form {
+    grid-template-columns: 150px 160px minmax(220px, 1.4fr) 145px 145px minmax(180px, 1fr);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  #expensesView .entry-form {
+    grid-template-columns: 155px 155px minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  #expensesView .entry-form > .amount-field {
+    grid-column: span 2;
+  }
+
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 760px) {
+  #expensesView .entry-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #expensesView .entry-form > #expenseDate,
+  #expensesView .entry-form > .category-field,
+  #expensesView .entry-form > .amount-field,
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: 1 / -1;
+  }
+
+  #expensesView .entry-form > .picker-field {
+    grid-column: auto;
+  }
+
+  #expenseAmount {
+    font-size: 17px;
+    font-weight: 950;
+  }
+}

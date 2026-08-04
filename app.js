@@ -2180,11 +2180,12 @@ function setEventEditMode(active) {
   $("#cancelEventEdit").classList.toggle("hidden", !active);
 }
 
-function resetExpenseForm(preferredDate = "", preferredMethod = "", preferredPayment = "") {
+function resetExpenseForm(preferredDate = "", preferredMethod = "", preferredPayment = "", preferredCategory = "") {
   editingExpenseId = null;
   const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#expenseForm").reset();
   $("#expenseDate").value = nextDate;
+  if (state.settings.categories.includes(preferredCategory)) $("#expenseCategory").value = preferredCategory;
   if (PAYMENT_METHODS.includes(preferredMethod)) $("#expenseMethod").value = preferredMethod;
   $("#expenseSource").value = "공용";
   updatePaymentOptions(preferredPayment);
@@ -2297,7 +2298,7 @@ function addExpense() {
     state.expenses.push(nextRow);
   }
   saveState();
-  resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment);
+  resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment, nextRow.category);
   renderAll();
 }
 

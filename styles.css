@@ -4892,3 +4892,48 @@ th.amount {
     font-weight: 950;
   }
 }
+
+@media (min-width: 761px) {
+  #expensesView .entry-form {
+    grid-template-columns: 160px 160px minmax(250px, 1.45fr) 160px 160px minmax(190px, 1fr);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1380px) {
+  #expensesView .entry-form {
+    grid-template-columns: 150px 150px minmax(220px, 1.35fr) 150px 150px minmax(170px, 1fr);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  #expensesView .entry-form {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  #expensesView .entry-form > #expenseDate,
+  #expensesView .entry-form > .category-field,
+  #expensesView .entry-form > .picker-field {
+    grid-column: span 1;
+  }
+
+  #expensesView .entry-form > .amount-field {
+    grid-column: span 2;
+  }
+
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 760px) {
+  #expensesView .entry-form > #expenseDate,
+  #expensesView .entry-form > .category-field,
+  #expensesView .entry-form > .picker-field {
+    grid-column: span 1;
+  }
+
+  #expensesView .entry-form > .amount-field,
+  #expensesView .entry-form > #expenseMemo {
+    grid-column: 1 / -1;
+  }
+}

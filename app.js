@@ -1088,10 +1088,12 @@ function selectExpenseSource(source) {
 }
 
 function renderSelectors() {
+  const currentCategory = $("#expenseCategory").value;
+  const selectedCategory = state.settings.categories.includes(currentCategory) ? currentCategory : state.settings.categories[0];
   const currentMethod = $("#expenseMethod").value;
   const selectedMethod = PAYMENT_METHODS.includes(currentMethod) ? currentMethod : "카드(원)";
   const selectedPayment = $("#expenseCard").value;
-  optionList($("#expenseCategory"), state.settings.categories);
+  optionList($("#expenseCategory"), state.settings.categories, selectedCategory);
   optionList($("#expenseMethod"), PAYMENT_METHODS, selectedMethod);
   optionList($("#expenseSource"), EXPENSE_SOURCES, $("#expenseSource").value || "공용");
   optionList($("#incomeType"), state.settings.incomeTypes);
@@ -1287,11 +1289,18 @@ function renderMethodList() {
   }).join("");
 }
 
+function newestExpenseSort(a, b, orderMap = new Map()) {
+  const dateOrder = b.date.localeCompare(a.date);
+  if (dateOrder) return dateOrder;
+  return (orderMap.get(b.id) ?? -1) - (orderMap.get(a.id) ?? -1);
+}
+
 function recentRowsForMonth(limit = 5) {
+  const orderMap = new Map(state.expenses.map((row, index) => [row.id, index]));
   return state.expenses
     .filter((row) => inMonth(row, currentMonth()))
     .slice()
-    .sort((a, b) => `${b.date}-${b.id}`.localeCompare(`${a.date}-${a.id}`))
+    .sort((a, b) => newestExpenseSort(a, b, orderMap))
     .slice(0, limit);
 }
 
@@ -1398,6 +1407,7 @@ function renderChart() {
 }
 
 function renderExpenses() {
+  const orderMap = new Map(state.expenses.map((row, index) => [row.id, index]));
   const rows = state.expenses
     .filter((row) => inMonth(row, currentMonth()))
     .filter((row) => !expenseFilters.category || row.category === expenseFilters.category)
@@ -1405,7 +1415,7 @@ function renderExpenses() {
     .filter((row) => !expenseFilters.payment || row.payment === expenseFilters.payment)
     .filter((row) => !expenseFilters.source || row.source === expenseFilters.source)
     .slice()
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => newestExpenseSort(a, b, orderMap));
   const tableBody = $("#expenseRows");
   tableBody.className = `compact-expense-rows ${expenseViewMode}-view`;
   tableBody.innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="9">내역 없음</td></tr>`;

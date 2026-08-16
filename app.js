@@ -1218,18 +1218,12 @@ function renderSummary() {
     .join("");
   $("#heroBalance").textContent = won.format(data.balance);
   $("#heroBalance").classList.toggle("negative", data.balance < 0);
-  const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
-  const recommended = !targetEntries.length
-    ? "목표 없음"
-    : nextTarget
-      ? nextTarget.name
-      : "아껴쓰세요~";
 
   const cards = [
     ["이번달 수입", won.format(data.incomeTotal), false, "income"],
     ["이번달 지출", won.format(data.expenseTotal), false, "expenses"],
     ["전월 이월", won.format(data.carryover), data.carryover < 0, "analysis"],
-    ["추천 카드", recommended, false, "recommended", nextTarget?.name || ""],
+    ["저축 총액", won.format(data.savingsBalance), false, "savings"],
   ];
 
   $("#summaryCards").innerHTML = cards.map(([label, value, negative, action, valueKey], index) => `
@@ -1249,26 +1243,22 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
     panel.innerHTML = "";
     return;
   }
-  const upcoming = upcomingEvents(2);
-  const nextTarget = targetEntries.find((entry) => entry.remaining > 0);
-  const topCategory = data.topCategory[0] === "-" ? "아직 없음" : data.topCategory[0];
   const monthFlow = data.incomeTotal - data.expenseTotal;
   panel.innerHTML = `
-    <div class="drilldown-card">
-      <span>이번 달 흐름</span>
-      <strong class="${monthFlow < 0 ? "negative" : "positive"}">${monthFlow >= 0 ? "+" : ""}${won.format(monthFlow)}</strong>
+    <div class="drilldown-card drilldown-flow-card">
+      <div>
+        <span>이번 달 흐름</span>
+        <strong class="${monthFlow < 0 ? "negative" : "positive"}">${monthFlow >= 0 ? "+" : ""}${won.format(monthFlow)}</strong>
+      </div>
+      <button class="primary-button drilldown-save-button" data-dashboard-action="savings-deposit" type="button">저축하기</button>
     </div>
-    <button class="drilldown-card" data-dashboard-action="category" data-dashboard-value="${escapeHtml(data.topCategory[0] === "-" ? "" : data.topCategory[0])}" type="button">
-      <span>최다 지출</span>
-      <strong>${escapeHtml(topCategory)}</strong>
+    <button class="drilldown-card" data-dashboard-action="savings" type="button">
+      <span>모아둔 저축</span>
+      <strong>${won.format(data.savingsBalance)}</strong>
     </button>
-    <button class="drilldown-card" data-dashboard-action="recommended" data-dashboard-value="${escapeHtml(nextTarget?.name || "")}" type="button">
-      <span>다음 카드</span>
-      <strong>${nextTarget ? `${escapeHtml(nextTarget.name)} ${nextTarget.phase} ${nextTarget.rate}%` : "아껴쓰세요~"}</strong>
-    </button>
-    <button class="drilldown-card" data-dashboard-action="calendar" type="button">
-      <span>다가오는 일정</span>
-      <strong class="upcoming-lines">${upcoming.length ? upcoming.map(({ event, date }) => `<em>${shortDateLabel(date)} ${escapeHtml(event.title)}</em>`).join("") : "<em>등록된 일정 없음</em>"}</strong>
+    <button class="drilldown-card" data-dashboard-action="savings" type="button">
+      <span>이번 달 순저축</span>
+      <strong class="${data.savingsTotal < 0 ? "negative" : "positive"}">${data.savingsTotal >= 0 ? "+" : ""}${won.format(data.savingsTotal)}</strong>
     </button>
   `;
 }
@@ -2548,6 +2538,15 @@ function handleDashboardAction(action, value) {
   }
   if (action === "budget") {
     activateView("budget");
+    return;
+  }
+  if (action === "savings") {
+    activateView("savings");
+    return;
+  }
+  if (action === "savings-deposit") {
+    activateView("savings");
+    openSavingsDepositDialog();
     return;
   }
   if (action === "income") {

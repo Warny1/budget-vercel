@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260804-15" />
+    <link rel="stylesheet" href="./styles.css?v=20260816-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -353,21 +353,41 @@
             </div>
           </div>
           <section class="panel savings-panel">
-            <div class="panel-title">
-              <h3>저금 통장</h3>
-              <span id="savingsMonthLabel"></span>
+            <div class="savings-hero-row">
+              <div class="panel-title">
+                <h3>저금 통장</h3>
+                <span id="savingsMonthLabel"></span>
+              </div>
+              <div class="savings-actions">
+                <button class="primary-button" id="openSavingsDeposit" type="button">저축하기</button>
+                <button class="ghost-button" id="openSavingsWithdraw" type="button">인출</button>
+              </div>
             </div>
             <div class="savings-overview">
-              <div><span>모아둔 금액</span><strong id="savingsBalance"></strong></div>
+              <div class="savings-total-card"><span>모아둔 금액</span><strong id="savingsBalance"></strong></div>
               <div><span>이번 달 순저금</span><strong id="savingsMonthTotal"></strong></div>
             </div>
-            <div class="savings-type-tabs" id="savingsTypeTabs" aria-label="저축 구분"></div>
-            <div class="savings-detail-tabs" id="savingsDetailTabs" aria-label="저축 세부항목"></div>
-            <div class="savings-actions">
-              <button class="primary-button" id="openSavingsDeposit" type="button">저금</button>
-              <button class="ghost-button" id="openSavingsWithdraw" type="button">인출</button>
+            <div class="savings-section-card">
+              <div class="savings-section-head">
+                <strong>저축 종류</strong>
+                <span>누르면 세부 항목이 바뀌어요</span>
+              </div>
+              <div class="savings-type-tabs" id="savingsTypeTabs" aria-label="저축 구분"></div>
             </div>
-            <div class="savings-list" id="savingsRows"></div>
+            <div class="savings-section-card">
+              <div class="savings-section-head">
+                <strong>세부 항목</strong>
+                <span>저축/인출할 항목 선택</span>
+              </div>
+              <div class="savings-detail-tabs" id="savingsDetailTabs" aria-label="저축 세부항목"></div>
+            </div>
+            <div class="savings-section-card savings-history-card">
+              <div class="savings-section-head">
+                <strong>저축 내역</strong>
+                <span>최근 기록 먼저</span>
+              </div>
+              <div class="savings-list" id="savingsRows"></div>
+            </div>
           </section>
         </section>
 
@@ -630,11 +650,11 @@
           <button class="dialog-close-button" id="closeSavingsDepositDialog" type="button" aria-label="닫기">×</button>
         </div>
         <div class="savings-form" id="savingsForm">
-          <input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 저금액" />
           <select id="savingsDetail" aria-label="저축 세부항목"></select>
           <input id="savingsAmount" type="number" min="0" step="10000" placeholder="이번 달 저금액" />
           <input id="savingsMemo" type="text" placeholder="메모" />
           <button class="primary-button" id="addSavings" type="button">저금 추가</button>
+          <input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 저금액 수정" />
         </div>
         <div class="savings-form savings-detail-form" id="savingsDetailForm">
           <input id="newSavingsDetail" type="text" maxlength="12" placeholder="세부항목 추가 예: 청약, 병원비" />

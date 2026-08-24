@@ -79,6 +79,8 @@ const sampleState = {
     savingsInitialDetailAmounts: {},
     savingsDetails: DEFAULT_SAVINGS_DETAILS,
     savingsHiddenDefaultTypes: [],
+    recurringRules: [],
+    recurringSkips: [],
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -547,6 +549,33 @@ function normalizeState(source) {
     ]),
   );
   next.settings.savingsInitialAmount = Object.values(next.settings.savingsInitialAmounts).reduce((total, amount) => total + amount, 0);
+  next.settings.recurringRules = (next.settings.recurringRules || []).map((rule) => {
+    const kind = rule.kind === "expense" ? "expense" : "saving";
+    const type = SAVINGS_TYPES.includes(rule.type) ? rule.type : "적금";
+    const detailOptions = [
+      ...(next.settings.savingsHiddenDefaultTypes.includes(type) ? [] : ["기본"]),
+      ...(next.settings.savingsDetails?.[type] || []),
+    ];
+    const method = PAYMENT_METHODS.includes(rule.method) ? rule.method : "현금";
+    const paymentItems = next.settings.paymentItems || [];
+    const payment = paymentItems.some((item) => item.name === rule.payment && item.method === method)
+      ? rule.payment
+      : paymentItems.find((item) => item.method === method)?.name || "현금";
+    return {
+      id: rule.id || newId("recurring"),
+      kind,
+      day: Math.min(Math.max(Number(rule.day || 1), 1), 31),
+      amount: Math.max(Number(rule.amount || 0), 0),
+      memo: String(rule.memo || "").trim(),
+      type,
+      detail: detailOptions.includes(rule.detail) ? rule.detail : detailOptions[0] || "기본",
+      category: next.settings.categories.includes(rule.category) ? rule.category : "고정",
+      method,
+      payment,
+      active: rule.active !== false,
+    };
+  }).filter((rule) => rule.amount > 0);
+  next.settings.recurringSkips = [...new Set(next.settings.recurringSkips || [])].map(String);
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국제(수)"];
@@ -588,6 +617,7 @@ function normalizeState(source) {
       payment: paymentName || "현금",
       source,
       cancelled: Boolean(row.cancelled || row.category === CANCELLATION_CATEGORY),
+      ...(row.recurringRuleId ? { recurringRuleId: row.recurringRuleId, recurringMonth: row.recurringMonth } : {}),
     };
   });
   next.savings = (next.savings || []).map((row) => ({
@@ -598,6 +628,7 @@ function normalizeState(source) {
     detail: String(row.detail || "기본").trim(),
     memo: String(row.memo || "").trim(),
     ...(row.transferId ? { transferId: row.transferId } : {}),
+    ...(row.recurringRuleId ? { recurringRuleId: row.recurringRuleId, recurringMonth: row.recurringMonth } : {}),
   })).filter((row) => row.date && row.amount !== 0);
   next.events = (next.events || []).map(normalizeEvent).filter((event) => event.title);
   return next;
@@ -901,6 +932,96 @@ function upcomingEvents(limit = 5) {
     .filter((item) => item.date >= todayKey)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, limit);
+}
+
+function recurringOccurrenceKey(ruleId, month) {
+  return `${ruleId}:${month}`;
+}
+
+function recurringDateForMonth(rule, month) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const day = Math.min(Number(rule.day || 1), daysInMonth(year, monthNumber));
+  return dateKey(year, monthNumber, day);
+}
+
+function applyRecurringRules(month = currentMonth()) {
+  const rules = state.settings.recurringRules || [];
+  const skips = new Set(state.settings.recurringSkips || []);
+  let changed = false;
+  rules.filter((rule) => rule.active !== false).forEach((rule) => {
+    const key = recurringOccurrenceKey(rule.id, month);
+    if (skips.has(key)) return;
+    if (rule.kind === "saving") {
+      if ((state.savings || []).some((row) => row.recurringRuleId === rule.id && row.recurringMonth === month)) return;
+      state.savings.push({
+        id: newId("saving"),
+        date: recurringDateForMonth(rule, month),
+        amount: Number(rule.amount || 0),
+        type: rule.type || "적금",
+        detail: rule.detail || "기본",
+        memo: rule.memo || "매월 자동 저축",
+        recurringRuleId: rule.id,
+        recurringMonth: month,
+      });
+      changed = true;
+      return;
+    }
+    if (state.expenses.some((row) => row.recurringRuleId === rule.id && row.recurringMonth === month)) return;
+    state.expenses.push({
+      id: newId("expense"),
+      date: recurringDateForMonth(rule, month),
+      category: rule.category || "고정",
+      amount: Number(rule.amount || 0),
+      method: rule.method || "현금",
+      payment: rule.payment || "현금",
+      source: "공용",
+      cancelled: false,
+      memo: rule.memo || "매월 자동 지출",
+      recurringRuleId: rule.id,
+      recurringMonth: month,
+    });
+    changed = true;
+  });
+  if (changed) saveState();
+}
+
+function skipRecurringRow(row) {
+  if (!row?.recurringRuleId || !row.recurringMonth) return;
+  const key = recurringOccurrenceKey(row.recurringRuleId, row.recurringMonth);
+  if (!state.settings.recurringSkips.includes(key)) state.settings.recurringSkips.push(key);
+}
+
+function addRecurringRule() {
+  const kind = $("#newRecurringKind").value === "expense" ? "expense" : "saving";
+  const amount = Math.max(Number($("#newRecurringAmount").value || 0), 0);
+  if (!amount) return;
+  const rule = {
+    id: newId("recurring"),
+    kind,
+    day: Math.min(Math.max(Number($("#newRecurringDay").value || 1), 1), 31),
+    amount,
+    memo: $("#newRecurringMemo").value.trim(),
+    active: true,
+  };
+  if (kind === "saving") {
+    rule.type = $("#newRecurringSavingType").value || "적금";
+    rule.detail = $("#newRecurringSavingDetail").value || "기본";
+  } else {
+    rule.category = $("#newRecurringExpenseCategory").value || "고정";
+    rule.method = $("#newRecurringExpenseMethod").value || "현금";
+    rule.payment = $("#newRecurringExpensePayment").value || "현금";
+  }
+  state.settings.recurringRules.push(rule);
+  $("#newRecurringAmount").value = "";
+  $("#newRecurringMemo").value = "";
+  saveState();
+  renderAll();
+}
+
+function removeRecurringRule(id) {
+  state.settings.recurringRules = (state.settings.recurringRules || []).filter((rule) => rule.id !== id);
+  saveState();
+  renderSettings();
 }
 
 function monthlyData() {
@@ -2136,6 +2257,7 @@ function renderCalendar() {
 function renderSettings() {
   const sharedIdField = $("#sharedBudgetId");
   if (sharedIdField && sharedSession && !sharedIdField.value) sharedIdField.value = sharedSession.householdId;
+  renderRecurringSettings();
   $("#categoryChips").innerHTML = state.settings.categories.map((category) => `
     <span class="chip" style="background:${categoryColor(category)}">${escapeHtml(category)}<button data-remove-category="${escapeHtml(category)}" type="button">×</button></span>
   `).join("");
@@ -2181,7 +2303,36 @@ function renderSettings() {
     }).join("");
 }
 
+function renderRecurringSettings() {
+  const kindField = $("#newRecurringKind");
+  if (!kindField) return;
+  if (!$("#newRecurringDay").value) $("#newRecurringDay").value = 1;
+  optionList($("#newRecurringSavingType"), SAVINGS_TYPES, SAVINGS_TYPES.includes($("#newRecurringSavingType").value) ? $("#newRecurringSavingType").value : "적금");
+  const savingType = $("#newRecurringSavingType").value || "적금";
+  const savingDetails = savingsDetailsForType(savingType);
+  optionList($("#newRecurringSavingDetail"), savingDetails, savingDetails.includes($("#newRecurringSavingDetail").value) ? $("#newRecurringSavingDetail").value : savingDetails[0]);
+  optionList($("#newRecurringExpenseCategory"), state.settings.categories, state.settings.categories.includes($("#newRecurringExpenseCategory").value) ? $("#newRecurringExpenseCategory").value : "고정");
+  optionList($("#newRecurringExpenseMethod"), PAYMENT_METHODS, PAYMENT_METHODS.includes($("#newRecurringExpenseMethod").value) ? $("#newRecurringExpenseMethod").value : "현금");
+  const method = $("#newRecurringExpenseMethod").value || "현금";
+  const payments = paymentItemsForMethod(method).map((item) => item.name);
+  optionList($("#newRecurringExpensePayment"), payments, payments.includes($("#newRecurringExpensePayment").value) ? $("#newRecurringExpensePayment").value : payments[0]);
+  $("#recurringRuleRows").innerHTML = (state.settings.recurringRules || []).map((rule) => {
+    const item = rule.kind === "saving" ? `${rule.type} · ${rule.detail}` : `${rule.category} · ${rule.payment}`;
+    return `
+      <tr>
+        <td>${rule.kind === "saving" ? "저축" : "지출"}</td>
+        <td>매월 ${rule.day}일</td>
+        <td>${escapeHtml(item)}</td>
+        <td class="amount">${won.format(rule.amount)}</td>
+        <td>${escapeHtml(rule.memo)}</td>
+        <td><button class="delete-button" data-remove-recurring-rule="${escapeHtml(rule.id)}" type="button">삭제</button></td>
+      </tr>
+    `;
+  }).join("") || `<tr><td class="empty" colspan="6">등록된 고정입력이 없어요.</td></tr>`;
+}
+
 function renderAll() {
+  applyRecurringRules(currentMonth());
   renderSelectors();
   renderSummary();
   renderCardTargetMini();
@@ -2790,6 +2941,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const removeRecurringRuleId = closestTarget(event, "[data-remove-recurring-rule]")?.dataset.removeRecurringRule;
+  if (removeRecurringRuleId) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    removeRecurringRule(removeRecurringRuleId);
+    return;
+  }
+
   const deleteBudgetDetailId = closestTarget(event, "[data-delete-budget-detail]")?.dataset.deleteBudgetDetail;
   if (deleteBudgetDetailId && activeBudgetDetailCategory) {
     event.preventDefault();
@@ -2809,6 +2968,7 @@ document.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
     const savingRow = (state.savings || []).find((row) => row.id === deleteSavingId);
+    skipRecurringRow(savingRow);
     state.savings = (state.savings || []).filter((row) => row.id !== deleteSavingId);
     if (savingRow?.transferId) {
       state.incomes = state.incomes.filter((row) => row.savingsTransferId !== savingRow.transferId);
@@ -2966,6 +3126,7 @@ document.addEventListener("click", (event) => {
       activateView("settings");
       activateSettingsTab("budget");
     },
+    addRecurringRule,
     addSavings,
     withdrawSavings,
     addBudgetDetail,
@@ -3255,7 +3416,11 @@ document.addEventListener("click", (event) => {
     startEventEdit(editEventId);
     return;
   }
-  if (expenseId) state.expenses = state.expenses.filter((row) => row.id !== expenseId);
+  if (expenseId) {
+    const expenseRow = state.expenses.find((row) => row.id === expenseId);
+    skipRecurringRow(expenseRow);
+    state.expenses = state.expenses.filter((row) => row.id !== expenseId);
+  }
   if (incomeId) {
     const incomeRow = state.incomes.find((row) => row.id === incomeId);
     state.incomes = state.incomes.filter((row) => row.id !== incomeId);
@@ -3283,6 +3448,10 @@ document.addEventListener("click", (event) => {
   }
 });
 document.addEventListener("change", (event) => {
+  if (closestTarget(event, "#newRecurringSavingType, #newRecurringExpenseMethod")) {
+    renderRecurringSettings();
+    return;
+  }
   const budgetDetailNameId = closestTarget(event, "[data-budget-detail-name]")?.dataset.budgetDetailName;
   const budgetDetailAmountId = closestTarget(event, "[data-budget-detail-amount]")?.dataset.budgetDetailAmount;
   if ((budgetDetailNameId || budgetDetailAmountId) && activeBudgetDetailCategory) {

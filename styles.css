@@ -5055,6 +5055,34 @@ th.amount {
   background: #f7fafb;
 }
 
+.recurring-editor {
+  display: grid;
+  grid-template-columns: 120px 110px 150px minmax(180px, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.recurring-editor input,
+.recurring-editor select {
+  min-width: 0;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+.recurring-editor #newRecurringMemo {
+  grid-column: span 2;
+}
+
+.recurring-editor #addRecurringRule {
+  grid-column: span 2;
+  height: 42px;
+  border-radius: 12px;
+}
+
 @media (min-width: 761px) {
   .dashboard-drilldown {
     grid-template-columns: minmax(0, 1.5fr) minmax(180px, 0.75fr) minmax(180px, 0.75fr);
@@ -5101,5 +5129,14 @@ th.amount {
 
   .savings-action-dialog #savingsForm {
     grid-template-columns: 1fr;
+  }
+
+  .recurring-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recurring-editor #newRecurringMemo,
+  .recurring-editor #addRecurringRule {
+    grid-column: 1 / -1;
   }
 }

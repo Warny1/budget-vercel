@@ -1715,8 +1715,14 @@ function renderSavings(data = monthlyData()) {
   initialField.placeholder = activeSavingsDetail === "전체" ? "세부항목 선택 후 입력" : `${activeSavingsDetail} 기존 금액`;
   initialField.value = activeSavingsDetail === "전체" ? "" : selectedDetailInitialAmount || "";
   const preferredDetail = activeSavingsDetail !== "전체" && detailOptions.includes(activeSavingsDetail) ? activeSavingsDetail : "";
+  const selectedQuickDetail = preferredDetail || (detailOptions.includes($("#quickSavingsDetail")?.value) ? $("#quickSavingsDetail").value : detailOptions[0]);
   optionList($("#savingsDetail"), detailOptions, preferredDetail || (detailOptions.includes($("#savingsDetail").value) ? $("#savingsDetail").value : detailOptions[0]));
   optionList($("#savingsWithdrawDetail"), detailOptions, preferredDetail || (detailOptions.includes($("#savingsWithdrawDetail").value) ? $("#savingsWithdrawDetail").value : detailOptions[0]));
+  optionList($("#quickSavingsDetail"), detailOptions, selectedQuickDetail);
+  const quickSavingsDate = $("#quickSavingsDate");
+  if (quickSavingsDate && (!quickSavingsDate.value || !quickSavingsDate.value.startsWith(data.month))) {
+    quickSavingsDate.value = defaultDateForMonth(data.month);
+  }
   const savingsPageMonth = $("#savingsPageMonth");
   if (savingsPageMonth) savingsPageMonth.textContent = monthLabel(data.month);
   $("#savingsMonthLabel").textContent = `${monthLabel(data.month)} · ${selectedType}`;
@@ -1781,6 +1787,25 @@ function addSavings() {
   saveState();
   renderAll();
   closeSavingsDepositDialog();
+}
+
+function addQuickSavings() {
+  const amount = Math.max(Number($("#quickSavingsAmount").value || 0), 0);
+  if (!amount) return;
+  const detail = $("#quickSavingsDetail").value || savingsDetailsForType(activeSavingsType)[0] || "기본";
+  state.savings.push({
+    id: newId("saving"),
+    date: $("#quickSavingsDate").value || defaultDateForMonth(),
+    amount,
+    type: activeSavingsType,
+    detail,
+    memo: $("#quickSavingsMemo").value.trim(),
+  });
+  activeSavingsDetail = detail;
+  $("#quickSavingsAmount").value = "";
+  $("#quickSavingsMemo").value = "";
+  saveState();
+  renderAll();
 }
 
 function withdrawSavings() {
@@ -1895,6 +1920,13 @@ function openSavingsDepositDialog() {
   renderSavings();
   const dialog = $("#savingsDepositDialog");
   if (dialog?.showModal) dialog.showModal();
+}
+
+function focusQuickSavingsForm() {
+  activateView("savings");
+  const card = $("#savingsQuickCard");
+  card?.scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(() => $("#quickSavingsAmount")?.focus(), 120);
 }
 
 function closeSavingsDepositDialog() {
@@ -2545,8 +2577,7 @@ function handleDashboardAction(action, value) {
     return;
   }
   if (action === "savings-deposit") {
-    activateView("savings");
-    openSavingsDepositDialog();
+    focusQuickSavingsForm();
     return;
   }
   if (action === "income") {
@@ -2890,11 +2921,12 @@ document.addEventListener("click", (event) => {
     expenseCancelToggle: toggleExpenseCancel,
     addExpense: () => $("#expenseForm")?.requestSubmit(),
     addIncome: () => $("#incomeForm")?.requestSubmit(),
-    openSavingsDeposit: openSavingsDepositDialog,
+    openSavingsDeposit: focusQuickSavingsForm,
     openSavingsWithdraw: openSavingsWithdrawDialog,
     closeSavingsDepositDialog: closeSavingsDepositDialog,
     closeSavingsWithdrawDialog: closeSavingsWithdrawDialog,
     addSavingsDetail,
+    addQuickSavings,
     addEvent: () => $("#eventForm")?.requestSubmit(),
     cancelExpenseEdit: () => {
       resetExpenseForm();

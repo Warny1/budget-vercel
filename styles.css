@@ -5000,6 +5000,38 @@ th.amount {
   margin-bottom: 0;
 }
 
+.savings-quick-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(235, 249, 240, 0.72));
+}
+
+.savings-quick-form {
+  display: grid;
+  grid-template-columns: 150px 160px minmax(180px, 1.1fr) minmax(180px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.savings-quick-form input,
+.savings-quick-form select {
+  min-width: 0;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+.savings-quick-form #quickSavingsAmount {
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.savings-quick-form .primary-button {
+  height: 44px;
+  border-radius: 13px;
+}
+
 .savings-history-card {
   padding-bottom: 10px;
 }
@@ -5055,6 +5087,16 @@ th.amount {
   .savings-section-head {
     display: grid;
     gap: 2px;
+  }
+
+  .savings-quick-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .savings-quick-form #quickSavingsAmount,
+  .savings-quick-form #quickSavingsMemo,
+  .savings-quick-form .primary-button {
+    grid-column: 1 / -1;
   }
 
   .savings-action-dialog #savingsForm {

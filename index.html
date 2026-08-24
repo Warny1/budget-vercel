@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20260816-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260824-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -366,6 +366,19 @@
             <div class="savings-overview">
               <div class="savings-total-card"><span>모아둔 금액</span><strong id="savingsBalance"></strong></div>
               <div><span>이번 달 순저금</span><strong id="savingsMonthTotal"></strong></div>
+            </div>
+            <div class="savings-section-card savings-quick-card" id="savingsQuickCard">
+              <div class="savings-section-head">
+                <strong>바로 저축 기록</strong>
+                <span>날짜와 항목만 고르고 바로 추가</span>
+              </div>
+              <div class="savings-quick-form">
+                <input id="quickSavingsDate" type="date" aria-label="저축 날짜" />
+                <select id="quickSavingsDetail" aria-label="저축 세부항목"></select>
+                <input id="quickSavingsAmount" type="number" min="0" step="10000" placeholder="저축 금액" />
+                <input id="quickSavingsMemo" type="text" placeholder="메모" />
+                <button class="primary-button" id="addQuickSavings" type="button">저축 기록</button>
+              </div>
             </div>
             <div class="savings-section-card">
               <div class="savings-section-head">

@@ -3322,6 +3322,30 @@ th.amount {
     padding: 12px 12px calc(14px + env(safe-area-inset-bottom));
   }
 
+  .dashboard-detail-dialog {
+    max-height: calc(100vh - 18px);
+    max-height: calc(100dvh - 18px);
+  }
+
+  .dashboard-detail-dialog .category-dialog-sheet {
+    max-height: calc(100vh - 18px);
+    max-height: calc(100dvh - 18px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .dashboard-detail-dialog .dashboard-detail-body {
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 2px calc(16px + env(safe-area-inset-bottom)) 0;
+  }
+
+  .dashboard-detail-dialog .detail-budget-list {
+    padding-bottom: 8px;
+  }
+
   .category-choice-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;

@@ -62,6 +62,10 @@ const DEFAULT_CARD_TARGETS = {
 const DEFAULT_BUDGET_DETAILS = {
   "고정": ["은행이자", "관리비", "통신비", "보험"],
 };
+const DEFAULT_ALLOWANCE_LIMITS = {
+  "원 용돈": 300000,
+  "수연 용돈": 300000,
+};
 
 const sampleState = {
   settings: {
@@ -79,6 +83,7 @@ const sampleState = {
     savingsHiddenDefaultTypes: [],
     recurringRules: [],
     recurringSkips: [],
+    allowanceLimits: DEFAULT_ALLOWANCE_LIMITS,
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
       { group: "카드(원)", name: "국민(원)", method: "카드(원)" },
@@ -503,6 +508,10 @@ function normalizeState(source) {
   next.settings.budgetCustomCategories = [...new Set(next.settings.budgetCustomCategories || [])]
     .filter((name) => name && !next.settings.categories.includes(name) && name !== "저축" && name !== CANCELLATION_CATEGORY);
   next.settings.dashboardMemo = String(next.settings.dashboardMemo || DEFAULT_DASHBOARD_TITLE).trim().slice(0, DASHBOARD_MEMO_LIMIT) || DEFAULT_DASHBOARD_TITLE;
+  next.settings.allowanceLimits = Object.fromEntries(
+    Object.entries({ ...DEFAULT_ALLOWANCE_LIMITS, ...(next.settings.allowanceLimits || {}) })
+      .map(([name, amount]) => [name, Math.max(Number(amount) || 0, 0)]),
+  );
   const hasSavingsDetails = next.settings.savingsDetails && typeof next.settings.savingsDetails === "object";
   next.settings.savingsDetails = Object.fromEntries(
     SAVINGS_TYPES.map((type) => [
@@ -1561,13 +1570,15 @@ function allowanceUsageInlineHtml(data = monthlyData()) {
       <strong>${won.format(total)}</strong>
       </div>
       ${entries.map(([source, value]) => {
-        const rate = total > 0 ? Math.round((value / total) * 100) : 0;
+        const limit = Number(state.settings.allowanceLimits?.[source] || 0);
+        const rate = limit > 0 ? Math.round((value / limit) * 100) : 0;
         return `
           <button class="allowance-inline-row" data-dashboard-action="source" data-dashboard-value="${escapeHtml(source)}" type="button">
             <span>${escapeHtml(allowanceSourceTitle(source))}</span>
             <strong>${won.format(value)}</strong>
-            <small>${rate}%</small>
+            <small>${limit ? `${rate}%` : "한도 없음"}</small>
             <div class="mini-progress" aria-hidden="true"><span style="width:${Math.min(rate, 100)}%"></span></div>
+            ${limit ? `<em>/ ${won.format(limit)}</em>` : ""}
           </button>
         `;
       }).join("")}
@@ -2369,6 +2380,12 @@ function renderSettings() {
       </tr>
     `;
     }).join("");
+  $("#allowanceLimitRows").innerHTML = Object.keys(DEFAULT_ALLOWANCE_LIMITS).map((name) => `
+    <label class="allowance-limit-row">
+      <span>${escapeHtml(allowanceSourceTitle(name))}</span>
+      <input data-allowance-limit="${escapeHtml(name)}" type="number" min="0" step="10000" value="${Number(state.settings.allowanceLimits?.[name] || 0)}" />
+    </label>
+  `).join("");
 }
 
 function renderRecurringSettings() {
@@ -3550,14 +3567,22 @@ document.addEventListener("change", (event) => {
     return;
   }
   const cardName = closestTarget(event, "[data-card-target]")?.dataset.cardTarget;
-  if (!cardName) return;
-  const level = closestTarget(event, "[data-card-target]")?.dataset.targetLevel || "primary";
-  const target = normalizeCardTarget(state.settings.cardTargets[cardName]);
-  target[level] = Number(event.target.value || 0);
-  state.settings.cardTargets[cardName] = target;
+  if (cardName) {
+    const level = closestTarget(event, "[data-card-target]")?.dataset.targetLevel || "primary";
+    const target = normalizeCardTarget(state.settings.cardTargets[cardName]);
+    target[level] = Number(event.target.value || 0);
+    state.settings.cardTargets[cardName] = target;
+    saveState();
+    renderSummary();
+    renderCardTargetMini();
+    renderMethodList();
+    return;
+  }
+  const allowanceName = closestTarget(event, "[data-allowance-limit]")?.dataset.allowanceLimit;
+  if (!allowanceName) return;
+  state.settings.allowanceLimits[allowanceName] = Math.max(Number(event.target.value || 0), 0);
   saveState();
   renderSummary();
-  renderCardTargetMini();
   renderMethodList();
 });
 on("#expenseMethod", "change", () => {

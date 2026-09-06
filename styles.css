@@ -634,6 +634,13 @@ button {
   font-weight: 950;
 }
 
+.allowance-inline-row em {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 850;
+}
+
 .allowance-inline-row .mini-progress {
   grid-column: 1 / -1;
 }
@@ -2619,6 +2626,39 @@ th.amount {
 .source-allowance {
   background: #fff0cf;
   color: #8a5a12;
+}
+
+.allowance-limit-list {
+  display: grid;
+  gap: 8px;
+}
+
+.allowance-limit-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.45fr) minmax(140px, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(205, 224, 233, 0.82);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.allowance-limit-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.allowance-limit-row input {
+  min-width: 0;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  padding: 0 10px;
+  font-weight: 900;
 }
 
 .source-won {

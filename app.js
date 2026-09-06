@@ -1220,14 +1220,14 @@ function renderExpenseSourceSegment() {
   const selected = $("#expenseSource").value || "공용";
   const segment = $("#expenseSourceSegment");
   if (!segment) return;
-  segment.innerHTML = EXPENSE_SOURCES.map((source) => `
+  segment.innerHTML = EXPENSE_SOURCES.filter((source) => source !== "공용").map((source) => `
     <button class="${source === selected ? "active" : ""}" data-expense-source-choice="${escapeHtml(source)}" type="button">${expenseSourceLabel(source)}</button>
   `).join("");
 }
 
 function selectExpenseSource(source) {
   if (!EXPENSE_SOURCES.includes(source)) return;
-  $("#expenseSource").value = source;
+  $("#expenseSource").value = $("#expenseSource").value === source ? "공용" : source;
   renderExpenseSourceSegment();
 }
 

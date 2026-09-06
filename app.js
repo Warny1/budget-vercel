@@ -1417,36 +1417,13 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
       <span>이번 달 순저축</span>
       <strong class="${data.savingsTotal < 0 ? "negative" : "positive"}">${data.savingsTotal >= 0 ? "+" : ""}${won.format(data.savingsTotal)}</strong>
     </button>
-    <div class="drilldown-card allowance-summary-card">
-      <span>용돈 사용</span>
-      ${allowanceUsageHtml(data)}
-    </div>
   `;
-}
-
-function allowanceUsageHtml(data = monthlyData()) {
-  const entries = [
-    ["원 용돈", data.sourceTotals["원 용돈"] || 0],
-    ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
-    ...(data.sourceTotals["용돈 사용"] ? [["용돈", data.sourceTotals["용돈 사용"]]] : []),
-  ];
-  const legacyValue = data.sourceTotals["용돈 사용"] || 0;
-  const rows = [
-    ...entries,
-    ...(legacyValue ? [["용돈", legacyValue]] : []),
-  ];
-  return rows.map(([label, value]) => `
-    <button class="allowance-summary-row" data-dashboard-action="source" data-dashboard-value="${escapeHtml(label)}" type="button">
-      <span>${escapeHtml(allowanceSourceTitle(label))}</span>
-      <strong>${won.format(value)}</strong>
-    </button>
-  `).join("");
 }
 
 function renderMethodList() {
   const data = monthlyData();
   const order = ["카드(원)", "카드(수)", "원 계좌이체", "수연 계좌이체", "현금"];
-  $("#methodList").innerHTML = order.map((group) => {
+  const methodRows = order.map((group) => {
     const value = totalForPaymentLabel(data, group);
     const width = data.expenseTotal > 0 ? Math.max(Math.round((value / data.expenseTotal) * 100), 0) : 0;
     return `
@@ -1457,6 +1434,7 @@ function renderMethodList() {
       </button>
     `;
   }).join("");
+  $("#methodList").innerHTML = `${methodRows}${allowanceUsageInlineHtml(data)}`;
 }
 
 function newestExpenseSort(a, b, orderMap = new Map()) {
@@ -1567,28 +1545,25 @@ function renderCardTargetMini() {
     `).join("")}
     ${detail}
   ` : `<p class="empty-card card-usage-empty">이번 달 카드 지출이 아직 없어요.</p>`;
-  renderAllowanceUsageMini();
 }
 
-function renderAllowanceUsageMini() {
-  const panel = $("#allowanceUsageMini");
-  if (!panel) return;
-  const data = monthlyData();
+function allowanceUsageInlineHtml(data = monthlyData()) {
   const entries = [
     ["원 용돈", data.sourceTotals["원 용돈"] || 0],
     ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
+    ...(data.sourceTotals["용돈 사용"] ? [["용돈", data.sourceTotals["용돈 사용"]]] : []),
   ];
   const total = Math.max(data.expenseTotal, 0);
-  panel.innerHTML = `
-    <div class="allowance-mini-title">
+  return `
+    <div class="allowance-inline-block">
+      <div class="allowance-inline-title">
       <span>용돈 사용</span>
       <strong>${won.format(entries.reduce((sumValue, [, value]) => sumValue + value, 0))}</strong>
-    </div>
-    <div class="allowance-mini-cards">
+      </div>
       ${entries.map(([source, value]) => {
         const rate = total > 0 ? Math.round((value / total) * 100) : 0;
         return `
-          <button class="allowance-mini-card" data-dashboard-action="source" data-dashboard-value="${escapeHtml(source)}" type="button">
+          <button class="allowance-inline-row" data-dashboard-action="source" data-dashboard-value="${escapeHtml(source)}" type="button">
             <span>${escapeHtml(allowanceSourceTitle(source))}</span>
             <strong>${won.format(value)}</strong>
             <small>${rate}%</small>

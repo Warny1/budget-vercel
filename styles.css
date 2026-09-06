@@ -572,6 +572,76 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.allowance-mini-grid {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.allowance-mini-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 0 2px;
+}
+
+.allowance-mini-title strong {
+  color: #47765d;
+  font-size: 12px;
+}
+
+.allowance-mini-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.allowance-mini-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3px 8px;
+  text-align: left;
+  border: 1px solid rgba(205, 224, 233, 0.86);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+  padding: 8px 9px;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(85, 112, 130, 0.06);
+}
+
+.allowance-mini-card span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.allowance-mini-card strong {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allowance-mini-card small {
+  justify-self: end;
+  color: #47765d;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.allowance-mini-card .mini-progress {
+  grid-column: 1 / -1;
+}
+
 .target-detail-button {
   min-height: 34px;
   padding: 0 12px;

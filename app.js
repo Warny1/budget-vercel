@@ -1250,10 +1250,16 @@ function renderSelectors() {
 }
 
 function expenseSourceLabel(source) {
-  if (source === "원 용돈") return "원 용돈";
-  if (source === "수연 용돈") return "수연 용돈";
+  if (source === "원 용돈") return "원";
+  if (source === "수연 용돈") return "수연";
   if (source === "용돈 사용") return "용돈";
   return "공용";
+}
+
+function allowanceSourceTitle(source) {
+  if (source === "원 용돈") return "원 용돈";
+  if (source === "수연 용돈") return "수연 용돈";
+  return expenseSourceLabel(source);
 }
 
 function filterOptionList(select, placeholder, values, selected) {
@@ -1422,6 +1428,7 @@ function allowanceUsageHtml(data = monthlyData()) {
   const entries = [
     ["원 용돈", data.sourceTotals["원 용돈"] || 0],
     ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
+    ...(data.sourceTotals["용돈 사용"] ? [["용돈", data.sourceTotals["용돈 사용"]]] : []),
   ];
   const legacyValue = data.sourceTotals["용돈 사용"] || 0;
   const rows = [
@@ -1430,7 +1437,7 @@ function allowanceUsageHtml(data = monthlyData()) {
   ];
   return rows.map(([label, value]) => `
     <button class="allowance-summary-row" data-dashboard-action="source" data-dashboard-value="${escapeHtml(label)}" type="button">
-      <span>${escapeHtml(label)}</span>
+      <span>${escapeHtml(allowanceSourceTitle(label))}</span>
       <strong>${won.format(value)}</strong>
     </button>
   `).join("");
@@ -1560,6 +1567,37 @@ function renderCardTargetMini() {
     `).join("")}
     ${detail}
   ` : `<p class="empty-card card-usage-empty">이번 달 카드 지출이 아직 없어요.</p>`;
+  renderAllowanceUsageMini();
+}
+
+function renderAllowanceUsageMini() {
+  const panel = $("#allowanceUsageMini");
+  if (!panel) return;
+  const data = monthlyData();
+  const entries = [
+    ["원 용돈", data.sourceTotals["원 용돈"] || 0],
+    ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
+  ];
+  const total = Math.max(data.expenseTotal, 0);
+  panel.innerHTML = `
+    <div class="allowance-mini-title">
+      <span>용돈 사용</span>
+      <strong>${won.format(entries.reduce((sumValue, [, value]) => sumValue + value, 0))}</strong>
+    </div>
+    <div class="allowance-mini-cards">
+      ${entries.map(([source, value]) => {
+        const rate = total > 0 ? Math.round((value / total) * 100) : 0;
+        return `
+          <button class="allowance-mini-card" data-dashboard-action="source" data-dashboard-value="${escapeHtml(source)}" type="button">
+            <span>${escapeHtml(allowanceSourceTitle(source))}</span>
+            <strong>${won.format(value)}</strong>
+            <small>${rate}%</small>
+            <div class="mini-progress" aria-hidden="true"><span style="width:${Math.min(rate, 100)}%"></span></div>
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
 }
 
 function renderChart() {

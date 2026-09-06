@@ -1553,12 +1553,12 @@ function allowanceUsageInlineHtml(data = monthlyData()) {
     ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
     ...(data.sourceTotals["용돈 사용"] ? [["용돈", data.sourceTotals["용돈 사용"]]] : []),
   ];
-  const total = Math.max(data.expenseTotal, 0);
+  const total = entries.reduce((sumValue, [, value]) => sumValue + value, 0);
   return `
     <div class="allowance-inline-block">
       <div class="allowance-inline-title">
       <span>용돈 사용</span>
-      <strong>${won.format(entries.reduce((sumValue, [, value]) => sumValue + value, 0))}</strong>
+      <strong>${won.format(total)}</strong>
       </div>
       ${entries.map(([source, value]) => {
         const rate = total > 0 ? Math.round((value / total) * 100) : 0;

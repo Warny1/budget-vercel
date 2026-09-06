@@ -5,7 +5,7 @@ const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@
 const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
-const EXPENSE_SOURCES = ["공용"];
+const EXPENSE_SOURCES = ["공용", "용돈 사용"];
 const CANCELLATION_CATEGORY = "취소";
 const ALLOWANCE_CARD_WON = "원 용돈카드";
 const ALLOWANCE_CARD_SUYEON = "수연 용돈카드";
@@ -58,8 +58,6 @@ const DEFAULT_CARD_TARGETS = {
   "국민(수)": { primary: 200000, secondary: 0 },
   "롯데(수)": { primary: 400000, secondary: 0 },
   "현대(수)": { primary: 300000, secondary: 0 },
-  [ALLOWANCE_CARD_WON]: { primary: 0, secondary: 0 },
-  [ALLOWANCE_CARD_SUYEON]: { primary: 0, secondary: 0 },
 };
 const DEFAULT_BUDGET_DETAILS = {
   "고정": ["은행이자", "관리비", "통신비", "보험"],
@@ -90,8 +88,6 @@ const sampleState = {
       { group: "카드(수)", name: "국민(수)", method: "카드(수)" },
       { group: "카드(수)", name: "롯데(수)", method: "카드(수)" },
       { group: "카드(수)", name: "현대(수)", method: "카드(수)" },
-      { group: "카드(원)", name: ALLOWANCE_CARD_WON, method: "카드(원)" },
-      { group: "카드(수)", name: ALLOWANCE_CARD_SUYEON, method: "카드(수)" },
       { group: "현금", name: "현금", method: "현금" },
       { group: "계좌이체", name: "원", method: "계좌이체" },
       { group: "계좌이체", name: "수연", method: "계좌이체" },
@@ -585,6 +581,8 @@ function normalizeState(source) {
     next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국체(수)"];
     delete next.settings.cardTargets["국체(수)"];
   }
+  delete next.settings.cardTargets[ALLOWANCE_CARD_WON];
+  delete next.settings.cardTargets[ALLOWANCE_CARD_SUYEON];
   next.settings.cardTargets = Object.fromEntries(Object.entries(next.settings.cardTargets).map(([name, target]) => [name, normalizeCardTarget(target)]));
   next.settings.paymentItems = (next.settings.paymentItems || []).map((item) => {
     if (item.name === "국제(수)" || item.name === "국체(수)") return { ...item, name: "국민(수)" };
@@ -592,29 +590,35 @@ function normalizeState(source) {
       return { ...item, method: item.group };
     }
     return item;
-  }).filter((item) => !["원 용돈", "수연이 용돈"].includes(item.name));
+  }).filter((item) => !isAllowancePaymentName(item.name));
   next.settings.paymentItems = Array.from(new Map(next.settings.paymentItems.map((item) => [item.name, item])).values());
-  ensurePaymentItem(next.settings.paymentItems, { group: "카드(원)", name: ALLOWANCE_CARD_WON, method: "카드(원)" });
-  ensurePaymentItem(next.settings.paymentItems, { group: "카드(수)", name: ALLOWANCE_CARD_SUYEON, method: "카드(수)" });
   if (!next.settings.paymentItems.some((item) => item.method === "현금")) {
     next.settings.paymentItems.push({ group: "현금", name: "현금", method: "현금" });
   }
+  next.settings.recurringRules = next.settings.recurringRules.map((rule) => {
+    if (rule.kind !== "expense") return rule;
+    const method = allowanceMethodFor(rule.payment) || rule.method || "현금";
+    const payment = isAllowancePaymentName(rule.payment) || !next.settings.paymentItems.some((item) => item.name === rule.payment)
+      ? fallbackPaymentForMethod(next.settings.paymentItems, method)
+      : rule.payment;
+    const item = next.settings.paymentItems.find((row) => row.name === payment);
+    return { ...rule, method: item?.method || method, payment };
+  });
   next.expenses = next.expenses.map((row) => {
-    const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(row.payment) ? row.payment : "";
-    const sourceAllowance = allowanceCardForSource(row.source);
+    const legacyAllowance = allowanceSourceFor(row.payment) || allowanceSourceFor(row.source);
     let paymentName = row.payment;
-    if (legacyAllowance) paymentName = allowanceCardForSource(legacyAllowance);
-    else if (sourceAllowance) paymentName = sourceAllowance;
-    else if (row.payment === "국제(수)" || row.payment === "국체(수)") paymentName = "국민(수)";
+    if (row.payment === "국제(수)" || row.payment === "국체(수)") paymentName = "국민(수)";
+    const preferredMethod = allowanceMethodFor(row.payment) || (row.method === "카드" ? "" : row.method);
+    if (isAllowancePaymentName(paymentName)) paymentName = fallbackPaymentForMethod(next.settings.paymentItems, preferredMethod);
     const item = next.settings.paymentItems.find((payment) => payment.name === paymentName);
-    const method = row.method === "카드" && item?.method ? item.method : row.method;
-    const source = "공용";
+    const method = item?.method || preferredMethod || row.method || "현금";
+    const source = legacyAllowance || (EXPENSE_SOURCES.includes(row.source) ? row.source : "공용");
     return {
       ...row,
       category: row.category === CANCELLATION_CATEGORY ? "기타" : row.category,
       amount: Math.abs(Number(row.amount || 0)),
-      method: item?.method || method || "현금",
-      payment: paymentName || "현금",
+      method,
+      payment: paymentName || fallbackPaymentForMethod(next.settings.paymentItems, method),
       source,
       cancelled: Boolean(row.cancelled || row.category === CANCELLATION_CATEGORY),
       ...(row.recurringRuleId ? { recurringRuleId: row.recurringRuleId, recurringMonth: row.recurringMonth } : {}),
@@ -666,10 +670,24 @@ function ensurePaymentItem(items, item) {
   if (!items.some((row) => row.name === item.name)) items.push(item);
 }
 
-function allowanceCardForSource(source) {
-  if (source === "원 용돈") return ALLOWANCE_CARD_WON;
-  if (source === "수연이 용돈") return ALLOWANCE_CARD_SUYEON;
+function isAllowancePaymentName(name) {
+  return [ALLOWANCE_CARD_WON, ALLOWANCE_CARD_SUYEON, "원 용돈", "수연이 용돈"].includes(name);
+}
+
+function allowanceSourceFor(value) {
+  return isAllowancePaymentName(value) || value === "용돈 사용" ? "용돈 사용" : "";
+}
+
+function allowanceMethodFor(payment) {
+  if (payment === ALLOWANCE_CARD_WON || payment === "원 용돈") return "카드(원)";
+  if (payment === ALLOWANCE_CARD_SUYEON || payment === "수연이 용돈") return "카드(수)";
   return "";
+}
+
+function fallbackPaymentForMethod(items, method) {
+  return items.find((item) => item.method === method && !isAllowancePaymentName(item.name))?.name
+    || items.find((item) => item.method === "현금")?.name
+    || "현금";
 }
 
 function saveState() {
@@ -1198,7 +1216,7 @@ function renderExpenseSourceSegment() {
   const segment = $("#expenseSourceSegment");
   if (!segment) return;
   segment.innerHTML = EXPENSE_SOURCES.map((source) => `
-    <button class="${source === selected ? "active" : ""}" data-expense-source-choice="${escapeHtml(source)}" type="button">${escapeHtml(source.replace(" 용돈", ""))}</button>
+    <button class="${source === selected ? "active" : ""}" data-expense-source-choice="${escapeHtml(source)}" type="button">${expenseSourceLabel(source)}</button>
   `).join("");
 }
 
@@ -1224,6 +1242,10 @@ function renderSelectors() {
   renderPaymentPickers();
   renderExpenseSourceSegment();
   renderIncomeTypePicker();
+}
+
+function expenseSourceLabel(source) {
+  return source === "용돈 사용" ? "용돈" : "공용";
 }
 
 function filterOptionList(select, placeholder, values, selected) {
@@ -1529,7 +1551,7 @@ function renderExpenses() {
     .sort((a, b) => newestExpenseSort(a, b, orderMap));
   const tableBody = $("#expenseRows");
   tableBody.className = `compact-expense-rows ${expenseViewMode}-view`;
-  tableBody.innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="9">내역 없음</td></tr>`;
+  tableBody.innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="8">내역 없음</td></tr>`;
 }
 
 function renderExpenseRows(rows) {
@@ -1589,6 +1611,9 @@ function renderExpenseRows(rows) {
 }
 
 function renderExpenseRow(row) {
+  const sourceBadge = row.source === "용돈 사용"
+    ? `<span class="soft-badge source-badge source-allowance">용돈</span>`
+    : "";
   return `
     <tr class="${isCancellationExpense(row) ? "cancellation-row" : ""}">
       <td>${row.date}</td>
@@ -1598,7 +1623,7 @@ function renderExpenseRow(row) {
       <td class="payment-cell">
         <span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span>
       </td>
-      <td class="source-cell"></td>
+      <td class="source-cell">${sourceBadge}</td>
       <td class="expense-memo">${escapeHtml(row.memo)}</td>
       <td>
         <div class="row-actions">
@@ -2363,14 +2388,14 @@ function setEventEditMode(active) {
   $("#cancelEventEdit").classList.toggle("hidden", !active);
 }
 
-function resetExpenseForm(preferredDate = "", preferredMethod = "", preferredPayment = "", preferredCategory = "") {
+function resetExpenseForm(preferredDate = "", preferredMethod = "", preferredPayment = "", preferredCategory = "", preferredSource = "공용") {
   editingExpenseId = null;
   const nextDate = preferredDate && preferredDate.startsWith(currentMonth()) ? preferredDate : defaultDateForMonth();
   $("#expenseForm").reset();
   $("#expenseDate").value = nextDate;
   if (state.settings.categories.includes(preferredCategory)) $("#expenseCategory").value = preferredCategory;
   if (PAYMENT_METHODS.includes(preferredMethod)) $("#expenseMethod").value = preferredMethod;
-  $("#expenseSource").value = "공용";
+  $("#expenseSource").value = EXPENSE_SOURCES.includes(preferredSource) ? preferredSource : "공용";
   updatePaymentOptions(preferredPayment);
   setExpenseCancelToggle(false);
   renderExpenseSourceSegment();
@@ -2481,7 +2506,7 @@ function addExpense() {
     state.expenses.push(nextRow);
   }
   saveState();
-  resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment, nextRow.category);
+  resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment, nextRow.category, nextRow.source);
   renderAll();
 }
 
@@ -2624,8 +2649,10 @@ function importSheetData() {
       const rawPayment = row["상세수단"] || row["카드사"] || row["결제수단상세"] || row["상세결제수단"] || row["카드"] || "";
       const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(rawPayment) ? rawPayment : "";
       const sourceValue = row["지출구분"] || row["용돈구분"] || row["구분"] || legacyAllowance || "공용";
-      const allowancePayment = allowanceCardForSource(legacyAllowance || sourceValue);
-      const payment = allowancePayment || (rawPayment === "국체(수)" || rawPayment === "국제(수)" ? "국민(수)" : rawPayment);
+      const source = allowanceSourceFor(legacyAllowance || sourceValue) || "공용";
+      const payment = isAllowancePaymentName(rawPayment)
+        ? fallbackPaymentForMethod(state.settings.paymentItems, allowanceMethodFor(rawPayment))
+        : (rawPayment === "국체(수)" || rawPayment === "국제(수)" ? "국민(수)" : rawPayment);
       const item = getPaymentItem(payment) || getPaymentItemByGroup(row["카드그룹"]);
       const method = item?.method || row["결제수단"] || "카드(원)";
       return {
@@ -2635,7 +2662,7 @@ function importSheetData() {
         amount: parseMoney(row["금액"]),
         method,
         payment: payment || item?.name || "",
-        source: "공용",
+        source,
         memo: row["메모"] || "",
       };
     }).filter((row) => row.date && row.amount > 0);

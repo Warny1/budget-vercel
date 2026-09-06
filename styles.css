@@ -2092,7 +2092,7 @@ button.drilldown-card:hover {
 
 .source-segment {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;
   min-width: 0;
   border: 1px solid var(--line);
@@ -2548,6 +2548,11 @@ th.amount {
 
 .source-shared {
   background: #eef3f7;
+}
+
+.source-allowance {
+  background: #fff0cf;
+  color: #8a5a12;
 }
 
 .source-won {
@@ -4791,7 +4796,7 @@ th.amount {
 
 @media (min-width: 761px) {
   #expensesView .entry-form {
-    grid-template-columns: 170px 180px minmax(250px, 1.45fr) 165px 165px minmax(210px, 1fr);
+    grid-template-columns: 170px 180px minmax(250px, 1.35fr) 165px 165px 130px minmax(210px, 1fr);
     align-items: stretch;
   }
 
@@ -4799,6 +4804,7 @@ th.amount {
   #expensesView .entry-form > .category-field,
   #expensesView .entry-form > .amount-field,
   #expensesView .entry-form > .picker-field,
+  #expensesView .entry-form > .source-segment,
   #expensesView .entry-form > #expenseMemo {
     grid-column: auto;
     min-width: 0;
@@ -4853,7 +4859,7 @@ th.amount {
 
 @media (min-width: 761px) and (max-width: 1380px) {
   #expensesView .entry-form {
-    grid-template-columns: 150px 160px minmax(220px, 1.4fr) 145px 145px minmax(180px, 1fr);
+    grid-template-columns: 150px 160px minmax(220px, 1.35fr) 145px 145px 118px minmax(180px, 1fr);
   }
 }
 
@@ -4895,13 +4901,13 @@ th.amount {
 
 @media (min-width: 761px) {
   #expensesView .entry-form {
-    grid-template-columns: 160px 160px minmax(250px, 1.45fr) 160px 160px minmax(190px, 1fr);
+    grid-template-columns: 160px 160px minmax(250px, 1.35fr) 160px 160px 126px minmax(190px, 1fr);
   }
 }
 
 @media (min-width: 761px) and (max-width: 1380px) {
   #expensesView .entry-form {
-    grid-template-columns: 150px 150px minmax(220px, 1.35fr) 150px 150px minmax(170px, 1fr);
+    grid-template-columns: 150px 150px minmax(220px, 1.35fr) 150px 150px 118px minmax(170px, 1fr);
   }
 }
 
@@ -4912,7 +4918,8 @@ th.amount {
 
   #expensesView .entry-form > #expenseDate,
   #expensesView .entry-form > .category-field,
-  #expensesView .entry-form > .picker-field {
+  #expensesView .entry-form > .picker-field,
+  #expensesView .entry-form > .source-segment {
     grid-column: span 1;
   }
 
@@ -4928,7 +4935,8 @@ th.amount {
 @media (max-width: 760px) {
   #expensesView .entry-form > #expenseDate,
   #expensesView .entry-form > .category-field,
-  #expensesView .entry-form > .picker-field {
+  #expensesView .entry-form > .picker-field,
+  #expensesView .entry-form > .source-segment {
     grid-column: span 1;
   }
 

@@ -5,7 +5,7 @@ const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@
 const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
-const EXPENSE_SOURCES = ["공용", "용돈 사용"];
+const EXPENSE_SOURCES = ["공용", "원 용돈", "수연 용돈"];
 const CANCELLATION_CATEGORY = "취소";
 const ALLOWANCE_CARD_WON = "원 용돈카드";
 const ALLOWANCE_CARD_SUYEON = "수연 용돈카드";
@@ -675,7 +675,10 @@ function isAllowancePaymentName(name) {
 }
 
 function allowanceSourceFor(value) {
-  return isAllowancePaymentName(value) || value === "용돈 사용" ? "용돈 사용" : "";
+  if (value === ALLOWANCE_CARD_WON || value === "원 용돈") return "원 용돈";
+  if (value === ALLOWANCE_CARD_SUYEON || value === "수연이 용돈" || value === "수연 용돈") return "수연 용돈";
+  if (value === "용돈 사용") return "용돈 사용";
+  return "";
 }
 
 function allowanceMethodFor(payment) {
@@ -1055,6 +1058,7 @@ function monthlyData() {
   const savingsBalance = savingsInitialTotal + sum(state.savings || []);
   const groupTotals = byKey(expenses, paymentGroup, expenseValue);
   const categoryTotals = byKey(expenses, (row) => row.category, expenseValue);
+  const sourceTotals = byKey(expenses, (row) => row.source || "공용", expenseValue);
   const topCategory = Object.entries(categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
   return {
     month,
@@ -1069,6 +1073,7 @@ function monthlyData() {
     balance: carryover + incomeTotal - expenseTotal,
     groupTotals,
     categoryTotals,
+    sourceTotals,
     topCategory,
     cardUsage: (groupTotals["카드(원)"] || 0) + (groupTotals["카드(수)"] || 0),
   };
@@ -1245,7 +1250,10 @@ function renderSelectors() {
 }
 
 function expenseSourceLabel(source) {
-  return source === "용돈 사용" ? "용돈" : "공용";
+  if (source === "원 용돈") return "원 용돈";
+  if (source === "수연 용돈") return "수연 용돈";
+  if (source === "용돈 사용") return "용돈";
+  return "공용";
 }
 
 function filterOptionList(select, placeholder, values, selected) {
@@ -1403,7 +1411,29 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
       <span>이번 달 순저축</span>
       <strong class="${data.savingsTotal < 0 ? "negative" : "positive"}">${data.savingsTotal >= 0 ? "+" : ""}${won.format(data.savingsTotal)}</strong>
     </button>
+    <div class="drilldown-card allowance-summary-card">
+      <span>용돈 사용</span>
+      ${allowanceUsageHtml(data)}
+    </div>
   `;
+}
+
+function allowanceUsageHtml(data = monthlyData()) {
+  const entries = [
+    ["원 용돈", data.sourceTotals["원 용돈"] || 0],
+    ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
+  ];
+  const legacyValue = data.sourceTotals["용돈 사용"] || 0;
+  const rows = [
+    ...entries,
+    ...(legacyValue ? [["용돈", legacyValue]] : []),
+  ];
+  return rows.map(([label, value]) => `
+    <button class="allowance-summary-row" data-dashboard-action="source" data-dashboard-value="${escapeHtml(label)}" type="button">
+      <span>${escapeHtml(label)}</span>
+      <strong>${won.format(value)}</strong>
+    </button>
+  `).join("");
 }
 
 function renderMethodList() {
@@ -1611,8 +1641,8 @@ function renderExpenseRows(rows) {
 }
 
 function renderExpenseRow(row) {
-  const sourceBadge = row.source === "용돈 사용"
-    ? `<span class="soft-badge source-badge source-allowance">용돈</span>`
+  const sourceBadge = row.source && row.source !== "공용"
+    ? `<span class="soft-badge source-badge source-allowance">${escapeHtml(expenseSourceLabel(row.source))}</span>`
     : "";
   return `
     <tr class="${isCancellationExpense(row) ? "cancellation-row" : ""}">
@@ -2773,6 +2803,11 @@ function handleDashboardAction(action, value) {
   if (action === "category") {
     if (value) openExpenseList({ category: value, view: "category", group: value });
     else openExpenseList({ view: "category" });
+    return;
+  }
+  if (action === "source") {
+    const source = value === "용돈" ? "용돈 사용" : value;
+    openExpenseList({ source });
     return;
   }
   if (action === "payment" || action === "recommended") {

@@ -2092,7 +2092,7 @@ button.drilldown-card:hover {
 
 .source-segment {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
   min-width: 0;
   border: 1px solid var(--line);
@@ -4957,6 +4957,36 @@ th.amount {
   min-width: 92px;
   height: 36px;
   border-radius: 12px;
+}
+
+.allowance-summary-card {
+  gap: 9px;
+}
+
+.allowance-summary-row {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(205, 224, 233, 0.86);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.76);
+  color: inherit;
+  padding: 7px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.allowance-summary-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.allowance-summary-row strong {
+  font-size: 15px;
 }
 
 .savings-hero-row {

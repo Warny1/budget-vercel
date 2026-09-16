@@ -1601,6 +1601,7 @@ function renderExpenses() {
     .filter((row) => !expenseFilters.method || row.method === expenseFilters.method)
     .filter((row) => !expenseFilters.payment || row.payment === expenseFilters.payment)
     .filter((row) => !expenseFilters.source || row.source === expenseFilters.source)
+    .filter((row) => expenseViewMode !== "allowance" || ["원 용돈", "수연 용돈", "용돈 사용"].includes(row.source))
     .slice()
     .sort((a, b) => newestExpenseSort(a, b, orderMap));
   const tableBody = $("#expenseRows");
@@ -1615,9 +1616,12 @@ function renderExpenseRows(rows) {
     category: "카테고리",
     method: "결제수단",
     card: "카드사",
+    allowance: "용돈",
   };
   const grouped = rows.reduce((map, row) => {
-    const key = expenseViewMode === "date"
+    const key = expenseViewMode === "allowance"
+      ? allowanceSourceTitle(row.source)
+      : expenseViewMode === "date"
       ? row.date
       : expenseViewMode === "category"
         ? row.category
@@ -2937,6 +2941,10 @@ function handleSwipeEnd(event) {
 }
 
 function activateExpenseView(viewName) {
+  if (viewName === "allowance" || expenseViewMode === "allowance") {
+    expenseFilters = { category: "", method: "", payment: "", source: "" };
+    renderExpenseFilters();
+  }
   expenseViewMode = viewName;
   expenseGroupFilter = null;
   expenseVisibleLimit = 10;

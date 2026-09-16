@@ -5324,3 +5324,9 @@ th.amount {
     grid-column: 1 / -1;
   }
 }
+
+/* Mobile rows hide the source column; keep its tag beside the payment card. */
+.mobile-allowance-tag { display: none; }
+@media (max-width: 760px) {
+  .mobile-allowance-tag:not(:empty) { display: inline-flex; }
+}

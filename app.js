@@ -1608,6 +1608,11 @@ function renderExpenses() {
   tableBody.innerHTML = rows.length ? renderExpenseRows(rows) : `<tr><td class="empty" colspan="8">내역 없음</td></tr>`;
 }
 
+function cardExpenseSummary(rows) {
+  const withoutAllowance = rows.filter((row) => !allowanceSourceFor(row.source));
+  return `사용액 ${won.format(expenseSum(rows))} (용돈 제외 ${won.format(expenseSum(withoutAllowance))}) · ${rows.length}건`;
+}
+
 function renderExpenseRows(rows) {
   if (expenseViewMode === "all") return rows.map(renderExpenseRow).join("");
   const labels = {
@@ -1637,7 +1642,7 @@ function renderExpenseRows(rows) {
       <tr class="group-row">
         <td colspan="9">
           <button class="group-filter-button" data-group-filter="${escapeHtml(label)}" type="button">
-            <strong>${escapeHtml(label)}</strong><span>${labels[expenseViewMode]} 합계 ${won.format(expenseSum(groupRows))} · ${groupRows.length}건</span>
+            <strong>${escapeHtml(label)}</strong><span>${expenseViewMode === "card" ? cardExpenseSummary(groupRows) : `${labels[expenseViewMode]} 합계 ${won.format(expenseSum(groupRows))} · ${groupRows.length}건`}</span>
           </button>
         </td>
       </tr>
@@ -1650,7 +1655,7 @@ function renderExpenseRows(rows) {
     <tr class="group-row">
       <td colspan="9">
         <div class="group-selection">
-          <div><strong>${escapeHtml(expenseGroupFilter)}</strong><span>${won.format(expenseSum(selectedRows))} · ${selectedRows.length}건</span></div>
+          <div><strong>${escapeHtml(expenseGroupFilter)}</strong><span>${expenseViewMode === "card" ? cardExpenseSummary(selectedRows) : `${won.format(expenseSum(selectedRows))} · ${selectedRows.length}건`}</span></div>
           <button class="group-clear-button" data-clear-group-filter="true" type="button">목록으로</button>
         </div>
       </td>

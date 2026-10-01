@@ -1610,7 +1610,7 @@ function renderExpenses() {
 
 function cardExpenseSummary(rows) {
   const withoutAllowance = rows.filter((row) => !allowanceSourceFor(row.source));
-  return `사용액 ${won.format(expenseSum(rows))} (용돈 제외 ${won.format(expenseSum(withoutAllowance))}) · ${rows.length}건`;
+  return `${won.format(expenseSum(rows))} (${won.format(expenseSum(withoutAllowance))}) · ${rows.length}건`;
 }
 
 function renderExpenseRows(rows) {

@@ -1064,8 +1064,9 @@ function monthlyData() {
   const householdExpenses = expenses.filter((row) => !isProxyExpense(row));
   const incomes = state.incomes.filter((row) => inMonth(row, month));
   const savings = (state.savings || []).filter((row) => inMonth(row, month));
-  // Withdrawals already create income entries; only deposits reduce available cash.
-  const savingsDeposits = (state.savings || []).filter((row) => Number(row.amount) > 0);
+  // Start cash deductions in October 2026; older savings are reconciled manually.
+  // Withdrawals already create income entries and must not be counted twice.
+  const savingsDeposits = (state.savings || []).filter((row) => Number(row.amount) > 0 && row.date >= "2026-10-01");
   const savingsDepositTotal = sum(savingsDeposits.filter((row) => inMonth(row, month)));
   const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month)))
     - expenseSum(state.expenses.filter((row) => beforeMonth(row, month) && !isProxyExpense(row)))

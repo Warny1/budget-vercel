@@ -1071,13 +1071,14 @@ function monthlyData() {
   const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month)))
     - expenseSum(state.expenses.filter((row) => beforeMonth(row, month) && !isProxyExpense(row)))
     - sum(savingsDeposits.filter((row) => beforeMonth(row, month)));
-  const expenseTotal = expenseSum(householdExpenses);
+  const expenseTotal = expenseSum(householdExpenses) + savingsDepositTotal;
   const incomeTotal = sum(incomes);
   const savingsTotal = sum(savings);
   const savingsInitialTotal = SAVINGS_TYPES.reduce((total, type) => total + savingsInitialForType(type), 0);
   const savingsBalance = savingsInitialTotal + sum(state.savings || []);
   const groupTotals = byKey(expenses, paymentGroup, expenseValue);
   const categoryTotals = byKey(householdExpenses, (row) => row.category, expenseValue);
+  if (savingsDepositTotal > 0) categoryTotals["저축"] = (categoryTotals["저축"] || 0) + savingsDepositTotal;
   const sourceTotals = byKey(expenses, (row) => row.source || "공용", expenseValue);
   const topCategory = Object.entries(categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
   return {
@@ -1091,7 +1092,7 @@ function monthlyData() {
     savingsTotal,
     savingsDepositTotal,
     savingsBalance,
-    balance: carryover + incomeTotal - expenseTotal - savingsDepositTotal,
+    balance: carryover + incomeTotal - expenseTotal,
     groupTotals,
     categoryTotals,
     sourceTotals,
@@ -1422,7 +1423,7 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
     panel.innerHTML = "";
     return;
   }
-  const monthFlow = data.incomeTotal - data.expenseTotal - data.savingsDepositTotal;
+  const monthFlow = data.incomeTotal - data.expenseTotal;
   panel.innerHTML = `
     <div class="drilldown-card drilldown-flow-card">
       <div>
@@ -1513,7 +1514,7 @@ function categoryBreakdownHtml(limit = 5, interactive = true) {
   return displayRows.map(([label, value], index) => {
     const percent = Math.round((value / data.expenseTotal) * 100);
     const tag = interactive ? "button" : "div";
-    const actionAttrs = interactive ? ` data-dashboard-action="category" data-dashboard-value="${label === "그 외" ? "" : escapeHtml(label)}" type="button"` : "";
+    const actionAttrs = interactive ? ` data-dashboard-action="${label === "저축" ? "savings" : "category"}" data-dashboard-value="${label === "그 외" ? "" : escapeHtml(label)}" type="button"` : "";
     return `
       <${tag} class="category-breakdown-row"${actionAttrs}>
         <span class="category-rank">${index + 1}</span>
@@ -1740,7 +1741,7 @@ function renderAnalysis() {
     ["현재 잔액", won.format(data.balance)],
   ].map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
-  const categoryEntries = state.settings.categories.map((category) => [category, data.categoryTotals[category] || 0]);
+  const categoryEntries = [...new Set([...state.settings.categories, ...(data.savingsDepositTotal > 0 ? ["저축"] : [])])].map((category) => [category, data.categoryTotals[category] || 0]);
   $("#categoryCount").textContent = `${categoryEntries.filter(([, value]) => value > 0).length}개 사용`;
   $("#categoryRows").innerHTML = categoryEntries.map(([category, value]) => `
     <tr>

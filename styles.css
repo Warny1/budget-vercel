@@ -5330,3 +5330,9 @@ th.amount {
 @media (max-width: 760px) {
   .mobile-allowance-tag:not(:empty) { display: inline-flex; }
 }
+
+/* Keep all three expense source choices readable on narrow forms. */
+#expensesView .source-segment { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) {
+  #expensesView .entry-form > .source-segment { grid-column: 1 / -1; }
+}

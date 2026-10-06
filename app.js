@@ -5,7 +5,7 @@ const SUPABASE_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@
 const SHARED_STATE_TABLE = "shared_budget_states";
 const newId = (prefix) => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const PAYMENT_METHODS = ["카드(원)", "카드(수)", "현금", "계좌이체"];
-const EXPENSE_SOURCES = ["공용", "원 용돈", "수연 용돈"];
+const EXPENSE_SOURCES = ["공용", "원 용돈", "수연 용돈", "대신결제"];
 const CANCELLATION_CATEGORY = "취소";
 const ALLOWANCE_CARD_WON = "원 용돈카드";
 const ALLOWANCE_CARD_SUYEON = "수연 용돈카드";
@@ -1059,7 +1059,12 @@ function monthlyData() {
   const expenses = state.expenses.filter((row) => inMonth(row, month));
   const incomes = state.incomes.filter((row) => inMonth(row, month));
   const savings = (state.savings || []).filter((row) => inMonth(row, month));
-  const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month))) - expenseSum(state.expenses.filter((row) => beforeMonth(row, month)));
+  // Withdrawals already create income entries; only deposits reduce available cash.
+  const savingsDeposits = (state.savings || []).filter((row) => Number(row.amount) > 0);
+  const savingsDepositTotal = sum(savingsDeposits.filter((row) => inMonth(row, month)));
+  const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month)))
+    - expenseSum(state.expenses.filter((row) => beforeMonth(row, month)))
+    - sum(savingsDeposits.filter((row) => beforeMonth(row, month)));
   const expenseTotal = expenseSum(expenses);
   const incomeTotal = sum(incomes);
   const savingsTotal = sum(savings);
@@ -1078,8 +1083,9 @@ function monthlyData() {
     expenseTotal,
     incomeTotal,
     savingsTotal,
+    savingsDepositTotal,
     savingsBalance,
-    balance: carryover + incomeTotal - expenseTotal,
+    balance: carryover + incomeTotal - expenseTotal - savingsDepositTotal,
     groupTotals,
     categoryTotals,
     sourceTotals,
@@ -1262,6 +1268,7 @@ function expenseSourceLabel(source) {
   if (source === "원 용돈") return "원";
   if (source === "수연 용돈") return "수연";
   if (source === "용돈 사용") return "용돈";
+  if (source === "대신결제") return "대신결제";
   return "공용";
 }
 
@@ -1409,7 +1416,7 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
     panel.innerHTML = "";
     return;
   }
-  const monthFlow = data.incomeTotal - data.expenseTotal;
+  const monthFlow = data.incomeTotal - data.expenseTotal - data.savingsDepositTotal;
   panel.innerHTML = `
     <div class="drilldown-card drilldown-flow-card">
       <div>
@@ -1609,7 +1616,7 @@ function renderExpenses() {
 }
 
 function cardExpenseSummary(rows) {
-  const withoutAllowance = rows.filter((row) => !allowanceSourceFor(row.source));
+  const withoutAllowance = rows.filter((row) => !allowanceSourceFor(row.source) && row.source !== "대신결제");
   return `${won.format(expenseSum(rows))} (${won.format(expenseSum(withoutAllowance))}) · ${rows.length}건`;
 }
 
@@ -2715,7 +2722,7 @@ function importSheetData() {
       const rawPayment = row["상세수단"] || row["카드사"] || row["결제수단상세"] || row["상세결제수단"] || row["카드"] || "";
       const legacyAllowance = ["원 용돈", "수연이 용돈"].includes(rawPayment) ? rawPayment : "";
       const sourceValue = row["지출구분"] || row["용돈구분"] || row["구분"] || legacyAllowance || "공용";
-      const source = allowanceSourceFor(legacyAllowance || sourceValue) || "공용";
+      const source = allowanceSourceFor(legacyAllowance || sourceValue) || (EXPENSE_SOURCES.includes(sourceValue) ? sourceValue : "공용");
       const payment = isAllowancePaymentName(rawPayment)
         ? fallbackPaymentForMethod(state.settings.paymentItems, allowanceMethodFor(rawPayment))
         : (rawPayment === "국체(수)" || rawPayment === "국제(수)" ? "국민(수)" : rawPayment);

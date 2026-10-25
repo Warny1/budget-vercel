@@ -1071,14 +1071,13 @@ function monthlyData() {
   const carryover = sum(state.incomes.filter((row) => beforeMonth(row, month)))
     - expenseSum(state.expenses.filter((row) => beforeMonth(row, month) && !isProxyExpense(row)))
     - sum(savingsDeposits.filter((row) => beforeMonth(row, month)));
-  const expenseTotal = expenseSum(householdExpenses) + savingsDepositTotal;
+  const expenseTotal = expenseSum(householdExpenses);
   const incomeTotal = sum(incomes);
   const savingsTotal = sum(savings);
   const savingsInitialTotal = SAVINGS_TYPES.reduce((total, type) => total + savingsInitialForType(type), 0);
   const savingsBalance = savingsInitialTotal + sum(state.savings || []);
   const groupTotals = byKey(expenses, paymentGroup, expenseValue);
   const categoryTotals = byKey(householdExpenses, (row) => row.category, expenseValue);
-  if (savingsDepositTotal > 0) categoryTotals["저축"] = (categoryTotals["저축"] || 0) + savingsDepositTotal;
   const sourceTotals = byKey(expenses, (row) => row.source || "공용", expenseValue);
   const topCategory = Object.entries(categoryTotals).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
   return {
@@ -1092,7 +1091,7 @@ function monthlyData() {
     savingsTotal,
     savingsDepositTotal,
     savingsBalance,
-    balance: carryover + incomeTotal - expenseTotal,
+    balance: carryover + incomeTotal - expenseTotal - savingsDepositTotal,
     groupTotals,
     categoryTotals,
     sourceTotals,
@@ -1383,6 +1382,43 @@ function toggleExpenseCancel() {
   setExpenseCancelToggle($("#expenseCancelToggle")?.getAttribute("aria-pressed") !== "true");
 }
 
+function monthlySettlement(month = currentMonth()) {
+  const salaries = state.incomes.filter((row) => inMonth(row, month) && row.type === "급여(원)");
+  const ownPayments = state.expenses.filter((row) => inMonth(row, month)
+    && (row.method === "카드(원)" || (row.method === "계좌이체" && row.payment === "원")));
+  const eligible = ownPayments.filter((row) => !isProxyExpense(row) && allowanceSourceFor(row.source) !== "원 용돈" && row.source !== "용돈 사용");
+  const cards = eligible.filter((row) => row.method === "카드(원)");
+  const transfers = eligible.filter((row) => row.method === "계좌이체");
+  const salary = sum(salaries);
+  const cardTotal = expenseSum(cards);
+  const transferTotal = expenseSum(transfers);
+  const net = salary - cardTotal - transferTotal;
+  return { month, hasSalary: salaries.length > 0, salary, cardTotal, transferTotal,
+    net, toSend: Math.max(0, net), cards, transfers,
+    unassignedAllowance: ownPayments.filter((row) => row.source === "용돈 사용").length };
+}
+
+function renderSettlement(data = monthlySettlement()) {
+  const panel = $("#settlementDetails");
+  if (!panel) return;
+  const groups = byKey(data.cards, (row) => row.payment, expenseValue);
+  $("#settlementBody").innerHTML = `
+    <p class="settings-note">${escapeHtml(data.month)} · 매월 1일~말일 사용 내역 기준</p>
+    <dl class="settlement-amounts">
+      <div><dt>원 월급</dt><dd>${won.format(data.salary)}</dd></div>
+      <div><dt>원 카드 사용액</dt><dd>− ${won.format(data.cardTotal)}</dd></div>
+      <div><dt>원 계좌이체</dt><dd>− ${won.format(data.transferTotal)}</dd></div>
+      <div><dt>수연에게 보낼 금액</dt><dd>${data.hasSalary ? won.format(data.toSend) : "급여 입력 필요"}</dd></div>
+    </dl>
+    <p class="settings-note">원 용돈·대납은 차감액에서 제외합니다. 취소 내역은 차감액에서 빼서 계산합니다. 실제 송금은 직접 진행해 주세요.</p>
+    ${data.hasSalary && data.net < 0 ? `<p class="negative">월급보다 지출이 ${won.format(-data.net)} 많습니다. 정산 내역을 확인해 주세요.</p>` : ""}
+    ${data.unassignedAllowance ? `<p class="settings-note">소유자 미지정 용돈 ${data.unassignedAllowance}건도 차감에서 제외했습니다. 지출 내역에서 원/수연 구분을 확인해 주세요.</p>` : ""}
+    <div class="settlement-items">${Object.entries(groups).map(([name, total]) => `<div><span>${escapeHtml(name)}</span><strong>${won.format(total)}</strong></div>`).join("")}</div>
+    <details><summary>계산에 포함한 내역 ${data.cards.length + data.transfers.length}건</summary>
+      <div class="settlement-items">${[...data.cards, ...data.transfers].sort((a,b) => b.date.localeCompare(a.date)).map((row) => `<div><span>${escapeHtml(row.date)} · ${escapeHtml(row.payment)} · ${escapeHtml(row.memo || row.category)}</span><strong>${won.format(expenseValue(row))}</strong></div>`).join("") || '<p class="settings-note">포함된 내역이 없습니다.</p>'}</div>
+    </details>`;
+}
+
 function renderSummary() {
   const data = monthlyData();
   const targetEntries = cardTargetEntries(data);
@@ -1399,12 +1435,14 @@ function renderSummary() {
   $("#heroBalance").textContent = won.format(data.balance);
   $("#heroBalance").classList.toggle("negative", data.balance < 0);
 
+  const settlement = monthlySettlement(data.month);
   const cards = [
-    ["이번달 수입", won.format(data.incomeTotal), false, "income"],
-    ["이번달 지출", won.format(data.expenseTotal), false, "expenses"],
-    ["전월 이월", won.format(data.carryover), data.carryover < 0, "analysis"],
-    ["저축 총액", won.format(data.savingsBalance), false, "savings"],
+    ["이번 달 지출", won.format(data.expenseTotal), false, "expenses"],
+    ["이번 달 저축", won.format(sum(data.savings.filter((row) => Number(row.amount) > 0))), false, "savings"],
+    ["이번 달 수입", won.format(data.incomeTotal), false, "income"],
+    ["수연에게 보낼 금액", settlement.hasSalary ? won.format(settlement.toSend) : "급여 입력 필요", false, "settlement"],
   ];
+  renderSettlement(settlement);
 
   $("#summaryCards").innerHTML = cards.map(([label, value, negative, action, valueKey], index) => `
     <button class="summary-card summary-card-${index + 1} ${negative ? "negative" : ""}" data-dashboard-action="${action}" data-dashboard-value="${escapeHtml(valueKey || "")}" type="button">
@@ -1423,7 +1461,7 @@ function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTarg
     panel.innerHTML = "";
     return;
   }
-  const monthFlow = data.incomeTotal - data.expenseTotal;
+  const monthFlow = data.incomeTotal - data.expenseTotal - data.savingsDepositTotal;
   panel.innerHTML = `
     <div class="drilldown-card drilldown-flow-card">
       <div>
@@ -1741,7 +1779,7 @@ function renderAnalysis() {
     ["현재 잔액", won.format(data.balance)],
   ].map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
 
-  const categoryEntries = [...new Set([...state.settings.categories, ...(data.savingsDepositTotal > 0 ? ["저축"] : [])])].map((category) => [category, data.categoryTotals[category] || 0]);
+  const categoryEntries = state.settings.categories.map((category) => [category, data.categoryTotals[category] || 0]);
   $("#categoryCount").textContent = `${categoryEntries.filter(([, value]) => value > 0).length}개 사용`;
   $("#categoryRows").innerHTML = categoryEntries.map(([category, value]) => `
     <tr>
@@ -2825,6 +2863,12 @@ function handleDashboardAction(action, value) {
   }
   if (action === "calendar") {
     activateView("calendar");
+    return;
+  }
+  if (action === "settlement") {
+    const panel = $("#settlementDetails");
+    panel.open = true;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
   if (action === "budget") {

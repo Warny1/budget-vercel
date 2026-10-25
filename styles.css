@@ -5336,3 +5336,17 @@ th.amount {
 @media (max-width: 760px) {
   #expensesView .entry-form > .source-segment { grid-column: 1 / -1; }
 }
+
+/* A quiet home with optional settlement and detailed reports. */
+#dashboardView #monthlyInsight { display: none; }
+.home-details { margin: 14px 0; }
+.home-details > summary { cursor: pointer; padding: 12px 0; font-weight: 800; color: var(--ink); }
+.home-more > summary { padding: 14px; background: white; border-radius: 14px; }
+.home-more[open] > summary { margin-bottom: 14px; }
+.settlement-amounts { margin: 12px 0; }
+.settlement-amounts > div, .settlement-items > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.settlement-amounts dd { margin: 0; font-weight: 800; white-space: nowrap; }
+.settlement-amounts > div:last-child { font-size: 18px; }
+.settlement-items { max-height: 340px; overflow: auto; font-size: 13px; }
+.settlement-items span { overflow-wrap: anywhere; }
+.settlement-items strong { white-space: nowrap; }

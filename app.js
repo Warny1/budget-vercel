@@ -146,6 +146,7 @@ let sharedSession = loadSharedSession();
 let cloudSaveTimer = null;
 let cloudRevision = 0;
 let cloudBaseState = null;
+let cloudLoaded = false;
 let cloudWriteQueue = Promise.resolve();
 let applyingCloudState = false;
 let cloudSetupPromise = null;
@@ -374,41 +375,72 @@ async function setupCloudConnection() {
   if (sharedSession) await loadCloudState();
 }
 
+function cloudCheckpointKey() {
+  return `${STORAGE_KEY}-sync:${sharedSession.lookupKey}`;
+}
+
+function persistCloudCheckpoint(base, revision) {
+  localStorage.setItem(cloudCheckpointKey(), JSON.stringify({ base, revision }));
+}
+
 async function loadCloudState() {
   if (!cloudClient || !sharedSession) return;
+  const loadingSession = sharedSession;
+  cloudLoaded = false;
+  if (!cloudBaseState) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(cloudCheckpointKey()) || "null");
+      if (saved?.base) { cloudBaseState = saved.base; cloudRevision = Number(saved.revision || 0); }
+    } catch { /* A damaged checkpoint must not discard the local ledger. */ }
+  }
   renderCloudStatus("공유 가계부 불러오는 중");
   const { data, error } = await cloudClient
     .from(SHARED_STATE_TABLE)
     .select("payload, revision")
     .eq("household_key", sharedSession.lookupKey)
     .maybeSingle();
+  if (sharedSession !== loadingSession) return;
   if (error) {
     renderCloudStatus(cloudErrorMessage(error, "공유 가계부 불러오기 실패"));
     return;
   }
   if (data?.payload) {
     try {
-      const cloudState = await decryptSharedState(data.payload);
+      const cloudState = normalizeState(await decryptSharedState(data.payload));
+      if (sharedSession !== loadingSession) return;
       applyingCloudState = true;
-      state = cloudBaseState ? mergeBudgetStates(cloudBaseState, state, cloudState) : normalizeState(cloudState);
-      cloudBaseState = clone(state);
+      const previousLocal = clone(state);
+      localStorage.setItem(`${STORAGE_KEY}-before-cloud-load`, JSON.stringify(previousLocal));
+      state = mergeBudgetStates(cloudBaseState || clone(sampleState), state, cloudState);
+      cloudBaseState = clone(cloudState);
       cloudRevision = Number(data.revision || 0);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      persistCloudCheckpoint(cloudBaseState, cloudRevision);
       applyingCloudState = false;
+      cloudLoaded = true;
       renderAll();
       renderCloudStatus("공유 가계부 불러옴");
+      if (!valuesEqual(state, cloudBaseState)) await saveCloudState(true);
       return;
     } catch {
-      renderCloudStatus("아이디 또는 비밀번호 확인 필요");
+      applyingCloudState = false;
+      renderCloudStatus("공유 데이터 적용 실패 · 기기 내역은 백업되어 있어요");
       return;
     }
   }
+  renderCloudStatus("해당 공유 가계부를 찾지 못했어요. 아이디와 비밀번호를 확인해 주세요.");
+  if (!confirm("해당 로그인 정보의 공유 가계부가 없습니다. 새 공유 가계부를 만들까요? 기존 가계부를 찾는 중이라면 취소하세요.")) return;
+  cloudBaseState = null;
+  cloudRevision = 0;
+  cloudLoaded = true;
   await saveCloudState(true);
 }
 
 async function saveCloudState(immediate = false) {
-  if (!cloudClient || !sharedSession || applyingCloudState) return;
+  if (!cloudClient || !sharedSession || applyingCloudState || !cloudLoaded) return;
+  const sessionKey = sharedSession.lookupKey;
   const write = async () => {
+    if (!cloudLoaded || sharedSession?.lookupKey !== sessionKey) return;
     let localSnapshot = clone(state);
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const payload = await encryptSharedState(localSnapshot);
@@ -426,6 +458,7 @@ async function saveCloudState(immediate = false) {
       if (result?.saved) {
         cloudRevision = Number(result.current_revision || cloudRevision + 1);
         cloudBaseState = clone(localSnapshot);
+        persistCloudCheckpoint(cloudBaseState, cloudRevision);
         renderCloudStatus(attempt ? "충돌 병합 후 저장됨" : "공유 저장됨");
         return;
       }
@@ -463,7 +496,14 @@ async function connectSharedBudget() {
     return;
   }
   try {
-    sharedSession = await deriveSharedSession($("#sharedBudgetId").value, $("#sharedBudgetPassword").value);
+    const nextSession = await deriveSharedSession($("#sharedBudgetId").value, $("#sharedBudgetPassword").value);
+    if (sharedSession && nextSession.lookupKey !== sharedSession.lookupKey) {
+      renderCloudStatus("다른 가계부로 변경하려면 먼저 JSON 백업 후 연결을 해제해 주세요.");
+      return;
+    }
+    clearTimeout(cloudSaveTimer);
+    await cloudWriteQueue.catch(() => {});
+    sharedSession = nextSession;
     localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(sharedSession));
     $("#sharedBudgetPassword").value = "";
     renderCloudStatus("공유 가계부 연결 중");
@@ -474,6 +514,10 @@ async function connectSharedBudget() {
 }
 
 async function signOutCloud() {
+  clearTimeout(cloudSaveTimer);
+  await cloudWriteQueue.catch(() => {});
+  localStorage.setItem(`${STORAGE_KEY}-before-signout`, JSON.stringify(state));
+  cloudLoaded = false;
   sharedSession = null;
   cloudRevision = 0;
   cloudBaseState = null;
@@ -578,6 +622,8 @@ function normalizeState(source) {
       method,
       payment,
       active: rule.active !== false,
+      startMonth: rule.startMonth || "2026-10",
+      endMonth: rule.endMonth || "",
     };
   }).filter((rule) => rule.amount > 0);
   next.settings.recurringSkips = [...new Set(next.settings.recurringSkips || [])].map(String);
@@ -707,6 +753,7 @@ function saveState() {
   const next = JSON.stringify(state);
   if (previous && previous !== next) localStorage.setItem(BACKUP_KEY, previous);
   localStorage.setItem(STORAGE_KEY, next);
+  if (sharedSession && !cloudLoaded) renderCloudStatus("기기에 저장됨 · 공유 연결 확인 필요");
   saveCloudState();
 }
 
@@ -979,16 +1026,18 @@ function recurringDateForMonth(rule, month) {
 }
 
 function applyRecurringRules(month = currentMonth()) {
+  if (month !== currentMonthKey()) return;
   const rules = state.settings.recurringRules || [];
   const skips = new Set(state.settings.recurringSkips || []);
   let changed = false;
   rules.filter((rule) => rule.active !== false).forEach((rule) => {
+    if (month < (rule.startMonth || "2026-10") || (rule.endMonth && month > rule.endMonth) || recurringDateForMonth(rule, month) > todayKey()) return;
     const key = recurringOccurrenceKey(rule.id, month);
     if (skips.has(key)) return;
     if (rule.kind === "saving") {
       if ((state.savings || []).some((row) => row.recurringRuleId === rule.id && row.recurringMonth === month)) return;
       state.savings.push({
-        id: newId("saving"),
+        id: `recurring-saving:${key}`,
         date: recurringDateForMonth(rule, month),
         amount: Number(rule.amount || 0),
         type: rule.type || "적금",
@@ -1002,7 +1051,7 @@ function applyRecurringRules(month = currentMonth()) {
     }
     if (state.expenses.some((row) => row.recurringRuleId === rule.id && row.recurringMonth === month)) return;
     state.expenses.push({
-      id: newId("expense"),
+      id: `recurring-expense:${key}`,
       date: recurringDateForMonth(rule, month),
       category: rule.category || "고정",
       amount: Number(rule.amount || 0),
@@ -1031,6 +1080,7 @@ function addRecurringRule() {
   if (!amount) return;
   const rule = {
     id: newId("recurring"),
+    startMonth: currentMonthKey(),
     kind,
     day: Math.min(Math.max(Number($("#newRecurringDay").value || 1), 1), 31),
     amount,
@@ -2606,9 +2656,11 @@ function startEventEdit(id) {
 }
 
 function addExpense() {
+  const previous = state.expenses.find((row) => row.id === editingExpenseId);
   const payment = $("#expenseCard").value;
   const paymentItem = getPaymentItem(payment);
   const nextRow = {
+    ...previous,
     id: editingExpenseId || newId("expense"),
     date: $("#expenseDate").value,
     category: $("#expenseCategory").value,
@@ -2630,13 +2682,23 @@ function addExpense() {
 }
 
 function addIncome() {
+  const previous = state.incomes.find((row) => row.id === editingIncomeId);
   const nextRow = {
+    ...previous,
     id: editingIncomeId || newId("income"),
     date: $("#incomeDate").value,
     amount: Number($("#incomeAmount").value),
     type: $("#incomeType").value,
     memo: $("#incomeMemo").value.trim(),
   };
+  if (previous?.savingsTransferId) {
+    const linked = state.savings.find((row) => row.transferId === previous.savingsTransferId);
+    if (!linked) { alert("연결된 저축 인출 기록이 없습니다. 백업을 확인해 주세요."); return; }
+    const available = savingsInitialForDetail(linked.type, linked.detail) + sum(state.savings.filter((row) => row.id !== linked.id && row.type === linked.type && row.detail === linked.detail && row.date <= nextRow.date));
+    if (!(nextRow.amount > 0) || nextRow.amount > available) { alert("해당 날짜의 저축 잔액보다 많이 인출할 수 없어요."); return; }
+    nextRow.type = "저금 인출";
+    state.savings = state.savings.map((row) => row.id === linked.id ? { ...row, date: nextRow.date, amount: -nextRow.amount, memo: nextRow.memo } : row);
+  }
   if (editingIncomeId) {
     state.incomes = state.incomes.map((row) => row.id === editingIncomeId ? nextRow : row);
   } else {
@@ -3257,6 +3319,7 @@ document.addEventListener("click", (event) => {
     clearExpenses: () => {
       if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
       const month = currentMonth();
+      state.expenses.filter((row) => inMonth(row, month)).forEach(skipRecurringRow);
       state.expenses = state.expenses.filter((row) => !inMonth(row, month));
       resetExpenseForm();
       saveState();
@@ -3265,6 +3328,8 @@ document.addEventListener("click", (event) => {
     clearIncomes: () => {
       if (!confirm("현재 조회월의 수입 내역을 모두 삭제할까요?")) return;
       const month = currentMonth();
+      const transferIds = new Set(state.incomes.filter((row) => inMonth(row, month)).map((row) => row.savingsTransferId).filter(Boolean));
+      state.savings = state.savings.filter((row) => !transferIds.has(row.transferId));
       state.incomes = state.incomes.filter((row) => !inMonth(row, month));
       resetIncomeForm();
       saveState();
@@ -3447,6 +3512,7 @@ on("#cancelIncomeEdit", "click", () => {
 on("#clearExpenses", "click", () => {
   if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
   const month = currentMonth();
+  state.expenses.filter((row) => inMonth(row, month)).forEach(skipRecurringRow);
   state.expenses = state.expenses.filter((row) => !inMonth(row, month));
   resetExpenseForm();
   saveState();
@@ -3455,6 +3521,8 @@ on("#clearExpenses", "click", () => {
 on("#clearIncomes", "click", () => {
   if (!confirm("현재 조회월의 수입 내역을 모두 삭제할까요?")) return;
   const month = currentMonth();
+  const transferIds = new Set(state.incomes.filter((row) => inMonth(row, month)).map((row) => row.savingsTransferId).filter(Boolean));
+  state.savings = state.savings.filter((row) => !transferIds.has(row.transferId));
   state.incomes = state.incomes.filter((row) => !inMonth(row, month));
   resetIncomeForm();
   saveState();
@@ -3505,7 +3573,8 @@ on("#syncCloudNow", "click", async () => {
     return;
   }
   if (!cloudClient) await setupCloud();
-  await saveCloudState(true);
+  if (!cloudLoaded) await loadCloudState();
+  else await saveCloudState(true);
 });
 on("#addCategory", "click", () => {
   addUnique(state.settings.categories, $("#newCategory").value);

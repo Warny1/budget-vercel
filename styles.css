@@ -5350,3 +5350,18 @@ th.amount {
 .settlement-items { max-height: 340px; overflow: auto; font-size: 13px; }
 .settlement-items span { overflow-wrap: anywhere; }
 .settlement-items strong { white-space: nowrap; }
+
+/* Separate investment valuation from household savings/cash flow. */
+.asset-view-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.asset-view-tabs button[aria-pressed="true"] { background:#e3f2e7; color:#365e47; }
+.investment-totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; margin:18px 0; }
+.investment-total { padding:18px; background:#edf7fd; border-radius:16px; }
+.investment-total h4 { margin:0 0 12px; }
+.investment-total > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:5px 0; }
+.investment-holding { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:7px 12px; padding:15px 0; border-bottom:1px solid var(--line); }
+.investment-holding > :nth-child(even) { text-align:right; }
+.investment-holding span { color:var(--muted); font-size:12px; }
+.investment-holding strong { overflow-wrap:anywhere; }
+.toss-setup { margin-top:24px; }
+#tossSetupHash { display:block; overflow-wrap:anywhere; margin-top:12px; }
+@media(max-width:380px){.investment-totals{grid-template-columns:1fr}.investment-holding{grid-template-columns:minmax(0,1fr)}.investment-holding > :nth-child(even){text-align:left}}

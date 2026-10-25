@@ -2526,6 +2526,7 @@ function renderRecurringSettings() {
 }
 
 function renderAll() {
+  if (typeof resetTossForSession === "function") resetTossForSession();
   applyRecurringRules(currentMonth());
   renderSelectors();
   renderSummary();

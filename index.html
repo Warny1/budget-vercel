@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261025-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261026-2" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -41,7 +41,7 @@
           <button class="nav-tab" data-view="analysis" type="button">월별분석</button>
           <button class="nav-tab" data-view="calendar" type="button">캘린더</button>
           <button class="nav-tab" data-view="budget" type="button">예산</button>
-          <button class="nav-tab" data-view="savings" type="button">저축</button>
+          <button class="nav-tab" data-view="savings" type="button">자산</button>
           <button class="nav-tab" data-view="settings" type="button">설정</button>
         </nav>
         <div class="month-control">
@@ -356,13 +356,25 @@
         <section class="view" id="savingsView" aria-labelledby="savingsTitle">
           <div class="page-header">
             <div>
-              <h2 id="savingsTitle">저축</h2>
+              <h2 id="savingsTitle">자산</h2>
               <p id="savingsPageMonth"></p>
             </div>
             <div class="header-actions">
               <button class="ghost-button" data-dashboard-action="budget" type="button">예산 보기</button>
             </div>
           </div>
+          <div class="asset-view-tabs" aria-label="자산 구분">
+            <button class="primary-button" id="assetSavingsTab" type="button" aria-pressed="true">저축·청약</button>
+            <button class="ghost-button" id="assetInvestmentTab" type="button" aria-pressed="false">투자</button>
+          </div>
+          <section class="panel hidden" id="investmentPanel">
+            <div class="panel-title"><h3>토스증권 보유 주식</h3><button class="primary-button" id="refreshToss" type="button">불러오기</button></div>
+            <p id="tossStatus" role="status">공유 로그인 후 보유 자산을 불러올 수 있어요.</p>
+            <p class="settings-note">국내·미국 주식 기준 · 평가손익은 생활비에 포함되지 않아요.</p>
+            <div id="tossTotals" class="investment-totals"></div>
+            <div id="tossHoldings"></div>
+            <details class="toss-setup"><summary>연결 설정</summary><p class="settings-note">토스증권 API 키는 서버 설정에 등록합니다. 이 화면에는 입력하지 않아요.</p><button class="ghost-button" id="tossSetupCode" type="button">가계부 연결 확인값 보기</button><output id="tossSetupHash"></output></details>
+          </section>
           <section class="panel savings-panel">
             <div class="savings-hero-row">
               <div class="panel-title">
@@ -751,5 +763,6 @@
       </div>
     </dialog>
     <script defer src="./app.js?v=20261026-1"></script>
+    <script defer src="./investments.js?v=20261026-1"></script>
   </body>
 </html>

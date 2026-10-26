@@ -5365,3 +5365,327 @@ th.amount {
 .toss-setup { margin-top:24px; }
 #tossSetupHash { display:block; overflow-wrap:anywhere; margin-top:12px; }
 @media(max-width:380px){.investment-totals{grid-template-columns:1fr}.investment-holding{grid-template-columns:minmax(0,1fr)}.investment-holding > :nth-child(even){text-align:left}}
+
+/* Approved compact home and asset information architecture. */
+.home-view-tabs,
+.savings-view-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 14px 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.home-view-tabs button,
+.savings-view-tabs button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.home-view-tabs button.active,
+.savings-view-tabs button.active {
+  background: #fff;
+  color: #315d49;
+  box-shadow: 0 6px 16px rgba(78, 105, 121, 0.1);
+}
+
+#dashboardView .summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.home-settlement-card,
+.home-recent-card {
+  margin-top: 12px;
+}
+
+.home-settlement-card {
+  background: linear-gradient(135deg, rgba(255, 246, 220, 0.94), rgba(255, 255, 255, 0.94));
+}
+
+.home-settlement-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-settlement-head span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.home-settlement-head strong {
+  font-size: clamp(21px, 3vw, 30px);
+  font-weight: 950;
+  text-align: right;
+}
+
+.home-settlement-card .home-details {
+  margin: 4px 0 0;
+}
+
+.home-settlement-card .home-details > summary {
+  padding: 10px 0 0;
+  color: #517163;
+  font-size: 13px;
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: #4f7f68;
+  padding: 4px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.card-status-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin: 8px 2px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.card-status-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.card-status-legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.card-status-legend i.planned { background: #c8d0d6; }
+
+#dashboardView .target-mini-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.home-card-row {
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+.home-card-row > summary {
+  display: grid;
+  gap: 7px;
+  padding: 11px 13px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.home-card-row > summary::-webkit-details-marker { display: none; }
+.home-card-top,
+.home-card-sub,
+.savings-account-main,
+.savings-account-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.home-card-top strong { font-size: 14px; }
+.home-card-top b { color: #526271; font-size: 12px; }
+.home-card-top b.achieved { color: #2f8052; }
+.home-card-sub { color: var(--muted); font-size: 11px; font-weight: 750; }
+.home-card-sub span:last-child { text-align: right; }
+
+.home-card-track {
+  position: relative;
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef0;
+}
+.home-card-track i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, #8fcfa4, #6aa9d6); }
+.home-card-track i.planned { background: #c8d0d6; border-radius: 0 999px 999px 0; }
+.home-card-detail { padding: 0 13px 11px; border-top: 1px solid #edf1f3; }
+.home-card-detail > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; color: var(--muted); font-size: 12px; }
+.home-card-detail strong { color: var(--ink); white-space: nowrap; }
+.home-card-detail em { color: #788590; font-style: normal; font-weight: 800; }
+
+#savingsView .savings-overview {
+  grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 0.8fr));
+}
+
+#savingsView .savings-overview > div {
+  align-content: center;
+}
+
+#savingsView .savings-overview small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.savings-account-list {
+  display: grid;
+  gap: 8px;
+}
+
+.savings-account {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.savings-account > summary {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.savings-account > summary::-webkit-details-marker { display: none; }
+.savings-account-main strong { font-size: 15px; }
+.savings-account-main b { font-size: 16px; }
+.savings-account-sub { color: var(--muted); font-size: 11px; font-weight: 800; }
+.savings-account-sub span:last-child { text-align: right; }
+.savings-account-detail { padding: 2px 14px 12px; border-top: 1px solid #edf1f3; }
+.savings-account-detail > div:not(.savings-account-actions) { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 12px; }
+.savings-account-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; }
+
+.savings-action-dialog #savingsForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.savings-action-dialog #savingsDate,
+.savings-action-dialog #savingsType,
+.savings-action-dialog #savingsWithdrawDate,
+.savings-action-dialog #savingsWithdrawType { grid-column: auto; }
+
+@media (max-width: 760px) {
+  #dashboardView .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #savingsView .savings-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #savingsView .savings-total-card { grid-column: 1 / -1; }
+  .home-card-sub { align-items: flex-start; }
+  .savings-action-dialog #savingsForm { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 390px) {
+  .home-settlement-head { display: grid; gap: 4px; }
+  .home-settlement-head strong { text-align: left; }
+  .home-card-sub { display: grid; gap: 2px; }
+  .home-card-sub span:last-child { text-align: left; }
+}
+
+/* Device QA targets: Galaxy S25 (360x780) and iPhone 16 (393x852). */
+@media (max-width: 393px) {
+  .main {
+    padding: 10px 8px calc(42px + env(safe-area-inset-bottom));
+  }
+
+  .home-view-tabs,
+  .savings-view-tabs {
+    margin: 11px 0;
+  }
+
+  .home-view-tabs button,
+  .savings-view-tabs button {
+    min-height: 38px;
+  }
+
+  .summary-card {
+    min-height: 72px;
+    padding: 11px 10px;
+  }
+
+  .home-settlement-card,
+  .home-recent-card,
+  .savings-panel {
+    padding: 12px;
+  }
+
+  .home-card-row > summary,
+  .savings-account > summary {
+    padding: 11px 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .sidebar {
+    padding: 4px 6px;
+    gap: 4px 6px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .mobile-top-controls {
+    grid-template-columns: 36px minmax(58px, 1fr) 34px 58px 34px;
+    gap: 4px;
+  }
+
+  .mobile-home-button,
+  .menu-toggle-button,
+  .month-shift-button,
+  .month-stepper-label {
+    height: 36px;
+    min-height: 36px;
+    border-radius: 12px;
+  }
+
+  .dashboard-hero {
+    padding: 10px;
+  }
+
+  .dashboard-hero h2 {
+    font-size: 17px;
+  }
+
+  .hero-balance strong {
+    font-size: 18px;
+  }
+
+  .home-settlement-head strong {
+    font-size: 22px;
+  }
+
+  .savings-hero-row .savings-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .savings-hero-row .savings-actions button {
+    min-width: 0;
+    padding-inline: 8px;
+  }
+}
+
+/* Compact 13-inch MacBook working area, including 1280x800 scaled mode. */
+@media (min-width: 1181px) and (max-width: 1470px) {
+  .main {
+    max-width: 1200px;
+    padding: 18px 22px 28px;
+  }
+
+  .dashboard-hero {
+    min-height: 118px;
+    padding: 18px 20px;
+  }
+
+  .dashboard-hero h2 {
+    font-size: 28px;
+  }
+
+  .view.active {
+    gap: 12px;
+  }
+
+  .home-settlement-card,
+  .home-recent-card {
+    margin-top: 10px;
+  }
+}

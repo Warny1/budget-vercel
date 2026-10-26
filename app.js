@@ -136,10 +136,12 @@ let editingIncomeId = null;
 let editingEventId = null;
 let dashboardOverviewOpen = false;
 let activeCardUsageName = "";
+let activeHomeTab = "overview";
 let activeExpenseFilterPicker = "";
 let activeBudgetDetailCategory = "";
 let activeSavingsType = SAVINGS_TYPES[0];
 let activeSavingsDetail = "전체";
+let activeSavingsView = "accounts";
 let viewHistory = [];
 let cloudClient = null;
 let sharedSession = loadSharedSession();
@@ -1125,7 +1127,7 @@ function monthlyData() {
   const incomeTotal = sum(incomes);
   const savingsTotal = sum(savings);
   const savingsInitialTotal = SAVINGS_TYPES.reduce((total, type) => total + savingsInitialForType(type), 0);
-  const savingsBalance = savingsInitialTotal + sum(state.savings || []);
+  const savingsBalance = savingsInitialTotal + sum((state.savings || []).filter((row) => String(row.date || "").slice(0, 7) <= month));
   const groupTotals = byKey(expenses, paymentGroup, expenseValue);
   const categoryTotals = byKey(householdExpenses, (row) => row.category, expenseValue);
   const sourceTotals = byKey(expenses, (row) => row.source || "공용", expenseValue);
@@ -1489,10 +1491,9 @@ function renderSummary() {
   const cards = [
     ["이번 달 지출", won.format(data.expenseTotal), false, "expenses"],
     ["이번 달 저축", won.format(sum(data.savings.filter((row) => Number(row.amount) > 0))), false, "savings"],
-    ["이번 달 수입", won.format(data.incomeTotal), false, "income"],
-    ["수연에게 보낼 금액", settlement.hasSalary ? won.format(settlement.toSend) : "급여 입력 필요", false, "settlement"],
   ];
   renderSettlement(settlement);
+  $("#homeSettlementAmount").textContent = settlement.hasSalary ? won.format(settlement.toSend) : "급여 입력 필요";
 
   $("#summaryCards").innerHTML = cards.map(([label, value, negative, action, valueKey], index) => `
     <button class="summary-card summary-card-${index + 1} ${negative ? "negative" : ""}" data-dashboard-action="${action}" data-dashboard-value="${escapeHtml(valueKey || "")}" type="button">
@@ -1501,6 +1502,17 @@ function renderSummary() {
     </button>
   `).join("");
   renderDashboardDrilldown(data, targetEntries);
+}
+
+function activateHomeTab(tabName) {
+  activeHomeTab = tabName === "cards" ? "cards" : "overview";
+  $$('[data-home-tab]').forEach((button) => {
+    const active = button.dataset.homeTab === activeHomeTab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  $("#homeOverviewPanel")?.classList.toggle("hidden", activeHomeTab !== "overview");
+  $("#homeCardPanel")?.classList.toggle("hidden", activeHomeTab !== "cards");
 }
 
 function renderDashboardDrilldown(data = monthlyData(), targetEntries = cardTargetEntries(data)) {
@@ -1618,45 +1630,29 @@ function categoryBreakdownHtml(limit = 5, interactive = true) {
 
 function renderCardTargetMini() {
   const entries = cardTargetEntries();
-  if (!entries.some((entry) => entry.name === activeCardUsageName)) activeCardUsageName = "";
-  const activeEntry = entries.find((entry) => entry.name === activeCardUsageName);
-  const detail = activeEntry ? (() => {
-    const target = activeEntry.phase === "2차" ? activeEntry.secondary : activeEntry.primary;
-    const status = target > 0
-      ? activeEntry.remaining > 0
-        ? `${won.format(activeEntry.remaining)} 남음`
-        : "목표 달성"
-      : "목표 없음";
+  const month = currentMonth();
+  $("#cardTargetMini").innerHTML = entries.length ? entries.map((entry) => {
+    const target = entry.phase === "2차" ? entry.secondary : entry.primary;
+    const status = !target ? "목표 없음" : entry.remaining > 0 ? `${won.format(entry.remaining)} 남음` : "목표 달성";
+    const fixedRules = (state.settings.recurringRules || []).filter((rule) => rule.active !== false
+      && rule.kind === "expense" && rule.payment === entry.name
+      && month >= (rule.startMonth || "2026-10") && (!rule.endMonth || month <= rule.endMonth));
+    const planned = sum(fixedRules);
+    const projectedRemaining = Math.max(target - entry.used - planned, 0);
+    const plannedRate = target ? Math.min(Math.round((planned / target) * 100), Math.max(100 - entry.rate, 0)) : 0;
     return `
-      <div class="target-mini-detail">
-        <div>
-          <span>${escapeHtml(activeEntry.name)} 사용액</span>
-          <strong>${won.format(activeEntry.used)}</strong>
+      <details class="home-card-row">
+        <summary>
+          <span class="home-card-top"><strong>${escapeHtml(entry.name)}</strong><b class="${entry.remaining ? "" : "achieved"}">${escapeHtml(status)}</b></span>
+          <span class="home-card-track" aria-hidden="true"><i style="width:${entry.rate}%"></i>${plannedRate ? `<i class="planned" style="width:${plannedRate}%;left:${entry.rate}%"></i>` : ""}</span>
+          <span class="home-card-sub"><span>${won.format(entry.used)} / ${entry.phase === "2차" ? "2차 " : ""}목표 ${won.format(target)}</span><span>${planned ? `예정 ${won.format(planned)} · 포함 시 ${projectedRemaining ? `${won.format(projectedRemaining)} 남음` : "달성"}` : "예정 없음"}</span></span>
+        </summary>
+        <div class="home-card-detail">
+          ${fixedRules.length ? fixedRules.map((rule) => `<div><span>${escapeHtml(rule.memo || rule.category || "고정금")} · 매월 ${Number(rule.day || 1)}일</span><strong>${won.format(rule.amount)} <em>예정</em></strong></div>`).join("") : '<p class="settings-note">등록된 고정금이 없어요.</p>'}
+          <button class="text-button" data-dashboard-action="card-usage-list" data-dashboard-value="${escapeHtml(entry.name)}" type="button">이 카드 내역 보기</button>
         </div>
-        <div>
-          <span>${target ? `${escapeHtml(activeEntry.phase)} 목표` : "목표"}</span>
-          <strong>${target ? won.format(target) : "미설정"}</strong>
-        </div>
-        <div>
-          <span>상태</span>
-          <strong>${escapeHtml(status)}</strong>
-        </div>
-        <button class="ghost-button target-detail-button" data-dashboard-action="card-usage-list" data-dashboard-value="${escapeHtml(activeEntry.name)}" type="button">내역 보기</button>
-      </div>
-    `;
-  })() : "";
-  $("#cardTargetMini").innerHTML = entries.length ? `
-    ${entries.map(({ name, rate }) => `
-      <button class="target-mini-card ${name === activeCardUsageName ? "active" : ""}" data-dashboard-action="card-usage" data-dashboard-value="${escapeHtml(name)}" title="${escapeHtml(name)} 사용 상세 보기" type="button">
-        <div>
-          <span>${escapeHtml(name)}</span>
-          <strong>${rate}%</strong>
-        </div>
-        <div class="mini-progress" aria-hidden="true"><span style="width:${rate}%"></span></div>
-      </button>
-    `).join("")}
-    ${detail}
-  ` : `<p class="empty-card card-usage-empty">이번 달 카드 지출이 아직 없어요.</p>`;
+      </details>`;
+  }).join("") : `<p class="empty-card card-usage-empty">설정된 카드나 이번 달 카드 지출이 없어요.</p>`;
 }
 
 function allowanceUsageInlineHtml(data = monthlyData()) {
@@ -2009,75 +2005,80 @@ function renderSavings(data = monthlyData()) {
   const initialField = $("#savingsInitialAmount");
   if (!initialField) return;
   const savingsRows = state.savings || [];
-  const selectedType = SAVINGS_TYPES.includes(activeSavingsType) ? activeSavingsType : SAVINGS_TYPES[0];
+  if (!SAVINGS_TYPES.includes(activeSavingsType)) activeSavingsType = SAVINGS_TYPES[0];
+  const selectedType = activeSavingsType;
   const detailOptions = savingsDetailsForType(selectedType);
   if (activeSavingsDetail !== "전체" && !detailOptions.includes(activeSavingsDetail)) activeSavingsDetail = "전체";
-  const typeRowsAll = savingsRows.filter((row) => (row.type || SAVINGS_TYPES[0]) === selectedType);
-  const typeRows = activeSavingsDetail === "전체"
-    ? typeRowsAll
-    : typeRowsAll.filter((row) => (row.detail || "기본") === activeSavingsDetail);
-  const typeInitialAmount = savingsInitialForType(selectedType);
   const selectedDetailInitialAmount = savingsInitialForDetail(selectedType, activeSavingsDetail);
-  const typeMonthTotal = sum(typeRowsAll.filter((row) => inMonth(row, data.month)));
-  const typeBalance = typeInitialAmount + sum(typeRowsAll);
   initialField.disabled = activeSavingsDetail === "전체";
   initialField.placeholder = activeSavingsDetail === "전체" ? "세부항목 선택 후 입력" : `${activeSavingsDetail} 기존 금액`;
   initialField.value = activeSavingsDetail === "전체" ? "" : selectedDetailInitialAmount || "";
   const preferredDetail = activeSavingsDetail !== "전체" && detailOptions.includes(activeSavingsDetail) ? activeSavingsDetail : "";
-  const selectedQuickDetail = preferredDetail || (detailOptions.includes($("#quickSavingsDetail")?.value) ? $("#quickSavingsDetail").value : detailOptions[0]);
+  optionList($("#savingsType"), SAVINGS_TYPES, selectedType);
+  optionList($("#savingsWithdrawType"), SAVINGS_TYPES, selectedType);
   optionList($("#savingsDetail"), detailOptions, preferredDetail || (detailOptions.includes($("#savingsDetail").value) ? $("#savingsDetail").value : detailOptions[0]));
   optionList($("#savingsWithdrawDetail"), detailOptions, preferredDetail || (detailOptions.includes($("#savingsWithdrawDetail").value) ? $("#savingsWithdrawDetail").value : detailOptions[0]));
-  optionList($("#quickSavingsDetail"), detailOptions, selectedQuickDetail);
-  const quickSavingsDate = $("#quickSavingsDate");
-  if (quickSavingsDate && (!quickSavingsDate.value || !quickSavingsDate.value.startsWith(data.month))) {
-    quickSavingsDate.value = defaultDateForMonth(data.month);
-  }
+  const savingsDate = $("#savingsDate");
+  if (savingsDate && (!savingsDate.value || !savingsDate.value.startsWith(data.month))) savingsDate.value = defaultDateForMonth(data.month);
+  const withdrawDate = $("#savingsWithdrawDate");
+  if (withdrawDate && (!withdrawDate.value || !withdrawDate.value.startsWith(data.month))) withdrawDate.value = defaultDateForMonth(data.month);
   const savingsPageMonth = $("#savingsPageMonth");
   if (savingsPageMonth) savingsPageMonth.textContent = monthLabel(data.month);
-  $("#savingsMonthLabel").textContent = `${monthLabel(data.month)} · ${selectedType}`;
+  $("#savingsMonthLabel").textContent = monthLabel(data.month);
   const depositLabel = $("#savingsDepositDialogLabel");
   const withdrawLabel = $("#savingsWithdrawDialogLabel");
   if (depositLabel) depositLabel.textContent = `${selectedType} · ${activeSavingsDetail}`;
   if (withdrawLabel) withdrawLabel.textContent = `${selectedType} · ${activeSavingsDetail}`;
-  $("#savingsBalance").textContent = won.format(typeBalance);
-  $("#savingsMonthTotal").textContent = won.format(typeMonthTotal);
-  $("#savingsTypeTabs").innerHTML = SAVINGS_TYPES.map((type) => {
-    const initial = savingsInitialForType(type);
-    const balance = initial + sum(savingsRows.filter((row) => (row.type || SAVINGS_TYPES[0]) === type));
-    return `
-      <button class="savings-type-tab ${type === selectedType ? "active" : ""}" data-savings-type="${escapeHtml(type)}" type="button">
-        <span>${escapeHtml(type)}</span>
-        <strong>${won.format(balance)}</strong>
-      </button>
-    `;
-  }).join("");
-  $("#savingsDetailTabs").innerHTML = ["전체", ...detailOptions].map((detail) => {
-    const rowsForDetail = detail === "전체" ? typeRowsAll : typeRowsAll.filter((row) => (row.detail || "기본") === detail);
-    const detailTotal = detail === "전체"
-      ? typeBalance
-      : savingsInitialForDetail(selectedType, detail) + sum(rowsForDetail);
-    return `
-      <div class="savings-detail-tab ${detail === activeSavingsDetail ? "active" : ""}">
-        <button class="savings-detail-select" data-savings-detail="${escapeHtml(detail)}" type="button">
-          <span>${escapeHtml(detail)}</span>
-          <strong>${won.format(detailTotal)}</strong>
-        </button>
-        ${detail === "전체" ? "" : `<button class="savings-detail-delete" data-delete-savings-detail="${escapeHtml(detail)}" type="button" aria-label="${escapeHtml(detail)} 삭제">×</button>`}
+  const monthRows = savingsRows.filter((row) => inMonth(row, data.month));
+  const monthDeposit = sum(monthRows.filter((row) => Number(row.amount) > 0));
+  const monthWithdrawal = Math.abs(sum(monthRows.filter((row) => Number(row.amount) < 0)));
+  $("#savingsBalance").textContent = won.format(data.savingsBalance);
+  $("#savingsBalanceCaption").textContent = `${monthLabel(data.month)}까지 기록한 저축 잔액`;
+  $("#savingsMonthDeposit").textContent = won.format(monthDeposit);
+  $("#savingsMonthWithdrawal").textContent = won.format(monthWithdrawal);
+
+  const accountEntries = SAVINGS_TYPES.flatMap((type) => {
+    const details = [...new Set([
+      ...savingsDetailsForType(type),
+      ...savingsRows.filter((row) => (row.type || SAVINGS_TYPES[0]) === type).map((row) => row.detail || "기본"),
+    ])];
+    return details.map((detail) => {
+      const rows = savingsRows.filter((row) => (row.type || SAVINGS_TYPES[0]) === type
+        && (row.detail || "기본") === detail && String(row.date || "").slice(0, 7) <= data.month);
+      const balance = savingsInitialForDetail(type, detail) + sum(rows);
+      const monthTotal = sum(rows.filter((row) => inMonth(row, data.month)));
+      return { type, detail, rows, balance, monthTotal };
+    });
+  }).filter((entry) => entry.balance !== 0 || entry.rows.length);
+
+  $("#savingsAccounts").innerHTML = accountEntries.length ? accountEntries.map((entry) => `
+    <details class="savings-account">
+      <summary>
+        <span class="savings-account-main"><strong>${escapeHtml(entry.detail)}</strong><b>${won.format(entry.balance)}</b></span>
+        <span class="savings-account-sub"><span>${escapeHtml(entry.type)}</span><span class="${entry.monthTotal < 0 ? "negative" : "positive"}">이번 달 ${formatSignedWon(entry.monthTotal)} · 펼치기</span></span>
+      </summary>
+      <div class="savings-account-detail">
+        ${entry.rows.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((row) => `<div><span>${shortDateLabel(row.date)} · ${escapeHtml(row.memo || (row.amount < 0 ? "인출" : "저축"))}</span><strong class="${row.amount < 0 ? "negative" : "positive"}">${formatSignedWon(row.amount)}</strong></div>`).join("") || '<p class="settings-note">아직 입출금 기록이 없어요.</p>'}
+        <div class="savings-account-actions">
+          <button class="text-button" data-savings-account-action="deposit" data-savings-account-type="${escapeHtml(entry.type)}" data-savings-account-detail="${escapeHtml(entry.detail)}" type="button">저축 기록</button>
+          <button class="text-button" data-savings-account-action="withdraw" data-savings-account-type="${escapeHtml(entry.type)}" data-savings-account-detail="${escapeHtml(entry.detail)}" type="button">인출 기록</button>
+        </div>
       </div>
-    `;
-  }).join("");
-  $("#savingsRows").innerHTML = typeRows.length ? typeRows
+    </details>`).join("") : '<p class="empty-card">아직 모아둔 곳이 없어요. 저축 기록을 추가해 주세요.</p>';
+
+  $("#savingsRows").innerHTML = monthRows.length ? monthRows
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .map((row) => `
       <div class="savings-row ${row.amount < 0 ? "withdrawal" : ""}">
         <span>${shortDateLabel(row.date)}</span>
-        <strong>${won.format(row.amount)}</strong>
-        <small>${escapeHtml(row.detail || "기본")}</small>
+        <strong>${formatSignedWon(row.amount)}</strong>
+        <small>${escapeHtml(row.type || SAVINGS_TYPES[0])} · ${escapeHtml(row.detail || "기본")}</small>
         <em>${escapeHtml(row.memo || (row.amount < 0 ? "저금 인출" : "저금"))}</em>
         <button class="delete-button" data-delete-saving="${row.id}" type="button">삭제</button>
       </div>
-    `).join("") : `<p class="empty-card">${escapeHtml(selectedType)} 기록이 없어요.</p>`;
+    `).join("") : `<p class="empty-card">${escapeHtml(monthLabel(data.month))} 입출금 기록이 없어요.</p>`;
+  activateSavingsView(activeSavingsView);
 }
 
 function addSavings() {
@@ -2085,7 +2086,7 @@ function addSavings() {
   if (!amount) return;
   state.savings.push({
     id: newId("saving"),
-    date: defaultDateForMonth(),
+    date: $("#savingsDate").value || defaultDateForMonth(),
     amount,
     type: activeSavingsType,
     detail: $("#savingsDetail").value || "기본",
@@ -2182,6 +2183,17 @@ function activateSavingsDetail(detail) {
   renderSavings();
 }
 
+function activateSavingsView(viewName) {
+  activeSavingsView = viewName === "history" ? "history" : "accounts";
+  $$('[data-savings-view]').forEach((button) => {
+    const active = button.dataset.savingsView === activeSavingsView;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  $("#savingsAccounts")?.classList.toggle("hidden", activeSavingsView !== "accounts");
+  $("#savingsRows")?.classList.toggle("hidden", activeSavingsView !== "history");
+}
+
 function addSavingsDetail() {
   const field = $("#newSavingsDetail");
   const detail = field.value.trim();
@@ -2233,9 +2245,7 @@ function openSavingsDepositDialog() {
 
 function focusQuickSavingsForm() {
   activateView("savings");
-  const card = $("#savingsQuickCard");
-  card?.scrollIntoView({ behavior: "smooth", block: "center" });
-  setTimeout(() => $("#quickSavingsAmount")?.focus(), 120);
+  openSavingsDepositDialog();
 }
 
 function closeSavingsDepositDialog() {
@@ -2531,6 +2541,7 @@ function renderAll() {
   renderSelectors();
   renderSummary();
   renderCardTargetMini();
+  activateHomeTab(activeHomeTab);
   renderMethodList();
   renderRecentList();
   renderChart();
@@ -3089,6 +3100,34 @@ function boot() {
 }
 
 document.addEventListener("click", (event) => {
+  const homeTab = closestTarget(event, "[data-home-tab]");
+  if (homeTab) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activateHomeTab(homeTab.dataset.homeTab);
+    return;
+  }
+
+  const savingsViewButton = closestTarget(event, "[data-savings-view]");
+  if (savingsViewButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activateSavingsView(savingsViewButton.dataset.savingsView);
+    return;
+  }
+
+  const savingsAccountAction = closestTarget(event, "[data-savings-account-action]");
+  if (savingsAccountAction) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activeSavingsType = savingsAccountAction.dataset.savingsAccountType;
+    activeSavingsDetail = savingsAccountAction.dataset.savingsAccountDetail;
+    renderSavings();
+    if (savingsAccountAction.dataset.savingsAccountAction === "withdraw") openSavingsWithdrawDialog();
+    else openSavingsDepositDialog();
+    return;
+  }
+
   const categoryChoice = closestTarget(event, "[data-category-choice]");
   if (categoryChoice) {
     event.preventDefault();
@@ -3421,6 +3460,24 @@ on(".main", "touchend", handleSwipeEnd);
 on("#monthPicker", "change", () => {
   setDefaultDates();
   renderAll();
+});
+on("#savingsType", "change", (event) => {
+  activeSavingsType = SAVINGS_TYPES.includes(event.target.value) ? event.target.value : SAVINGS_TYPES[0];
+  activeSavingsDetail = savingsDetailsForType(activeSavingsType)[0] || "전체";
+  renderSavings();
+});
+on("#savingsWithdrawType", "change", (event) => {
+  activeSavingsType = SAVINGS_TYPES.includes(event.target.value) ? event.target.value : SAVINGS_TYPES[0];
+  activeSavingsDetail = savingsDetailsForType(activeSavingsType)[0] || "전체";
+  renderSavings();
+});
+on("#savingsDetail", "change", (event) => {
+  activeSavingsDetail = event.target.value || "전체";
+  renderSavings();
+});
+on("#savingsWithdrawDetail", "change", (event) => {
+  activeSavingsDetail = event.target.value || "전체";
+  renderSavings();
 });
 on("#expenseDate", "change", (event) => {
   moveToDateMonth(event.target.value);

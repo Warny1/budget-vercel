@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261026-2" />
+    <link rel="stylesheet" href="./styles.css?v=20261026-4" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -72,49 +72,60 @@
           </div>
 
           <section class="dashboard-drilldown hidden" id="dashboardDrilldown"></section>
-          <div class="summary-grid" id="summaryCards"></div>
-          <details class="panel home-details" id="settlementDetails">
-            <summary>월말 정산 내역</summary>
-            <div id="settlementBody"></div>
-          </details>
-          <details class="home-details home-more">
-            <summary>카드 실적 · 예산 · 최근 기록 더보기</summary>
-          <div class="target-mini-grid" id="cardTargetMini"></div>
-          <section class="event-alert-panel" id="eventAlertPanel"></section>
+          <div class="home-view-tabs" role="tablist" aria-label="홈 보기">
+            <button class="active" data-home-tab="overview" type="button" role="tab" aria-selected="true">한눈에 보기</button>
+            <button data-home-tab="cards" type="button" role="tab" aria-selected="false">카드 실적</button>
+          </div>
 
-          <div class="dashboard-layout">
-            <button class="panel dashboard-open-panel" data-dashboard-detail="distribution" type="button">
-              <div class="panel-title">
-                <h3>지출 분포</h3>
-                <span id="topCategoryLabel"></span>
+          <div id="homeOverviewPanel" role="tabpanel">
+            <div class="summary-grid" id="summaryCards"></div>
+            <section class="panel home-settlement-card">
+              <div class="home-settlement-head">
+                <span>수연에게 보낼 금액</span>
+                <strong id="homeSettlementAmount"></strong>
               </div>
-              <div class="chart-wrap">
-                <div class="category-breakdown" id="categoryBreakdown"></div>
-              </div>
-            </button>
-            <section class="panel">
-              <div class="panel-title">
-                <h3>결제수단</h3>
-                <span>월 합계</span>
-              </div>
-              <div class="method-list" id="methodList"></div>
+              <details class="home-details" id="settlementDetails">
+                <summary>정산 내역 보기</summary>
+                <div id="settlementBody"></div>
+              </details>
             </section>
-            <button class="panel recent-panel dashboard-open-panel" data-dashboard-detail="recent" type="button">
+            <section class="panel home-recent-card">
               <div class="panel-title">
                 <h3>최근 기록</h3>
-                <span>이번 달</span>
+                <button class="text-button" data-dashboard-action="expenses" type="button">전체 보기</button>
               </div>
               <div class="recent-list" id="recentList"></div>
-            </button>
-            <button class="panel dashboard-open-panel" data-dashboard-detail="budget" type="button">
-              <div class="panel-title">
-                <h3>예산 현황</h3>
-                <span id="dashboardBudgetStatus">이번 달</span>
+            </section>
+            <details class="home-details home-more">
+              <summary>이번 달 상세 보기</summary>
+              <section class="event-alert-panel" id="eventAlertPanel"></section>
+              <div class="dashboard-layout">
+                <button class="panel dashboard-open-panel" data-dashboard-detail="distribution" type="button">
+                  <div class="panel-title">
+                    <h3>지출 분포</h3>
+                    <span id="topCategoryLabel"></span>
+                  </div>
+                  <div class="chart-wrap"><div class="category-breakdown" id="categoryBreakdown"></div></div>
+                </button>
+                <section class="panel">
+                  <div class="panel-title"><h3>결제수단</h3><span>월 합계</span></div>
+                  <div class="method-list" id="methodList"></div>
+                </section>
+                <button class="panel dashboard-open-panel" data-dashboard-detail="budget" type="button">
+                  <div class="panel-title"><h3>예산 현황</h3><span id="dashboardBudgetStatus">이번 달</span></div>
+                  <div class="dashboard-budget-preview" id="dashboardBudgetPreview"></div>
+                </button>
               </div>
-              <div class="dashboard-budget-preview" id="dashboardBudgetPreview"></div>
-            </button>
+            </details>
           </div>
-          </details>
+
+          <section class="home-card-panel hidden" id="homeCardPanel" role="tabpanel">
+            <div class="card-status-legend">
+              <span><i class="actual"></i>이번 달 사용</span>
+              <span><i class="planned"></i>고정금 예정</span>
+            </div>
+            <div class="target-mini-grid" id="cardTargetMini"></div>
+          </section>
         </section>
 
         <section class="view" id="calendarView" aria-labelledby="calendarTitle">
@@ -378,52 +389,25 @@
           <section class="panel savings-panel">
             <div class="savings-hero-row">
               <div class="panel-title">
-                <h3>저금 통장</h3>
+                <h3>저축·청약</h3>
                 <span id="savingsMonthLabel"></span>
               </div>
               <div class="savings-actions">
-                <button class="primary-button" id="openSavingsDeposit" type="button">저축하기</button>
-                <button class="ghost-button" id="openSavingsWithdraw" type="button">인출</button>
+                <button class="primary-button" id="openSavingsDeposit" type="button">＋ 저축 기록</button>
+                <button class="ghost-button" id="openSavingsWithdraw" type="button">인출 기록</button>
               </div>
             </div>
             <div class="savings-overview">
-              <div class="savings-total-card"><span>모아둔 금액</span><strong id="savingsBalance"></strong></div>
-              <div><span>이번 달 순저금</span><strong id="savingsMonthTotal"></strong></div>
+              <div class="savings-total-card"><span>모아둔 돈</span><strong id="savingsBalance"></strong><small id="savingsBalanceCaption"></small></div>
+              <div><span>이번 달 넣은 돈</span><strong id="savingsMonthDeposit"></strong></div>
+              <div><span>이번 달 꺼낸 돈</span><strong id="savingsMonthWithdrawal"></strong></div>
             </div>
-            <div class="savings-section-card savings-quick-card" id="savingsQuickCard">
-              <div class="savings-section-head">
-                <strong>바로 저축 기록</strong>
-                <span>날짜와 항목만 고르고 바로 추가</span>
-              </div>
-              <div class="savings-quick-form">
-                <input id="quickSavingsDate" type="date" aria-label="저축 날짜" />
-                <select id="quickSavingsDetail" aria-label="저축 세부항목"></select>
-                <input id="quickSavingsAmount" type="number" min="0" step="10000" placeholder="저축 금액" />
-                <input id="quickSavingsMemo" type="text" placeholder="메모" />
-                <button class="primary-button" id="addQuickSavings" type="button">저축 기록</button>
-              </div>
+            <div class="savings-view-tabs" role="tablist" aria-label="저축 보기">
+              <button class="active" data-savings-view="accounts" type="button" role="tab" aria-selected="true">모아둔 곳</button>
+              <button data-savings-view="history" type="button" role="tab" aria-selected="false">입출금 내역</button>
             </div>
-            <div class="savings-section-card">
-              <div class="savings-section-head">
-                <strong>저축 종류</strong>
-                <span>누르면 세부 항목이 바뀌어요</span>
-              </div>
-              <div class="savings-type-tabs" id="savingsTypeTabs" aria-label="저축 구분"></div>
-            </div>
-            <div class="savings-section-card">
-              <div class="savings-section-head">
-                <strong>세부 항목</strong>
-                <span>저축/인출할 항목 선택</span>
-              </div>
-              <div class="savings-detail-tabs" id="savingsDetailTabs" aria-label="저축 세부항목"></div>
-            </div>
-            <div class="savings-section-card savings-history-card">
-              <div class="savings-section-head">
-                <strong>저축 내역</strong>
-                <span>최근 기록 먼저</span>
-              </div>
-              <div class="savings-list" id="savingsRows"></div>
-            </div>
+            <div class="savings-account-list" id="savingsAccounts"></div>
+            <div class="savings-list hidden" id="savingsRows"></div>
           </section>
         </section>
 
@@ -524,7 +508,7 @@
                 <button class="ghost-button" id="syncCloudNow" type="button">지금 동기화</button>
                 <button class="ghost-button" id="signOutCloud" type="button">연결 해제</button>
               </div>
-              <p class="settings-note">같은 아이디와 비밀번호를 입력하면 여러 기기에서 같은 가계부를 함께 볼 수 있어요.</p>
+              <p class="settings-note">같은 아이디와 비밀번호로 여러 기기에서 함께 작성할 수 있어요. 이 기기에는 즉시 저장되고 공유 저장소에는 마지막 변경 약 0.5초 뒤 저장돼요. 다른 기기의 최신 내용은 앱을 다시 열거나 ‘지금 동기화’를 눌러 불러와 주세요.</p>
             </section>
             <section class="panel settings-panel" data-settings-panel="category">
               <div class="panel-title">
@@ -732,6 +716,8 @@
           <button class="dialog-close-button" id="closeSavingsDepositDialog" type="button" aria-label="닫기">×</button>
         </div>
         <div class="savings-form" id="savingsForm">
+          <input id="savingsDate" type="date" aria-label="저축 날짜" />
+          <select id="savingsType" aria-label="저축 종류"></select>
           <select id="savingsDetail" aria-label="저축 세부항목"></select>
           <input id="savingsAmount" type="number" min="0" step="10000" placeholder="이번 달 저금액" />
           <input id="savingsMemo" type="text" placeholder="메모" />
@@ -755,6 +741,7 @@
         </div>
         <div class="savings-form savings-withdraw-form" id="savingsWithdrawForm">
           <input id="savingsWithdrawDate" type="date" />
+          <select id="savingsWithdrawType" aria-label="가져올 저축 종류"></select>
           <select id="savingsWithdrawDetail" aria-label="가져올 세부항목"></select>
           <input id="savingsWithdrawAmount" type="number" min="0" step="10000" placeholder="가져올 금액" />
           <input id="savingsWithdrawMemo" type="text" placeholder="사용 메모" />
@@ -762,7 +749,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261026-1"></script>
-    <script defer src="./investments.js?v=20261026-1"></script>
+    <script defer src="./app.js?v=20261026-3"></script>
+    <script defer src="./investments.js?v=20261026-3"></script>
   </body>
 </html>

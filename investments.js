@@ -41,7 +41,12 @@ function renderTossSnapshot(snapshot) {
 (() => {
   const savings=document.querySelector('.savings-panel');const investments=document.querySelector('#investmentPanel');
   const savingTab=document.querySelector('#assetSavingsTab');const investingTab=document.querySelector('#assetInvestmentTab');
-  function show(investing){savings.classList.toggle('hidden',investing);investments.classList.toggle('hidden',!investing);savingTab.setAttribute('aria-pressed',String(!investing));investingTab.setAttribute('aria-pressed',String(investing));}
+  function show(investing){
+    savings.classList.toggle('hidden',investing);investments.classList.toggle('hidden',!investing);
+    savingTab.setAttribute('aria-pressed',String(!investing));investingTab.setAttribute('aria-pressed',String(investing));
+    savingTab.className=investing?'ghost-button':'primary-button';
+    investingTab.className=investing?'primary-button':'ghost-button';
+  }
   savingTab.addEventListener('click',()=>show(false));investingTab.addEventListener('click',()=>{resetTossForSession();show(true);});
   document.querySelector('#tossSetupCode').addEventListener('click',async()=>{
     const session=sharedSession;if(!session){document.querySelector('#tossStatus').textContent='공유 로그인부터 해 주세요.';return;}

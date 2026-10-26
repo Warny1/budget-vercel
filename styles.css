@@ -5615,6 +5615,15 @@ th.amount {
   }
 }
 
+/* iOS Safari zooms focused form controls below 16px. Keep page scale stable while typing. */
+@media (max-width: 760px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 @media (max-width: 360px) {
   .sidebar {
     padding: 4px 6px;

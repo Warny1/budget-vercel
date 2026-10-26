@@ -1438,37 +1438,78 @@ function monthlySettlement(month = currentMonth()) {
   const salaries = state.incomes.filter((row) => inMonth(row, month) && row.type === "급여(원)");
   const ownPayments = state.expenses.filter((row) => inMonth(row, month)
     && (row.method === "카드(원)" || (row.method === "계좌이체" && row.payment === "원")));
-  const eligible = ownPayments.filter((row) => !isProxyExpense(row) && allowanceSourceFor(row.source) !== "원 용돈" && row.source !== "용돈 사용");
+  const proxyExpenses = ownPayments.filter(isProxyExpense);
+  const wonAllowanceExpenses = ownPayments.filter((row) => !isProxyExpense(row) && allowanceSourceFor(row.source) === "원 용돈");
+  const legacyAllowanceExpenses = ownPayments.filter((row) => !isProxyExpense(row) && row.source === "용돈 사용");
+  const eligible = ownPayments.filter((row) => !isProxyExpense(row)
+    && allowanceSourceFor(row.source) !== "원 용돈" && row.source !== "용돈 사용");
   const cards = eligible.filter((row) => row.method === "카드(원)");
   const transfers = eligible.filter((row) => row.method === "계좌이체");
   const salary = sum(salaries);
   const cardTotal = expenseSum(cards);
   const transferTotal = expenseSum(transfers);
   const net = salary - cardTotal - transferTotal;
-  return { month, hasSalary: salaries.length > 0, salary, cardTotal, transferTotal,
-    net, toSend: Math.max(0, net), cards, transfers,
-    unassignedAllowance: ownPayments.filter((row) => row.source === "용돈 사용").length };
+  return {
+    month,
+    hasSalary: salaries.length > 0,
+    salary,
+    cardTotal,
+    transferTotal,
+    net,
+    toSend: Math.max(0, net),
+    salaries,
+    cards,
+    transfers,
+    proxyExpenses,
+    wonAllowanceExpenses,
+    legacyAllowanceExpenses,
+    unassignedAllowance: legacyAllowanceExpenses.length,
+  };
 }
 
 function renderSettlement(data = monthlySettlement()) {
   const panel = $("#settlementDetails");
   if (!panel) return;
   const groups = byKey(data.cards, (row) => row.payment, expenseValue);
+  const includedRows = [...data.cards, ...data.transfers].sort((a, b) => b.date.localeCompare(a.date));
+  const excludedGroups = [
+    ["원 용돈", data.wonAllowanceExpenses],
+    ["대납", data.proxyExpenses],
+    ["소유자 미지정 용돈", data.legacyAllowanceExpenses],
+  ].filter(([, rows]) => rows.length);
+  $("#settlementMonth").textContent = monthLabel(data.month);
+  $("#settlementAmount").textContent = data.hasSalary ? won.format(data.toSend) : "급여 입력 필요";
+  $("#settlementAmount").classList.toggle("negative", data.hasSalary && data.net < 0);
+  $("#settlementResultNote").textContent = !data.hasSalary
+    ? "수입에서 ‘급여(원)’을 입력하면 자동 계산됩니다."
+    : data.net < 0
+      ? `차감액이 월급보다 ${won.format(-data.net)} 많아 보낼 금액은 0원입니다.`
+      : "원 월급에서 원 카드값과 원 계좌이체를 뺀 금액입니다.";
   $("#settlementBody").innerHTML = `
-    <p class="settings-note">${escapeHtml(data.month)} · 매월 1일~말일 사용 내역 기준</p>
     <dl class="settlement-amounts">
       <div><dt>원 월급</dt><dd>${won.format(data.salary)}</dd></div>
-      <div><dt>원 카드 사용액</dt><dd>− ${won.format(data.cardTotal)}</dd></div>
+      <div><dt>원 카드값</dt><dd>− ${won.format(data.cardTotal)}</dd></div>
       <div><dt>원 계좌이체</dt><dd>− ${won.format(data.transferTotal)}</dd></div>
-      <div><dt>수연에게 보낼 금액</dt><dd>${data.hasSalary ? won.format(data.toSend) : "급여 입력 필요"}</dd></div>
+      <div><dt>계산 결과</dt><dd>${data.hasSalary ? won.format(data.net) : "급여 입력 필요"}</dd></div>
     </dl>
-    <p class="settings-note">원 용돈·대납은 차감액에서 제외합니다. 취소 내역은 차감액에서 빼서 계산합니다. 실제 송금은 직접 진행해 주세요.</p>
-    ${data.hasSalary && data.net < 0 ? `<p class="negative">월급보다 지출이 ${won.format(-data.net)} 많습니다. 정산 내역을 확인해 주세요.</p>` : ""}
-    ${data.unassignedAllowance ? `<p class="settings-note">소유자 미지정 용돈 ${data.unassignedAllowance}건도 차감에서 제외했습니다. 지출 내역에서 원/수연 구분을 확인해 주세요.</p>` : ""}
-    <div class="settlement-items">${Object.entries(groups).map(([name, total]) => `<div><span>${escapeHtml(name)}</span><strong>${won.format(total)}</strong></div>`).join("")}</div>
-    <details><summary>계산에 포함한 내역 ${data.cards.length + data.transfers.length}건</summary>
-      <div class="settlement-items">${[...data.cards, ...data.transfers].sort((a,b) => b.date.localeCompare(a.date)).map((row) => `<div><span>${escapeHtml(row.date)} · ${escapeHtml(row.payment)} · ${escapeHtml(row.memo || row.category)}</span><strong>${won.format(expenseValue(row))}</strong></div>`).join("") || '<p class="settings-note">포함된 내역이 없습니다.</p>'}</div>
-    </details>`;
+    <div class="settlement-subtotals">
+      <strong>카드별 차감액</strong>
+      <div class="settlement-items">${Object.entries(groups).map(([name, total]) => `<div><span>${escapeHtml(name)}</span><strong>${won.format(total)}</strong></div>`).join("") || '<p class="settings-note">포함된 원 카드 내역이 없습니다.</p>'}</div>
+    </div>
+    <details class="settlement-detail-group" open>
+      <summary>월급으로 더한 내역 ${data.salaries.length}건</summary>
+      <div class="settlement-items">${data.salaries.map((row) => `<div><span>${escapeHtml(row.date)} · ${escapeHtml(row.memo || row.type)}</span><strong>${won.format(row.amount)}</strong></div>`).join("") || '<p class="settings-note">급여(원) 내역이 없습니다.</p>'}</div>
+    </details>
+    <details class="settlement-detail-group" open>
+      <summary>차감에 포함한 지출 ${includedRows.length}건</summary>
+      <div class="settlement-items">${includedRows.map((row) => `<div><span>${escapeHtml(row.date)} · ${escapeHtml(row.payment)} · ${escapeHtml(row.memo || row.category)}${row.source && row.source !== "공용" ? ` · ${escapeHtml(row.source)}` : ""}</span><strong>${won.format(expenseValue(row))}</strong></div>`).join("") || '<p class="settings-note">포함된 내역이 없습니다.</p>'}</div>
+    </details>
+    <details class="settlement-detail-group">
+      <summary>계산에서 제외한 내역 ${excludedGroups.reduce((count, [, rows]) => count + rows.length, 0)}건</summary>
+      <div class="settlement-items">${excludedGroups.map(([label, rows]) => `<div><span>${escapeHtml(label)} · ${rows.length}건</span><strong>${won.format(expenseSum(rows))}</strong></div>`).join("") || '<p class="settings-note">제외된 내역이 없습니다.</p>'}</div>
+    </details>
+    ${data.unassignedAllowance ? `<p class="settlement-warning">소유자 미지정 용돈 ${data.unassignedAllowance}건은 계산에서 제외했습니다. 지출 화면에서 원/수연 구분을 확인해 주세요.</p>` : ""}
+    <p class="settings-note">실제 송금은 직접 진행해 주세요.</p>`;
 }
 
 function renderSummary() {
@@ -1493,7 +1534,6 @@ function renderSummary() {
     ["이번 달 저축", won.format(sum(data.savings.filter((row) => Number(row.amount) > 0))), false, "savings"],
   ];
   renderSettlement(settlement);
-  $("#homeSettlementAmount").textContent = settlement.hasSalary ? won.format(settlement.toSend) : "급여 입력 필요";
 
   $("#summaryCards").innerHTML = cards.map(([label, value, negative, action, valueKey], index) => `
     <button class="summary-card summary-card-${index + 1} ${negative ? "negative" : ""}" data-dashboard-action="${action}" data-dashboard-value="${escapeHtml(valueKey || "")}" type="button">
@@ -2940,9 +2980,7 @@ function handleDashboardAction(action, value) {
     return;
   }
   if (action === "settlement") {
-    const panel = $("#settlementDetails");
-    panel.open = true;
-    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    activateView("settlement");
     return;
   }
   if (action === "budget") {

@@ -5689,3 +5689,122 @@ th.amount {
     margin-top: 10px;
   }
 }
+
+/* Settlement lives in its own menu so every included and excluded amount is auditable. */
+.settlement-result-card {
+  display: grid;
+  gap: 6px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(255, 246, 220, 0.96), rgba(238, 247, 255, 0.9));
+}
+
+.settlement-result-card > span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.settlement-result-card > strong {
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.settlement-result-card > p {
+  margin: 2px 0 0;
+  color: #5d6c78;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.settlement-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 14px;
+}
+
+.settlement-subtotals {
+  margin-top: 16px;
+}
+
+.settlement-subtotals > strong,
+.settlement-detail-group > summary {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.settlement-detail-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.settlement-detail-group > summary {
+  cursor: pointer;
+}
+
+.settlement-rule-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.settlement-rule-list > div {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 10px;
+  border-radius: 13px;
+  background: #f7faf8;
+}
+
+.settlement-rule-list b {
+  color: #3d7257;
+  font-size: 12px;
+}
+
+.settlement-rule-list span {
+  color: #5f6f7d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settlement-warning {
+  margin: 14px 0 0;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--cream);
+  color: #7a5d1d;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+@media (max-width: 900px) {
+  .settlement-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 393px) {
+  .settlement-result-card {
+    padding: 17px 15px;
+  }
+
+  .settlement-result-card > strong {
+    font-size: 30px;
+  }
+
+  .settlement-amounts > div,
+  .settlement-items > div {
+    gap: 10px;
+  }
+
+  .settlement-items span {
+    font-size: 11px;
+  }
+
+  .settlement-items strong {
+    font-size: 12px;
+  }
+}

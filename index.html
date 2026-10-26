@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261026-4" />
+    <link rel="stylesheet" href="./styles.css?v=20261026-5" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -38,6 +38,7 @@
           <button class="nav-tab active" data-view="dashboard" type="button">현재상태</button>
           <button class="nav-tab" data-view="expenses" type="button">지출</button>
           <button class="nav-tab" data-view="income" type="button">수입</button>
+          <button class="nav-tab" data-view="settlement" type="button">정산</button>
           <button class="nav-tab" data-view="analysis" type="button">월별분석</button>
           <button class="nav-tab" data-view="calendar" type="button">캘린더</button>
           <button class="nav-tab" data-view="budget" type="button">예산</button>
@@ -79,16 +80,6 @@
 
           <div id="homeOverviewPanel" role="tabpanel">
             <div class="summary-grid" id="summaryCards"></div>
-            <section class="panel home-settlement-card">
-              <div class="home-settlement-head">
-                <span>수연에게 보낼 금액</span>
-                <strong id="homeSettlementAmount"></strong>
-              </div>
-              <details class="home-details" id="settlementDetails">
-                <summary>정산 내역 보기</summary>
-                <div id="settlementBody"></div>
-              </details>
-            </section>
             <section class="panel home-recent-card">
               <div class="panel-title">
                 <h3>최근 기록</h3>
@@ -344,6 +335,40 @@
               </table>
             </div>
           </section>
+        </section>
+
+        <section class="view" id="settlementView" aria-labelledby="settlementTitle">
+          <div class="page-header">
+            <div>
+              <h2 id="settlementTitle">정산</h2>
+              <p id="settlementMonth"></p>
+            </div>
+          </div>
+          <section class="panel settlement-result-card">
+            <span>수연이에게 보낼 금액</span>
+            <strong id="settlementAmount"></strong>
+            <p id="settlementResultNote"></p>
+          </section>
+          <div class="settlement-layout">
+            <section class="panel" id="settlementDetails">
+              <div class="panel-title">
+                <h3>계산 구조</h3>
+                <span>매월 1일~말일</span>
+              </div>
+              <div id="settlementBody"></div>
+            </section>
+            <section class="panel settlement-rule-card">
+              <div class="panel-title"><h3>포함·제외 기준</h3></div>
+              <div class="settlement-rule-list">
+                <div><b>더함</b><span>수입 유형이 ‘급여(원)’인 금액</span></div>
+                <div><b>차감</b><span>결제수단 ‘카드(원)’으로 가계부에 기록된 사용액</span></div>
+                <div><b>차감</b><span>계좌이체 중 결제자가 ‘원’인 금액</span></div>
+                <div><b>제외</b><span>원 용돈과 대납으로 표시한 지출</span></div>
+                <div><b>포함</b><span>수연 용돈을 원 카드로 사용한 금액</span></div>
+                <div><b>부호 반영</b><span>취소 기록은 카드값·계좌이체에서 차감</span></div>
+              </div>
+            </section>
+          </div>
         </section>
 
         <section class="view" id="budgetView" aria-labelledby="budgetTitle">
@@ -749,7 +774,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261026-3"></script>
+    <script defer src="./app.js?v=20261026-5"></script>
     <script defer src="./investments.js?v=20261026-3"></script>
   </body>
 </html>

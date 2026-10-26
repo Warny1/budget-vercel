@@ -679,6 +679,7 @@ function normalizeState(source) {
       source,
       cancelled: Boolean(row.cancelled || row.category === CANCELLATION_CATEGORY),
       ...(row.recurringRuleId ? { recurringRuleId: row.recurringRuleId, recurringMonth: row.recurringMonth } : {}),
+      ...(row.recurringConfirmed ? { recurringConfirmed: true } : {}),
     };
   });
   next.savings = (next.savings || []).map((row) => ({
@@ -879,6 +880,10 @@ function expenseValue(row) {
 
 function isProxyExpense(row) {
   return ["대납", "대신결제"].includes(row.source);
+}
+
+function isUnconfirmedRecurringExpense(row) {
+  return Boolean(row?.recurringRuleId && !row.recurringConfirmed);
 }
 
 function expenseSum(rows) {
@@ -1438,10 +1443,11 @@ function monthlySettlement(month = currentMonth()) {
   const salaries = state.incomes.filter((row) => inMonth(row, month) && row.type === "급여(원)");
   const ownPayments = state.expenses.filter((row) => inMonth(row, month)
     && (row.method === "카드(원)" || (row.method === "계좌이체" && row.payment === "원")));
-  const proxyExpenses = ownPayments.filter(isProxyExpense);
-  const wonAllowanceExpenses = ownPayments.filter((row) => !isProxyExpense(row) && allowanceSourceFor(row.source) === "원 용돈");
-  const legacyAllowanceExpenses = ownPayments.filter((row) => !isProxyExpense(row) && row.source === "용돈 사용");
-  const eligible = ownPayments.filter((row) => !isProxyExpense(row)
+  const plannedExpenses = ownPayments.filter(isUnconfirmedRecurringExpense);
+  const proxyExpenses = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && isProxyExpense(row));
+  const wonAllowanceExpenses = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row) && allowanceSourceFor(row.source) === "원 용돈");
+  const legacyAllowanceExpenses = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row) && row.source === "용돈 사용");
+  const eligible = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row)
     && allowanceSourceFor(row.source) !== "원 용돈" && row.source !== "용돈 사용");
   const cards = eligible.filter((row) => row.method === "카드(원)");
   const transfers = eligible.filter((row) => row.method === "계좌이체");
@@ -1460,6 +1466,7 @@ function monthlySettlement(month = currentMonth()) {
     salaries,
     cards,
     transfers,
+    plannedExpenses,
     proxyExpenses,
     wonAllowanceExpenses,
     legacyAllowanceExpenses,
@@ -1473,6 +1480,7 @@ function renderSettlement(data = monthlySettlement()) {
   const groups = byKey(data.cards, (row) => row.payment, expenseValue);
   const includedRows = [...data.cards, ...data.transfers].sort((a, b) => b.date.localeCompare(a.date));
   const excludedGroups = [
+    ["고정금 예정", data.plannedExpenses],
     ["원 용돈", data.wonAllowanceExpenses],
     ["대납", data.proxyExpenses],
     ["소유자 미지정 용돈", data.legacyAllowanceExpenses],
@@ -1677,7 +1685,9 @@ function renderCardTargetMini() {
     const fixedRules = (state.settings.recurringRules || []).filter((rule) => rule.active !== false
       && rule.kind === "expense" && rule.payment === entry.name
       && month >= (rule.startMonth || "2026-10") && (!rule.endMonth || month <= rule.endMonth));
-    const planned = sum(fixedRules);
+    const confirmedRuleIds = new Set(state.expenses.filter((row) => inMonth(row, month) && row.recurringConfirmed).map((row) => row.recurringRuleId));
+    const pendingRules = fixedRules.filter((rule) => !confirmedRuleIds.has(rule.id));
+    const planned = sum(pendingRules);
     const projectedRemaining = Math.max(target - entry.used - planned, 0);
     const plannedRate = target ? Math.min(Math.round((planned / target) * 100), Math.max(100 - entry.rate, 0)) : 0;
     return `
@@ -1688,7 +1698,10 @@ function renderCardTargetMini() {
           <span class="home-card-sub"><span>${won.format(entry.used)} / ${entry.phase === "2차" ? "2차 " : ""}목표 ${won.format(target)}</span><span>${planned ? `예정 ${won.format(planned)} · 포함 시 ${projectedRemaining ? `${won.format(projectedRemaining)} 남음` : "달성"}` : "예정 없음"}</span></span>
         </summary>
         <div class="home-card-detail">
-          ${fixedRules.length ? fixedRules.map((rule) => `<div><span>${escapeHtml(rule.memo || rule.category || "고정금")} · 매월 ${Number(rule.day || 1)}일</span><strong>${won.format(rule.amount)} <em>예정</em></strong></div>`).join("") : '<p class="settings-note">등록된 고정금이 없어요.</p>'}
+          ${fixedRules.length ? fixedRules.map((rule) => {
+            const confirmed = confirmedRuleIds.has(rule.id);
+            return `<div class="${confirmed ? "confirmed" : ""}"><span>${escapeHtml(rule.memo || rule.category || "고정금")} · 매월 ${Number(rule.day || 1)}일</span><strong>${won.format(rule.amount)} <em>${confirmed ? "반영" : "예정"}</em></strong></div>`;
+          }).join("") : '<p class="settings-note">등록된 고정금이 없어요.</p>'}
           <button class="text-button" data-dashboard-action="card-usage-list" data-dashboard-value="${escapeHtml(entry.name)}" type="button">이 카드 내역 보기</button>
         </div>
       </details>`;
@@ -2722,11 +2735,26 @@ function addExpense() {
     source: $("#expenseSource").value || "공용",
     cancelled: $("#expenseCancelToggle")?.getAttribute("aria-pressed") === "true",
     memo: $("#expenseMemo").value.trim(),
+    ...(previous?.recurringRuleId ? { recurringConfirmed: true } : {}),
   };
   if (editingExpenseId) {
     state.expenses = state.expenses.map((row) => row.id === editingExpenseId ? nextRow : row);
   } else {
-    state.expenses.push(nextRow);
+    const matchingPlanned = state.expenses.find((row) => isUnconfirmedRecurringExpense(row)
+      && inMonth(row, nextRow.date.slice(0, 7))
+      && row.method === nextRow.method && row.payment === nextRow.payment
+      && row.category === nextRow.category && Number(row.amount) === Number(nextRow.amount));
+    if (matchingPlanned) {
+      state.expenses = state.expenses.map((row) => row.id === matchingPlanned.id ? {
+        ...nextRow,
+        id: matchingPlanned.id,
+        recurringRuleId: matchingPlanned.recurringRuleId,
+        recurringMonth: matchingPlanned.recurringMonth,
+        recurringConfirmed: true,
+      } : row);
+    } else {
+      state.expenses.push(nextRow);
+    }
   }
   saveState();
   resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment, nextRow.category, nextRow.source);

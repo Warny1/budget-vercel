@@ -5513,6 +5513,8 @@ th.amount {
 .home-card-detail > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; color: var(--muted); font-size: 12px; }
 .home-card-detail strong { color: var(--ink); white-space: nowrap; }
 .home-card-detail em { color: #788590; font-style: normal; font-weight: 800; }
+.home-card-detail > div.confirmed { color: #317554; }
+.home-card-detail > div.confirmed em { color: #2f8052; }
 
 #savingsView .savings-overview {
   grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 0.8fr));

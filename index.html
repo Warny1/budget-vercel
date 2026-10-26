@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261026-5" />
+    <link rel="stylesheet" href="./styles.css?v=20261026-6" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -363,6 +363,8 @@
                 <div><b>더함</b><span>수입 유형이 ‘급여(원)’인 금액</span></div>
                 <div><b>차감</b><span>결제수단 ‘카드(원)’으로 가계부에 기록된 사용액</span></div>
                 <div><b>차감</b><span>계좌이체 중 결제자가 ‘원’인 금액</span></div>
+                <div><b>제외</b><span>실제 결제 확인 전인 고정금 예정 기록</span></div>
+                <div><b>확정</b><span>예정 기록을 수정하거나 같은 카드·분류·금액의 실제 지출을 기록하면 반영</span></div>
                 <div><b>제외</b><span>원 용돈과 대납으로 표시한 지출</span></div>
                 <div><b>포함</b><span>수연 용돈을 원 카드로 사용한 금액</span></div>
                 <div><b>부호 반영</b><span>취소 기록은 카드값·계좌이체에서 차감</span></div>
@@ -774,7 +776,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261026-5"></script>
+    <script defer src="./app.js?v=20261026-6"></script>
     <script defer src="./investments.js?v=20261026-3"></script>
   </body>
 </html>

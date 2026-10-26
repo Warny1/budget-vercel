@@ -21,7 +21,7 @@ const ctx = vm.createContext({
   ALLOWANCE_CARD_WON: '원 용돈카드', ALLOWANCE_CARD_SUYEON: '수연 용돈카드', CANCELLATION_CATEGORY: '취소',
   alert: noop, $: id => ({value: fields[id] || '', getAttribute: () => 'false'}),
 });
-const names = ['clone','valuesEqual','mergeStateValue','mergeBudgetStates','inMonth','sum','isProxyExpense','allowanceSourceFor','isCancellationExpense','expenseValue','expenseSum','monthlySettlement','recurringOccurrenceKey','applyRecurringRules','skipRecurringRow','addExpense','addIncome','cloudCheckpointKey','persistCloudCheckpoint','loadCloudState','saveCloudState'];
+const names = ['clone','valuesEqual','mergeStateValue','mergeBudgetStates','inMonth','sum','isProxyExpense','isUnconfirmedRecurringExpense','allowanceSourceFor','isCancellationExpense','expenseValue','expenseSum','monthlySettlement','recurringOccurrenceKey','applyRecurringRules','skipRecurringRow','addExpense','addIncome','cloudCheckpointKey','persistCloudCheckpoint','loadCloudState','saveCloudState'];
 vm.runInContext(names.map(extract).join('\n'),ctx);
 ctx.sampleState = {expenses:[],incomes:[],savings:[],settings:{}};
 const fresh = () => ({expenses:[],incomes:[],savings:[],settings:{recurringRules:[{id:'r',kind:'expense',day:5,amount:100,startMonth:'2026-10'}],recurringSkips:[]}});
@@ -32,7 +32,7 @@ ctx.applyRecurringRules();ctx.applyRecurringRules();assert.equal(ctx.state.expen
 const generated=structuredClone(ctx.state.expenses[0]);
 ctx.editingExpenseId=generated.id;
 Object.assign(fields,{'#expenseDate':'2026-10-05','#expenseAmount':'120','#expenseMemo':'edited'});
-ctx.addExpense();ctx.applyRecurringRules();assert.equal(ctx.state.expenses.length,1);assert.equal(ctx.state.expenses[0].recurringRuleId,'r');
+ctx.addExpense();ctx.applyRecurringRules();assert.equal(ctx.state.expenses.length,1);assert.equal(ctx.state.expenses[0].recurringRuleId,'r');assert.equal(ctx.state.expenses[0].recurringConfirmed,true);
 ctx.skipRecurringRow(ctx.state.expenses[0]);ctx.state.expenses=[];ctx.applyRecurringRules();assert.equal(ctx.state.expenses.length,0);
 ctx.state=fresh();ctx.applyRecurringRules();assert.equal(ctx.state.expenses[0].id,generated.id);
 ctx.state={
@@ -46,12 +46,16 @@ ctx.state={
     {id:'won-allowance',date:'2026-10-06',method:'카드(원)',payment:'국민(원)',source:'원 용돈',amount:100000},
     {id:'proxy',date:'2026-10-07',method:'카드(원)',payment:'국민(원)',source:'대납',amount:70000},
     {id:'legacy',date:'2026-10-08',method:'카드(원)',payment:'국민(원)',source:'용돈 사용',amount:30000},
+    {id:'planned',date:'2026-10-09',method:'카드(원)',payment:'국민(원)',source:'공용',category:'고정',amount:400000,recurringRuleId:'fixed',recurringMonth:'2026-10'},
   ],
   savings:[],
 };
 const settlement=ctx.monthlySettlement();
 assert.equal(settlement.salary,3500000);assert.equal(settlement.cardTotal,1030000);assert.equal(settlement.transferTotal,200000);assert.equal(settlement.toSend,2270000);
-assert.equal(settlement.wonAllowanceExpenses.length,1);assert.equal(settlement.proxyExpenses.length,1);assert.equal(settlement.legacyAllowanceExpenses.length,1);
+assert.equal(settlement.plannedExpenses.length,1);assert.equal(settlement.wonAllowanceExpenses.length,1);assert.equal(settlement.proxyExpenses.length,1);assert.equal(settlement.legacyAllowanceExpenses.length,1);
+ctx.state={settings:{recurringRules:[],recurringSkips:[]},incomes:[],savings:[],expenses:[structuredClone(ctx.state.expenses.at(-1))]};ctx.editingExpenseId=null;
+Object.assign(fields,{'#expenseDate':'2026-10-10','#expenseCategory':'고정','#expenseAmount':'400000','#expenseMethod':'카드(원)','#expenseCard':'국민(원)','#expenseSource':'공용','#expenseMemo':'실제 결제'});
+ctx.addExpense();assert.equal(ctx.state.expenses.length,1);assert.equal(ctx.state.expenses[0].recurringConfirmed,true);assert.equal(ctx.state.expenses[0].date,'2026-10-10');
 ctx.state.savings=[{id:'deposit',date:'2026-10-01',type:'적금',detail:'a',amount:1000},{id:'withdraw',date:'2026-10-02',type:'적금',detail:'a',amount:-100,transferId:'t'}];
 ctx.state.incomes=[{id:'income',date:'2026-10-02',amount:100,savingsTransferId:'t'}];ctx.editingIncomeId='income';
 Object.assign(fields,{'#incomeDate':'2026-10-03','#incomeAmount':'150','#incomeType':'기타(원)','#incomeMemo':'edited'});

@@ -502,16 +502,26 @@ async function saveCloudState(immediate = false) {
 
 async function refreshCloudState(force = false) {
   if (!sharedSession || (!force && document.visibilityState !== "visible")) return;
-  if (cloudSyncPromise) return cloudSyncPromise;
+  if (cloudSyncPromise) {
+    if (force) renderCloudStatus(`이미 동기화 중 · ${cloudTimeLabel()}`);
+    return cloudSyncPromise;
+  }
+  const syncButton = force ? $("#syncCloudNow") : null;
+  if (syncButton) syncButton.disabled = true;
+  if (force) renderCloudStatus(`공유 동기화 중 · ${cloudTimeLabel()}`);
   cloudSyncPromise = (async () => {
     if (!cloudClient) {
       await setupCloud();
+      if (!cloudClient) renderCloudStatus(`공유 연결 실패 · ${cloudTimeLabel()}`);
       return;
     }
     clearTimeout(cloudSaveTimer);
     await cloudWriteQueue.catch(() => {});
     await loadCloudState();
+  })().catch((error) => {
+    renderCloudStatus(`${cloudErrorMessage(error, "공유 동기화 실패")} · ${cloudTimeLabel()}`);
   })().finally(() => {
+    if (syncButton) syncButton.disabled = false;
     cloudSyncPromise = null;
   });
   return cloudSyncPromise;

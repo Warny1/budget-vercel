@@ -5791,6 +5791,13 @@ th.amount {
   font-weight: 850;
 }
 
+.cloud-version {
+  display: inline-block;
+  white-space: nowrap;
+  color: #4f7f68;
+  font-weight: 900;
+}
+
 @media (max-width: 900px) {
   .settlement-layout {
     grid-template-columns: 1fr;

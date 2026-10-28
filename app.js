@@ -351,6 +351,33 @@ function cloudTimeLabel() {
   return new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function stateSyncStats(snapshot) {
+  const data = snapshot || { expenses: [], incomes: [], savings: [] };
+  const dates = [...(data.expenses || []), ...(data.incomes || []), ...(data.savings || [])]
+    .map((row) => row.date)
+    .filter(Boolean)
+    .sort();
+  return {
+    latest: dates.at(-1) || "기록 없음",
+    expenses: (data.expenses || []).length,
+    incomes: (data.incomes || []).length,
+    savings: (data.savings || []).length,
+  };
+}
+
+function renderCloudDiagnostics(remoteState = cloudBaseState, localState = state) {
+  const field = $("#cloudDiagnostics");
+  if (!field) return;
+  if (!sharedSession) {
+    field.textContent = "공유 로그인 후 서버와 기기 기록을 비교할 수 있어요.";
+    return;
+  }
+  const remote = stateSyncStats(remoteState);
+  const local = stateSyncStats(localState);
+  const fingerprint = sharedSession.lookupKey.slice(0, 8).toUpperCase();
+  field.textContent = `연결 확인값 ${fingerprint} · 서버 최신 ${remote.latest} (지출 ${remote.expenses}) · 이 기기 최신 ${local.latest} (지출 ${local.expenses})`;
+}
+
 function cloudErrorMessage(error, fallback) {
   const message = error?.message || "";
   if (message.includes("revision") || message.includes("save_shared_budget_state")) return "공유 SQL 업데이트 필요";
@@ -429,7 +456,8 @@ async function loadCloudState() {
       applyingCloudState = false;
       cloudLoaded = true;
       renderAll();
-      renderCloudStatus(`공유 불러옴 · ${cloudTimeLabel()}`);
+      renderCloudDiagnostics(cloudState, state);
+      renderCloudStatus(`공유 불러옴 · ${cloudTimeLabel()} · 서버 최신 ${stateSyncStats(cloudState).latest}`);
       if (!valuesEqual(state, cloudBaseState)) await saveCloudState(true);
       return;
     } catch {
@@ -470,7 +498,8 @@ async function saveCloudState(immediate = false) {
         cloudRevision = Number(result.current_revision || cloudRevision + 1);
         cloudBaseState = clone(localSnapshot);
         persistCloudCheckpoint(cloudBaseState, cloudRevision);
-        renderCloudStatus(`${attempt ? "충돌 병합 후 저장됨" : "공유 저장됨"} · ${cloudTimeLabel()}`);
+        renderCloudDiagnostics(localSnapshot, state);
+        renderCloudStatus(`${attempt ? "충돌 병합 후 저장됨" : "공유 저장됨"} · ${cloudTimeLabel()} · 최신 ${stateSyncStats(localSnapshot).latest}`);
         return;
       }
       if (!result?.current_payload) {
@@ -2569,6 +2598,7 @@ function renderCalendar() {
 function renderSettings() {
   const sharedIdField = $("#sharedBudgetId");
   if (sharedIdField && sharedSession && !sharedIdField.value) sharedIdField.value = sharedSession.householdId;
+  renderCloudDiagnostics();
   renderRecurringSettings();
   $("#categoryChips").innerHTML = state.settings.categories.map((category) => `
     <span class="chip" style="background:${categoryColor(category)}">${escapeHtml(category)}<button data-remove-category="${escapeHtml(category)}" type="button">×</button></span>

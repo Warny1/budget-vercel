@@ -5798,6 +5798,19 @@ th.amount {
   font-weight: 900;
 }
 
+.cloud-diagnostics {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f7faf8;
+  color: #405464;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .settlement-layout {
     grid-template-columns: 1fr;

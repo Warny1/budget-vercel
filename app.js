@@ -2718,6 +2718,10 @@ function renderSettings() {
 function renderRecurringSettings() {
   const kindField = $("#newRecurringKind");
   if (!kindField) return;
+  const kind = kindField.value === "expense" ? "expense" : "saving";
+  $$('[data-recurring-group]').forEach((field) => {
+    field.hidden = field.dataset.recurringGroup !== kind;
+  });
   if (!$("#newRecurringDay").value) $("#newRecurringDay").value = 1;
   optionList($("#newRecurringSavingType"), SAVINGS_TYPES, SAVINGS_TYPES.includes($("#newRecurringSavingType").value) ? $("#newRecurringSavingType").value : "적금");
   const savingType = $("#newRecurringSavingType").value || "적금";
@@ -2728,7 +2732,9 @@ function renderRecurringSettings() {
   const method = $("#newRecurringExpenseMethod").value || "현금";
   const payments = paymentItemsForMethod(method).map((item) => item.name);
   optionList($("#newRecurringExpensePayment"), payments, payments.includes($("#newRecurringExpensePayment").value) ? $("#newRecurringExpensePayment").value : payments[0]);
-  $("#recurringRuleRows").innerHTML = (state.settings.recurringRules || []).map((rule) => {
+  const rules = state.settings.recurringRules || [];
+  $("#recurringRuleCount").textContent = `${rules.length}개`;
+  $("#recurringRuleRows").innerHTML = rules.map((rule) => {
     const item = rule.kind === "saving" ? `${rule.type} · ${rule.detail}` : `${rule.category} · ${rule.payment}`;
     return `
       <tr>
@@ -2741,6 +2747,36 @@ function renderRecurringSettings() {
       </tr>
     `;
   }).join("") || `<tr><td class="empty" colspan="6">등록된 고정입력이 없어요.</td></tr>`;
+  $("#recurringRuleCards").innerHTML = rules.map((rule) => {
+    const isSaving = rule.kind === "saving";
+    const title = rule.memo || (isSaving ? rule.detail : rule.category) || "고정 내역";
+    const detail = isSaving
+      ? `${rule.type || "저축"} · ${rule.detail || "기본"}`
+      : `${rule.category || "지출"} · ${rule.method || "현금"} · ${rule.payment || "현금"}`;
+    return `
+      <article class="recurring-rule-card ${isSaving ? "is-saving" : "is-expense"}">
+        <div class="recurring-card-icon" aria-hidden="true">${isSaving ? "↗" : "↘"}</div>
+        <div class="recurring-card-content">
+          <div class="recurring-card-topline">
+            <span class="recurring-kind-badge">${isSaving ? "저축" : "지출"}</span>
+            <span class="recurring-card-day">매월 ${Number(rule.day || 1)}일</span>
+          </div>
+          <strong>${escapeHtml(title)}</strong>
+          <span class="recurring-card-detail">${escapeHtml(detail)}</span>
+        </div>
+        <div class="recurring-card-side">
+          <b>${won.format(Number(rule.amount || 0))}</b>
+          <button class="recurring-card-delete" data-remove-recurring-rule="${escapeHtml(rule.id)}" type="button" aria-label="${escapeHtml(title)} 삭제">삭제</button>
+        </div>
+      </article>
+    `;
+  }).join("") || `
+    <div class="recurring-empty-card">
+      <span aria-hidden="true">＋</span>
+      <strong>아직 등록된 고정내역이 없어요</strong>
+      <p>위에서 매달 반복할 지출이나 저축을 추가해보세요.</p>
+    </div>
+  `;
 }
 
 function renderAll() {
@@ -4110,7 +4146,7 @@ document.addEventListener("click", (event) => {
   }
 });
 document.addEventListener("change", (event) => {
-  if (closestTarget(event, "#newRecurringSavingType, #newRecurringExpenseMethod")) {
+  if (closestTarget(event, "#newRecurringKind, #newRecurringSavingType, #newRecurringExpenseMethod")) {
     renderRecurringSettings();
     return;
   }

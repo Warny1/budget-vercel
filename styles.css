@@ -5239,33 +5239,66 @@ th.amount {
   background: #f7fafb;
 }
 
+.recurring-panel-title { align-items: flex-end; }
+.recurring-panel-title > div { display: grid; gap: 4px; }
+.recurring-eyebrow { color: #3d7c71; font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .recurring-editor {
   display: grid;
-  grid-template-columns: 120px 110px 150px minmax(180px, 1fr);
-  gap: 8px;
-  margin-bottom: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 20px;
+  border: 1px solid #dce9e5;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #fbfefd 0%, #f3f9f7 100%);
 }
+
+.recurring-editor-heading { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; padding-bottom: 2px; }
+.recurring-editor-heading strong { font-size: 16px; }
+.recurring-editor-heading span { color: var(--muted); font-size: 12px; }
+.recurring-field { display: grid; gap: 7px; min-width: 0; }
+.recurring-field > span { color: #60716d; font-size: 11px; font-weight: 850; }
+.recurring-field[hidden] { display: none; }
 
 .recurring-editor input,
 .recurring-editor select {
   min-width: 0;
   height: 42px;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
+  border-radius: 13px;
+  background: #fff;
   color: var(--ink);
   padding: 0 12px;
 }
 
-.recurring-editor #newRecurringMemo {
-  grid-column: span 2;
-}
+.recurring-editor input:focus,
+.recurring-editor select:focus { border-color: #70a99e; box-shadow: 0 0 0 3px rgba(71, 137, 124, .12); outline: none; }
+.recurring-day-input,
+.recurring-amount-input { position: relative; }
+.recurring-day-input input,
+.recurring-amount-input input { width: 100%; padding-right: 38px; }
+.recurring-day-input b,
+.recurring-amount-input b { position: absolute; top: 50%; right: 13px; transform: translateY(-50%); color: #768783; font-size: 12px; }
+.recurring-memo-field { grid-column: span 2; }
 
 .recurring-editor #addRecurringRule {
-  grid-column: span 2;
+  align-self: end;
   height: 42px;
-  border-radius: 12px;
+  border-radius: 13px;
+  box-shadow: 0 6px 15px rgba(33, 100, 87, .16);
 }
+
+.recurring-note { display: flex; align-items: flex-start; gap: 8px; margin: 10px 2px 22px; }
+.recurring-note > span { display: inline-grid; flex: 0 0 18px; width: 18px; height: 18px; place-items: center; border-radius: 50%; background: #e6f2ee; color: #387468; font-size: 11px; font-weight: 900; }
+.recurring-list-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
+.recurring-list-heading > div { display: flex; align-items: center; gap: 8px; }
+.recurring-list-heading strong { font-size: 15px; }
+.recurring-list-heading > div span { padding: 3px 8px; border-radius: 999px; background: #e7f1ee; color: #397267; font-size: 11px; font-weight: 900; }
+.recurring-list-heading > span { color: var(--muted); font-size: 12px; }
+.recurring-rule-cards { display: none; }
+.recurring-rule-table table { overflow: hidden; border-radius: 14px; }
+.recurring-rule-table th { background: #f4f8f7; color: #63736f; font-size: 11px; }
+.recurring-rule-table td { padding-top: 14px; padding-bottom: 14px; }
 
 @media (min-width: 761px) {
   .dashboard-drilldown {
@@ -5317,12 +5350,44 @@ th.amount {
 
   .recurring-editor {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+    margin: 0 -2px 12px;
+    padding: 16px 14px;
+    border-radius: 18px;
   }
 
-  .recurring-editor #newRecurringMemo,
+  .recurring-editor-heading { display: grid; gap: 2px; }
+  .recurring-editor-heading strong { font-size: 15px; }
+  .recurring-kind-field,
+  .recurring-amount-field,
+  .recurring-memo-field,
   .recurring-editor #addRecurringRule {
     grid-column: 1 / -1;
   }
+
+  .recurring-editor #addRecurringRule { margin-top: 2px; height: 46px; }
+  .recurring-note { margin-bottom: 24px; font-size: 11px; line-height: 1.45; }
+  .recurring-list-heading { align-items: center; }
+  .recurring-list-heading > span { display: none; }
+  .recurring-rule-table { display: none; }
+  .recurring-rule-cards { display: grid; gap: 10px; }
+  .recurring-rule-card { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 11px; align-items: center; padding: 15px 14px; border: 1px solid #e3ebe8; border-radius: 17px; background: #fff; box-shadow: 0 4px 16px rgba(36, 71, 64, .055); }
+  .recurring-card-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 13px; background: #e4f3ee; color: #33776a; font-size: 18px; font-weight: 900; }
+  .recurring-rule-card.is-expense .recurring-card-icon { background: #fff0eb; color: #c7674e; }
+  .recurring-card-content { display: grid; min-width: 0; gap: 3px; }
+  .recurring-card-topline { display: flex; align-items: center; gap: 6px; }
+  .recurring-kind-badge { color: #347568; font-size: 10px; font-weight: 950; }
+  .is-expense .recurring-kind-badge { color: #bf624b; }
+  .recurring-card-day { color: #87938f; font-size: 10px; }
+  .recurring-card-content > strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  .recurring-card-detail { overflow: hidden; color: #7b8985; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .recurring-card-side { display: grid; justify-items: end; gap: 7px; }
+  .recurring-card-side > b { font-size: 13px; white-space: nowrap; }
+  .recurring-card-delete { padding: 0; border: 0; background: transparent; color: #9a7269; font-size: 10px; font-weight: 750; }
+  .recurring-empty-card { display: grid; justify-items: center; gap: 5px; padding: 30px 18px; border: 1px dashed #cbdcd7; border-radius: 18px; background: #f9fcfb; text-align: center; }
+  .recurring-empty-card > span { display: grid; width: 36px; height: 36px; margin-bottom: 3px; place-items: center; border-radius: 50%; background: #e5f2ee; color: #367568; font-size: 20px; }
+  .recurring-empty-card strong { font-size: 13px; }
+  .recurring-empty-card p { margin: 0; color: var(--muted); font-size: 11px; }
 }
 
 /* Mobile rows hide the source column; keep its tag beside the payment card. */

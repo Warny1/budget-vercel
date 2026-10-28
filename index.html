@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261029-2" />
+    <link rel="stylesheet" href="./styles.css?v=20261029-3" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -605,27 +605,66 @@
               <div class="chips" id="incomeTypeChips"></div>
             </section>
             <section class="panel import-panel settings-panel" data-settings-panel="recurring">
-              <div class="panel-title">
-                <h3>매월 고정입력</h3>
-                <span>청약, 은행이자처럼 매달 반복</span>
+              <div class="panel-title recurring-panel-title">
+                <div>
+                  <span class="recurring-eyebrow">반복 내역</span>
+                  <h3>매월 고정입력</h3>
+                </div>
+                <span>한 번 등록하면 매달 자동으로 기록해요</span>
               </div>
               <div class="recurring-editor">
-                <select id="newRecurringKind" aria-label="고정입력 종류">
-                  <option value="saving">저축</option>
-                  <option value="expense">지출</option>
-                </select>
-                <input id="newRecurringDay" type="number" min="1" max="31" step="1" placeholder="매월 며칠" />
-                <input id="newRecurringAmount" type="number" min="0" step="10000" placeholder="금액" />
-                <input id="newRecurringMemo" type="text" placeholder="메모 예: 청약, 은행이자" />
-                <select id="newRecurringSavingType" aria-label="저축 종류"></select>
-                <select id="newRecurringSavingDetail" aria-label="저축 세부항목"></select>
-                <select id="newRecurringExpenseCategory" aria-label="지출 카테고리"></select>
-                <select id="newRecurringExpenseMethod" aria-label="결제수단"></select>
-                <select id="newRecurringExpensePayment" aria-label="상세수단"></select>
+                <div class="recurring-editor-heading">
+                  <strong>새 고정내역</strong>
+                  <span>매달 반복할 내용을 입력해주세요</span>
+                </div>
+                <label class="recurring-field recurring-kind-field">
+                  <span>종류</span>
+                  <select id="newRecurringKind" aria-label="고정입력 종류">
+                    <option value="saving">저축</option>
+                    <option value="expense">지출</option>
+                  </select>
+                </label>
+                <label class="recurring-field">
+                  <span>자동 입력일</span>
+                  <div class="recurring-day-input"><input id="newRecurringDay" type="number" min="1" max="31" step="1" placeholder="1" /><b>일</b></div>
+                </label>
+                <label class="recurring-field recurring-amount-field">
+                  <span>금액</span>
+                  <div class="recurring-amount-input"><input id="newRecurringAmount" type="number" min="0" step="10000" placeholder="0" /><b>원</b></div>
+                </label>
+                <label class="recurring-field" data-recurring-group="saving">
+                  <span>저축 종류</span>
+                  <select id="newRecurringSavingType" aria-label="저축 종류"></select>
+                </label>
+                <label class="recurring-field" data-recurring-group="saving">
+                  <span>세부 항목</span>
+                  <select id="newRecurringSavingDetail" aria-label="저축 세부항목"></select>
+                </label>
+                <label class="recurring-field" data-recurring-group="expense">
+                  <span>지출 분류</span>
+                  <select id="newRecurringExpenseCategory" aria-label="지출 카테고리"></select>
+                </label>
+                <label class="recurring-field" data-recurring-group="expense">
+                  <span>결제 방식</span>
+                  <select id="newRecurringExpenseMethod" aria-label="결제수단"></select>
+                </label>
+                <label class="recurring-field" data-recurring-group="expense">
+                  <span>결제 수단</span>
+                  <select id="newRecurringExpensePayment" aria-label="상세수단"></select>
+                </label>
+                <label class="recurring-field recurring-memo-field">
+                  <span>메모</span>
+                  <input id="newRecurringMemo" type="text" placeholder="예: 청약, 은행이자" />
+                </label>
                 <button class="primary-button" id="addRecurringRule" type="button">고정입력 추가</button>
               </div>
-              <p class="settings-note">해당 월을 열면 자동으로 한 번 입력돼요. 개별 기록을 삭제하면 그 달에는 다시 생기지 않아요.</p>
-              <div class="table-scroll">
+              <p class="settings-note recurring-note"><span aria-hidden="true">i</span> 해당 월을 처음 열 때 한 번만 입력돼요. 그달 기록을 삭제해도 다시 생기지 않아요.</p>
+              <div class="recurring-list-heading">
+                <div><strong>등록된 세부내역</strong><span id="recurringRuleCount"></span></div>
+                <span>매달 자동 입력되는 항목</span>
+              </div>
+              <div class="recurring-rule-cards" id="recurringRuleCards"></div>
+              <div class="table-scroll recurring-rule-table">
                 <table>
                   <thead>
                     <tr>
@@ -819,7 +858,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261029-2"></script>
+    <script defer src="./app.js?v=20261029-3"></script>
     <script defer src="./investments.js?v=20261026-3"></script>
   </body>
 </html>

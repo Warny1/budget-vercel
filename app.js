@@ -504,34 +504,52 @@ async function refreshCloudState(force = false) {
   if (!sharedSession || (!force && document.visibilityState !== "visible")) return;
   if (cloudSyncPromise) {
     if (force) renderCloudStatus(`이미 동기화 중 · ${cloudTimeLabel()}`);
-    return cloudSyncPromise;
+    try {
+      await cloudSyncPromise;
+    } catch { /* The original sync reports its own error. */ }
+    return;
   }
   const syncButton = force ? $("#syncCloudNow") : null;
   if (syncButton) syncButton.disabled = true;
   if (force) renderCloudStatus(`공유 동기화 중 · ${cloudTimeLabel()}`);
-  cloudSyncPromise = (async () => {
+  const syncTask = (async () => {
     if (!cloudClient) {
       await setupCloud();
       if (!cloudClient) renderCloudStatus(`공유 연결 실패 · ${cloudTimeLabel()}`);
       return;
     }
     clearTimeout(cloudSaveTimer);
-    await cloudWriteQueue.catch(() => {});
+    try {
+      await cloudWriteQueue;
+    } catch { /* A fresh load below can recover from a failed queued save. */ }
     await loadCloudState();
-  })().catch((error) => {
+  })();
+  cloudSyncPromise = syncTask;
+  try {
+    await syncTask;
+  } catch (error) {
     renderCloudStatus(`${cloudErrorMessage(error, "공유 동기화 실패")} · ${cloudTimeLabel()}`);
-  })().finally(() => {
+  } finally {
     if (syncButton) syncButton.disabled = false;
-    cloudSyncPromise = null;
-  });
-  return cloudSyncPromise;
+    if (cloudSyncPromise === syncTask) cloudSyncPromise = null;
+  }
 }
 
 function startCloudRefresh() {
   clearInterval(cloudRefreshTimer);
   cloudRefreshTimer = setInterval(() => {
-    refreshCloudState().catch(() => renderCloudStatus("공유 새로고침 실패"));
+    refreshCloudState();
   }, 30000);
+}
+
+async function initializeCloudRefresh() {
+  try {
+    await setupCloud();
+  } catch (error) {
+    renderCloudStatus(`${cloudErrorMessage(error, "공유 연결 실패")} · ${cloudTimeLabel()}`);
+  } finally {
+    startCloudRefresh();
+  }
 }
 
 async function connectSharedBudget() {
@@ -3205,7 +3223,7 @@ function boot() {
   setDefaultDates();
   resetEventForm();
   renderAll();
-  setupCloud().finally(startCloudRefresh);
+  initializeCloudRefresh();
 }
 
 document.addEventListener("click", (event) => {
@@ -3741,13 +3759,13 @@ on("#syncCloudNow", "click", async () => {
   await refreshCloudState(true);
 });
 window.addEventListener("focus", () => {
-  refreshCloudState().catch(() => renderCloudStatus("공유 새로고침 실패"));
+  refreshCloudState();
 });
 window.addEventListener("online", () => {
-  refreshCloudState().catch(() => renderCloudStatus("공유 새로고침 실패"));
+  refreshCloudState();
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") refreshCloudState().catch(() => renderCloudStatus("공유 새로고침 실패"));
+  if (document.visibilityState === "visible") refreshCloudState();
 });
 on("#addCategory", "click", () => {
   addUnique(state.settings.categories, $("#newCategory").value);

@@ -614,10 +614,8 @@ async function signOutCloud() {
   cloudRevision = 0;
   cloudBaseState = null;
   localStorage.removeItem(SHARED_SESSION_KEY);
-  state = clone(sampleState);
-  saveState();
   renderAll();
-  renderCloudStatus("연결 해제됨");
+  renderCloudStatus("연결 해제됨 · 기기 기록은 유지됨");
 }
 
 function normalizeState(source) {
@@ -3065,6 +3063,57 @@ function restoreBackup() {
   boot();
 }
 
+function deviceRecoveryCandidates() {
+  const snapshots = [
+    [BACKUP_KEY, "일반 백업"],
+    [`${STORAGE_KEY}-before-signout`, "연결 해제 전 백업"],
+    [`${STORAGE_KEY}-before-cloud-load`, "공유 불러오기 전 백업"],
+  ];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(`${STORAGE_KEY}-sync:`)) snapshots.push([key, "공유 동기화 백업"]);
+  }
+  const seen = new Set();
+  return snapshots.flatMap(([key, label]) => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      const value = saved?.base || saved;
+      if (!value?.settings) return [];
+      const recovered = normalizeState(value);
+      const serialized = JSON.stringify(recovered);
+      if (seen.has(serialized)) return [];
+      seen.add(serialized);
+      const stats = stateSyncStats(recovered);
+      const total = stats.expenses + stats.incomes + stats.savings;
+      if (!total) return [];
+      return [{ state: recovered, label, stats, total }];
+    } catch {
+      return [];
+    }
+  }).sort((left, right) => {
+    const dateOrder = String(right.stats.latest).localeCompare(String(left.stats.latest));
+    return dateOrder || right.total - left.total;
+  });
+}
+
+function recoverDeviceBackup() {
+  const candidate = deviceRecoveryCandidates()[0];
+  if (!candidate) {
+    alert("이 기기에서 복구할 가계부 기록을 찾지 못했어요.");
+    return;
+  }
+  const { latest, expenses, incomes, savings } = candidate.stats;
+  if (!confirm(`${candidate.label}에서 최신 ${latest}, 지출 ${expenses}건, 수입 ${incomes}건, 저축 ${savings}건을 찾았어요. 이 기록으로 복구할까요?`)) return;
+  localStorage.setItem(`${STORAGE_KEY}-before-device-recovery`, JSON.stringify(state));
+  state = candidate.state;
+  const monthPicker = $("#monthPicker");
+  if (monthPicker && latest !== "기록 없음") monthPicker.value = latest.slice(0, 7);
+  saveState();
+  renderAll();
+  renderCloudDiagnostics(cloudBaseState, state);
+  renderCloudStatus(`기기 백업 복구됨 · 최신 ${latest}`);
+}
+
 function openExpenseList({ view = "all", category = "", method = "", payment = "", source = "", group = "" } = {}) {
   activateView("expenses");
   expenseFilters = { category, method, payment, source };
@@ -3781,6 +3830,7 @@ on("#resetSample", "click", () => {
 on("#restoreBackup", "click", restoreBackup);
 on("#connectSharedBudget", "click", connectSharedBudget);
 on("#signOutCloud", "click", signOutCloud);
+on("#recoverDeviceBackup", "click", recoverDeviceBackup);
 on("#syncCloudNow", "click", async () => {
   if (!sharedSession) {
     renderCloudStatus("공유 로그인 필요");

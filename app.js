@@ -605,6 +605,61 @@ async function connectSharedBudget() {
   }
 }
 
+function cloudConnectionCode(session = sharedSession) {
+  if (!session) return "";
+  const payload = JSON.stringify({ v: 1, h: session.householdId, k: session.lookupKey, s: session.secret });
+  return bytesToBase64(textBytes(payload)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
+}
+
+function sharedSessionFromCode(value) {
+  const normalized = String(value || "").trim().replaceAll("-", "+").replaceAll("_", "/");
+  const padding = "=".repeat((4 - (normalized.length % 4)) % 4);
+  const parsed = JSON.parse(new TextDecoder().decode(base64ToBytes(normalized + padding)));
+  if (parsed?.v !== 1 || !parsed.h || !/^[a-f0-9]{64}$/i.test(parsed.k || "") || !/^[a-f0-9]{64}$/i.test(parsed.s || "")) {
+    throw new Error("올바른 연결 코드가 아니에요.");
+  }
+  return { householdId: String(parsed.h), lookupKey: parsed.k.toLowerCase(), secret: parsed.s.toLowerCase() };
+}
+
+async function copyCloudConnectionCode() {
+  if (!sharedSession) {
+    alert("먼저 공유 가계부에 연결해 주세요.");
+    return;
+  }
+  const code = cloudConnectionCode();
+  try {
+    await navigator.clipboard.writeText(code);
+    alert(`연결 코드가 복사됐어요. 연결 확인값 ${sharedSession.lookupKey.slice(0, 8).toUpperCase()}인 기기에만 붙여넣어 주세요.`);
+  } catch {
+    prompt("아래 연결 코드를 길게 눌러 복사하세요.", code);
+  }
+}
+
+async function connectWithCloudCode() {
+  const value = prompt("연결된 기기에서 복사한 연결 코드를 붙여넣으세요.");
+  if (!value) return;
+  try {
+    const nextSession = sharedSessionFromCode(value);
+    if (!cloudClient) await setupCloud();
+    if (!cloudClient) throw new Error("공유 저장소에 연결할 수 없어요.");
+    clearTimeout(cloudSaveTimer);
+    await cloudWriteQueue.catch(() => {});
+    localStorage.setItem(`${STORAGE_KEY}-before-code-connect`, JSON.stringify(state));
+    if (sharedSession) localStorage.setItem(`${SHARED_SESSION_KEY}-before-code-connect`, JSON.stringify(sharedSession));
+    sharedSession = nextSession;
+    cloudBaseState = null;
+    cloudRevision = 0;
+    cloudLoaded = false;
+    localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(sharedSession));
+    const idField = $("#sharedBudgetId");
+    if (idField) idField.value = sharedSession.householdId;
+    renderCloudStatus("연결 코드로 공유 가계부 불러오는 중");
+    await loadCloudState();
+  } catch (error) {
+    renderCloudStatus(error?.message || "연결 코드를 적용하지 못했어요.");
+  }
+}
+
 async function signOutCloud() {
   clearTimeout(cloudSaveTimer);
   await cloudWriteQueue.catch(() => {});
@@ -3829,6 +3884,8 @@ on("#resetSample", "click", () => {
 });
 on("#restoreBackup", "click", restoreBackup);
 on("#connectSharedBudget", "click", connectSharedBudget);
+on("#copyCloudConnectionCode", "click", copyCloudConnectionCode);
+on("#connectWithCloudCode", "click", connectWithCloudCode);
 on("#signOutCloud", "click", signOutCloud);
 on("#recoverDeviceBackup", "click", recoverDeviceBackup);
 on("#syncCloudNow", "click", async () => {

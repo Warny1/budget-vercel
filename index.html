@@ -532,12 +532,14 @@
                 <input id="sharedBudgetId" type="text" autocomplete="username" placeholder="가계부 아이디" />
                 <input id="sharedBudgetPassword" type="password" autocomplete="current-password" placeholder="비밀번호" />
                 <button class="primary-button" id="connectSharedBudget" type="button">들어가기</button>
+                <button class="ghost-button" id="copyCloudConnectionCode" type="button">연결 코드 복사</button>
+                <button class="ghost-button" id="connectWithCloudCode" type="button">연결 코드 입력</button>
                 <button class="ghost-button" id="syncCloudNow" type="button">지금 동기화</button>
                 <button class="ghost-button" id="recoverDeviceBackup" type="button">기기 백업 찾기</button>
                 <button class="ghost-button" id="signOutCloud" type="button">연결 해제</button>
               </div>
               <p class="cloud-diagnostics" id="cloudDiagnostics">연결 정보를 확인하고 있어요.</p>
-              <p class="settings-note">같은 아이디와 비밀번호로 여러 기기에서 함께 작성할 수 있어요. 이 기기에는 즉시 저장되고 공유 저장소에는 마지막 변경 약 0.5초 뒤 저장돼요. 다른 기기의 최신 내용은 약 30초마다, 앱으로 돌아올 때, 또는 ‘지금 동기화’를 누를 때 불러와요. 연결 해제해도 기기 기록은 유지돼요. <span class="cloud-version">동기화 코드 20261028-3</span></p>
+              <p class="settings-note">같은 아이디와 비밀번호로 여러 기기에서 함께 작성할 수 있어요. 비밀번호가 기억나지 않으면 연결된 기기에서 연결 코드를 복사해 다른 기기에 입력하세요. 연결 코드는 비밀번호처럼 안전하게 다뤄 주세요. 연결 해제해도 기기 기록은 유지돼요. <span class="cloud-version">동기화 코드 20261028-4</span></p>
             </section>
             <section class="panel settings-panel" data-settings-panel="category">
               <div class="panel-title">
@@ -778,7 +780,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261028-3"></script>
+    <script defer src="./app.js?v=20261028-4"></script>
     <script defer src="./investments.js?v=20261026-3"></script>
   </body>
 </html>

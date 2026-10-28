@@ -130,6 +130,7 @@ let state = loadState();
 let expenseViewMode = "all";
 let expenseGroupFilter = null;
 let expenseFilters = { category: "", method: "", payment: "", source: "" };
+let expenseSearch = "";
 let expenseVisibleLimit = 10;
 let editingExpenseId = null;
 let editingIncomeId = null;
@@ -331,6 +332,13 @@ function loadSupabaseClient() {
 
 function renderCloudStatus(message) {
   const field = $("#cloudStatus");
+  const mobileIndicator = $("#mobileSyncIndicator");
+  if (mobileIndicator) {
+    const warning = !sharedSession || /실패|필요|찾지 못|확인 필요/.test(message || "");
+    mobileIndicator.textContent = warning ? "!" : "✓";
+    mobileIndicator.classList.toggle("disconnected", warning);
+    mobileIndicator.setAttribute("aria-label", message || (warning ? "공유 로그인 필요" : "공유 동기화 연결됨"));
+  }
   if (!field) return;
   if (message) {
     field.textContent = message;
@@ -1890,12 +1898,15 @@ function renderChart() {
 
 function renderExpenses() {
   const orderMap = new Map(state.expenses.map((row, index) => [row.id, index]));
+  const search = expenseSearch.trim().toLowerCase();
   const rows = state.expenses
     .filter((row) => inMonth(row, currentMonth()))
     .filter((row) => !expenseFilters.category || row.category === expenseFilters.category)
     .filter((row) => !expenseFilters.method || row.method === expenseFilters.method)
     .filter((row) => !expenseFilters.payment || row.payment === expenseFilters.payment)
     .filter((row) => !expenseFilters.source || row.source === expenseFilters.source)
+    .filter((row) => !search || [row.memo, row.category, row.payment, row.method, row.source, row.date]
+      .some((value) => String(value || "").toLowerCase().includes(search)))
     .slice()
     .sort((a, b) => newestExpenseSort(a, b, orderMap));
   const tableBody = $("#expenseRows");
@@ -2829,6 +2840,7 @@ function startExpenseEdit(id) {
   renderExpenseSourceSegment();
   $("#expenseMemo").value = row.memo || "";
   setExpenseEditMode(true);
+  $("#expensesView")?.classList.remove("mobile-history-mode");
   $(".nav-tab[data-view='expenses']").click();
   $("#expenseAmount").focus();
 }
@@ -3171,6 +3183,7 @@ function recoverDeviceBackup() {
 
 function openExpenseList({ view = "all", category = "", method = "", payment = "", source = "", group = "" } = {}) {
   activateView("expenses");
+  $("#expensesView")?.classList.add("mobile-history-mode");
   expenseFilters = { category, method, payment, source };
   expenseViewMode = view;
   expenseGroupFilter = group;
@@ -3265,11 +3278,24 @@ function activateView(viewName, options = {}) {
   if (shouldTrack && currentView) viewHistory.push(currentView);
   $$(".nav-tab").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   $$(".view").forEach((item) => item.classList.toggle("active", item === view));
-  $$(".mobile-bottom-button").forEach((button) => button.classList.toggle("active", button.dataset.mobileView === viewName));
-  const mobileMenu = $("[data-mobile-menu]");
-  if (mobileMenu) mobileMenu.classList.toggle("active", !["dashboard", "expenses", "savings"].includes(viewName));
+  syncMobileBottomNav(viewName);
   setMenuOpen(false);
   renderChart();
+}
+
+function syncMobileBottomNav(viewName = activeViewName(), emphasis = "") {
+  $$(".mobile-bottom-button").forEach((button) => {
+    const active = emphasis
+      ? button.dataset.mobileSheetOpen === emphasis
+      : button.dataset.mobileView === viewName || (button.dataset.mobileSheetOpen === "menu" && !["dashboard", "expenses", "savings"].includes(viewName));
+    button.classList.toggle("active", active);
+  });
+}
+
+function setMobileSheet(name = "") {
+  $$('[data-mobile-sheet]').forEach((sheet) => { sheet.hidden = sheet.dataset.mobileSheet !== name; });
+  document.body.classList.toggle("mobile-sheet-open", Boolean(name));
+  syncMobileBottomNav(activeViewName(), name);
 }
 
 function activeViewName() {
@@ -3368,29 +3394,72 @@ document.addEventListener("click", (event) => {
   if (mobileViewButton) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    activateView(mobileViewButton.dataset.mobileView);
+    setMobileSheet();
+    const viewName = mobileViewButton.dataset.mobileView;
+    activateView(viewName);
+    $("#expensesView")?.classList.toggle("mobile-history-mode", viewName === "expenses");
+    if (viewName === "expenses") window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
 
-  const mobileRecordButton = closestTarget(event, "[data-mobile-record]");
-  if (mobileRecordButton) {
+  const mobileSheetButton = closestTarget(event, "[data-mobile-sheet-open]");
+  if (mobileSheetButton) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    activateView("expenses");
-    $$(".mobile-bottom-button").forEach((button) => button.classList.toggle("active", button === mobileRecordButton));
-    requestAnimationFrame(() => {
-      $("#expenseForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      $("#expenseAmount")?.focus({ preventScroll: true });
-    });
+    setMobileSheet(mobileSheetButton.dataset.mobileSheetOpen);
     return;
   }
 
-  const mobileMenuButton = closestTarget(event, "[data-mobile-menu]");
-  if (mobileMenuButton) {
+  if (closestTarget(event, "[data-mobile-sheet-close]")) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    setMenuOpen(!$(".sidebar")?.classList.contains("menu-open"));
-    mobileMenuButton.classList.toggle("active", $(".sidebar")?.classList.contains("menu-open"));
+    setMobileSheet();
+    return;
+  }
+
+  const mobileSheetBackdrop = closestTarget(event, "[data-mobile-sheet]");
+  if (mobileSheetBackdrop && event.target === mobileSheetBackdrop) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setMobileSheet();
+    return;
+  }
+
+  const mobileRecordChoice = closestTarget(event, "[data-mobile-record-kind]");
+  if (mobileRecordChoice) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const kind = mobileRecordChoice.dataset.mobileRecordKind;
+    setMobileSheet();
+    if (kind === "expense") {
+      activateView("expenses");
+      $("#expensesView")?.classList.remove("mobile-history-mode");
+      requestAnimationFrame(() => {
+        $("#expenseForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        $("#expenseAmount")?.focus({ preventScroll: true });
+      });
+    } else if (kind === "income") {
+      activateView("income");
+      requestAnimationFrame(() => {
+        $("#incomeForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        $("#incomeAmount")?.focus({ preventScroll: true });
+      });
+    } else if (kind === "saving") {
+      focusQuickSavingsForm();
+    } else if (kind === "withdraw") {
+      activateView("savings");
+      openSavingsWithdrawDialog();
+    }
+    return;
+  }
+
+  const mobileDestination = closestTarget(event, "[data-mobile-destination]");
+  if (mobileDestination) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setMobileSheet();
+    activateView(mobileDestination.dataset.mobileDestination);
+    if (mobileDestination.dataset.mobileSettingsTab) activateSettingsTab(mobileDestination.dataset.mobileSettingsTab);
     return;
   }
 
@@ -3824,6 +3893,12 @@ on("#incomeDate", "change", (event) => {
 });
 on("#expenseFilterCategory", "change", (event) => {
   expenseFilters.category = event.target.value;
+  expenseGroupFilter = null;
+  expenseVisibleLimit = 10;
+  renderExpenses();
+});
+on("#expenseSearch", "input", (event) => {
+  expenseSearch = event.target.value;
   expenseGroupFilter = null;
   expenseVisibleLimit = 10;
   renderExpenses();

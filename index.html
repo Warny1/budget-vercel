@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261028-2" />
+    <link rel="stylesheet" href="./styles.css?v=20261029-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -668,6 +668,13 @@
           </div>
         </section>
       </main>
+      <nav class="mobile-bottom-nav" aria-label="모바일 빠른 메뉴">
+        <button class="mobile-bottom-button active" data-mobile-view="dashboard" type="button"><span aria-hidden="true">⌂</span>홈</button>
+        <button class="mobile-bottom-button" data-mobile-view="expenses" type="button"><span aria-hidden="true">≡</span>내역</button>
+        <button class="mobile-bottom-button mobile-record-button" data-mobile-record type="button"><span aria-hidden="true">＋</span>기록</button>
+        <button class="mobile-bottom-button" data-mobile-view="savings" type="button"><span aria-hidden="true">◇</span>자산</button>
+        <button class="mobile-bottom-button" data-mobile-menu type="button"><span aria-hidden="true">☰</span>메뉴</button>
+      </nav>
     </div>
     <dialog class="category-dialog" id="categoryDialog">
       <div class="category-dialog-sheet">
@@ -780,7 +787,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261028-4"></script>
+    <script defer src="./app.js?v=20261029-1"></script>
     <script defer src="./investments.js?v=20261026-3"></script>
   </body>
 </html>

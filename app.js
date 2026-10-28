@@ -3265,6 +3265,9 @@ function activateView(viewName, options = {}) {
   if (shouldTrack && currentView) viewHistory.push(currentView);
   $$(".nav-tab").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
   $$(".view").forEach((item) => item.classList.toggle("active", item === view));
+  $$(".mobile-bottom-button").forEach((button) => button.classList.toggle("active", button.dataset.mobileView === viewName));
+  const mobileMenu = $("[data-mobile-menu]");
+  if (mobileMenu) mobileMenu.classList.toggle("active", !["dashboard", "expenses", "savings"].includes(viewName));
   setMenuOpen(false);
   renderChart();
 }
@@ -3294,8 +3297,8 @@ function goDashboard() {
 function renderMonthStepper() {
   const label = $("#monthStepperLabel");
   if (!label) return;
-  const [, monthNo] = currentMonth().split("-").map(Number);
-  label.textContent = `${monthNo}월`;
+  const [year, monthNo] = currentMonth().split("-").map(Number);
+  label.textContent = `${year}년 ${monthNo}월`;
 }
 
 function shiftCurrentMonth(offset) {
@@ -3361,6 +3364,36 @@ function boot() {
 }
 
 document.addEventListener("click", (event) => {
+  const mobileViewButton = closestTarget(event, "[data-mobile-view]");
+  if (mobileViewButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activateView(mobileViewButton.dataset.mobileView);
+    return;
+  }
+
+  const mobileRecordButton = closestTarget(event, "[data-mobile-record]");
+  if (mobileRecordButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activateView("expenses");
+    $$(".mobile-bottom-button").forEach((button) => button.classList.toggle("active", button === mobileRecordButton));
+    requestAnimationFrame(() => {
+      $("#expenseForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#expenseAmount")?.focus({ preventScroll: true });
+    });
+    return;
+  }
+
+  const mobileMenuButton = closestTarget(event, "[data-mobile-menu]");
+  if (mobileMenuButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setMenuOpen(!$(".sidebar")?.classList.contains("menu-open"));
+    mobileMenuButton.classList.toggle("active", $(".sidebar")?.classList.contains("menu-open"));
+    return;
+  }
+
   const homeTab = closestTarget(event, "[data-home-tab]");
   if (homeTab) {
     event.preventDefault();

@@ -5615,6 +5615,227 @@ th.amount {
   }
 }
 
+/* Bright, simplified mobile shell approved for Galaxy S25 and iPhone 16. */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  body {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+    background: #fbfdfc;
+  }
+
+  .app-shell {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(216, 231, 225, 0.92);
+    background: rgba(255, 253, 248, 0.96);
+    box-shadow: 0 6px 18px rgba(76, 111, 98, 0.06);
+    backdrop-filter: blur(18px);
+  }
+
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border: 2px solid #fff;
+    box-shadow: 0 3px 10px rgba(88, 120, 107, 0.13);
+  }
+
+  .mobile-top-controls {
+    display: contents;
+  }
+
+  .mobile-home-button,
+  .month-shift-button {
+    display: none;
+  }
+
+  .month-stepper-label {
+    grid-column: 2;
+    grid-row: 1;
+    height: 38px;
+    min-height: 38px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #4e625d;
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .menu-toggle-button {
+    grid-column: 3;
+    grid-row: 1;
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    overflow: hidden;
+    border: 0;
+    background: #f0f6f3;
+    box-shadow: none;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .menu-toggle-button::after {
+    content: "☰";
+    color: #3b554b;
+    font-size: 18px;
+  }
+
+  .nav-tabs {
+    top: calc(100% + 5px);
+    left: 10px;
+    right: 10px;
+  }
+
+  .main {
+    padding: 10px 10px calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .dashboard-hero {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 19px 18px;
+    border: 0;
+    border-radius: 21px;
+    background: linear-gradient(135deg, #e6f5e8, #edf7ff);
+    box-shadow: none;
+  }
+
+  .dashboard-hero > div:first-child {
+    display: none;
+  }
+
+  .hero-balance {
+    justify-items: start;
+  }
+
+  .hero-balance span {
+    color: #587067;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .hero-balance strong {
+    margin-top: 7px;
+    color: #253039;
+    font-size: clamp(25px, 8vw, 30px);
+    letter-spacing: -0.8px;
+    text-align: left;
+  }
+
+  .home-view-tabs {
+    border-color: #dce8e4;
+    background: #f1f6f4;
+  }
+
+  .home-recent-card,
+  .home-more {
+    border-color: #e5eeeb;
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(85, 119, 107, 0.04);
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: calc(64px + env(safe-area-inset-bottom));
+    padding: 7px 7px calc(7px + env(safe-area-inset-bottom));
+    border-top: 1px solid #dfe8e5;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 -8px 24px rgba(65, 91, 82, 0.07);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-bottom-button {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 49px;
+    border: 0;
+    background: transparent;
+    color: #7b8884;
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  .mobile-bottom-button > span {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    color: inherit;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .mobile-bottom-button.active {
+    color: #315d49;
+    font-weight: 900;
+  }
+
+  .mobile-record-button {
+    margin-top: -22px;
+  }
+
+  .mobile-record-button > span {
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+    background: #67a883;
+    color: #fff;
+    font-size: 27px;
+    box-shadow: 0 7px 18px rgba(49, 93, 73, 0.2);
+  }
+
+  .mobile-record-button.active {
+    color: #315d49;
+  }
+}
+
+@media (max-width: 360px) {
+  .sidebar {
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    padding: 7px 10px;
+  }
+
+  .brand-mark,
+  .menu-toggle-button {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .month-stepper-label {
+    height: 36px;
+    min-height: 36px;
+    font-size: 13px;
+  }
+
+  .main {
+    padding-inline: 8px;
+  }
+}
+
 /* iOS Safari zooms focused form controls below 16px. Keep page scale stable while typing. */
 @media (max-width: 760px) {
   input:not([type="checkbox"]):not([type="radio"]),

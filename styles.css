@@ -5665,7 +5665,31 @@ th.amount {
 .savings-account-sub span:last-child { text-align: right; }
 .savings-account-detail { padding: 2px 14px 12px; border-top: 1px solid #edf1f3; }
 .savings-account-detail > div:not(.savings-account-actions) { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 12px; }
+.savings-account-record { display: grid !important; grid-template-columns:minmax(0,1fr) auto 28px; align-items:center; gap:8px !important; border-bottom:1px solid #f0f3f2; }
+.savings-account-record span { overflow:hidden; color:var(--muted); text-overflow:ellipsis; white-space:nowrap; }
 .savings-account-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; }
+.savings-account-actions button { min-height:36px; padding:0 12px; border-radius:10px; font-size:11px; }
+.savings-record-delete { display:grid; width:28px; height:28px; place-items:center; padding:0; border:0; border-radius:50%; background:#fff1ee; color:#b86256; font-size:17px; font-weight:700; line-height:1; cursor:pointer; }
+
+.savings-simple-form { display:grid; gap:14px; }
+.savings-simple-destination { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.savings-simple-form label { display:grid; gap:6px; min-width:0; }
+.savings-simple-form label > span { color:#60716d; font-size:11px; font-weight:850; }
+.savings-simple-form input,.savings-simple-form select { width:100%; min-width:0; height:44px; border:1px solid var(--line); border-radius:13px; background:#fff; color:var(--ink); padding:0 12px; }
+.savings-simple-form input:focus,.savings-simple-form select:focus { border-color:#70a99e; box-shadow:0 0 0 3px rgba(71,137,124,.12); outline:none; }
+.savings-simple-amount > div { position:relative; }
+.savings-simple-amount input { height:58px; padding:0 48px 0 15px; font-size:22px; font-weight:950; }
+.savings-simple-amount b { position:absolute; top:50%; right:15px; transform:translateY(-50%); color:#6d7d79; font-size:13px; }
+.savings-simple-submit { min-height:50px; border-radius:14px; box-shadow:0 7px 18px rgba(49,93,73,.16); }
+.savings-more-options { border-top:1px solid #e8efec; padding-top:10px; }
+.savings-more-options > summary { cursor:pointer; color:#70817c; font-size:12px; font-weight:850; text-align:center; list-style:none; }
+.savings-more-options > summary::-webkit-details-marker { display:none; }
+.savings-more-options > summary::after { content:'  ▾'; }
+.savings-more-options[open] > summary::after { content:'  ▴'; }
+.savings-more-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; padding:14px; border-radius:14px; background:#f6faf8; }
+.savings-initial-field { grid-column:1/-1; }
+.savings-detail-form { grid-column:1/-1; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:8px; }
+.savings-detail-form button { height:44px; }
 
 .savings-action-dialog #savingsForm {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5681,6 +5705,11 @@ th.amount {
   #savingsView .savings-total-card { grid-column: 1 / -1; }
   .home-card-sub { align-items: flex-start; }
   .savings-action-dialog #savingsForm { grid-template-columns: 1fr; }
+  .savings-action-dialog { width:min(520px,calc(100% - 20px)); }
+  .savings-action-dialog .category-dialog-sheet { padding:16px; border-radius:22px 22px 0 0; }
+  .savings-simple-form { gap:12px; }
+  .savings-more-grid { grid-template-columns:1fr; }
+  .savings-initial-field,.savings-detail-form { grid-column:1; }
 }
 
 @media (max-width: 390px) {

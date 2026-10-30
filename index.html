@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261030-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261030-2" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -444,8 +444,8 @@
                 <span id="savingsMonthLabel"></span>
               </div>
               <div class="savings-actions">
-                <button class="primary-button" id="openSavingsDeposit" type="button">＋ 저축 기록</button>
-                <button class="ghost-button" id="openSavingsWithdraw" type="button">인출 기록</button>
+                <button class="primary-button" id="openSavingsDeposit" type="button">＋ 저축 추가</button>
+                <button class="ghost-button" id="openSavingsWithdraw" type="button">꺼내기</button>
               </div>
             </div>
             <div class="savings-overview">
@@ -841,23 +841,30 @@
       <div class="category-dialog-sheet">
         <div class="category-dialog-header">
           <div>
-            <strong>저금하기</strong>
+            <strong>저축 추가</strong>
             <span id="savingsDepositDialogLabel"></span>
           </div>
           <button class="dialog-close-button" id="closeSavingsDepositDialog" type="button" aria-label="닫기">×</button>
         </div>
-        <div class="savings-form" id="savingsForm">
-          <input id="savingsDate" type="date" aria-label="저축 날짜" />
-          <select id="savingsType" aria-label="저축 종류"></select>
-          <select id="savingsDetail" aria-label="저축 세부항목"></select>
-          <input id="savingsAmount" type="number" min="0" step="10000" placeholder="이번 달 저금액" />
-          <input id="savingsMemo" type="text" placeholder="메모" />
-          <button class="primary-button" id="addSavings" type="button">저금 추가</button>
-          <input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 저금액 수정" />
-        </div>
-        <div class="savings-form savings-detail-form" id="savingsDetailForm">
-          <input id="newSavingsDetail" type="text" maxlength="12" placeholder="세부항목 추가 예: 청약, 병원비" />
-          <button class="ghost-button" id="addSavingsDetail" type="button">세부 추가</button>
+        <div class="savings-simple-form" id="savingsForm">
+          <div class="savings-simple-destination">
+            <label><span>저축 종류</span><select id="savingsType" aria-label="저축 종류"></select></label>
+            <label><span>저축할 곳</span><select id="savingsDetail" aria-label="저축 세부항목"></select></label>
+          </div>
+          <label class="savings-simple-amount"><span>얼마를 넣을까요?</span><div><input id="savingsAmount" type="number" min="0" step="10000" inputmode="numeric" placeholder="0" /><b>원</b></div></label>
+          <button class="primary-button savings-simple-submit" id="addSavings" type="button">저축 완료</button>
+          <details class="savings-more-options">
+            <summary>날짜·메모 또는 항목 관리</summary>
+            <div class="savings-more-grid">
+              <label><span>날짜</span><input id="savingsDate" type="date" aria-label="저축 날짜" /></label>
+              <label><span>메모</span><input id="savingsMemo" type="text" placeholder="선택 입력" /></label>
+              <label class="savings-initial-field"><span>기존에 모아둔 금액</span><input id="savingsInitialAmount" type="number" min="0" step="10000" placeholder="기존 금액 수정" /></label>
+              <div class="savings-detail-form" id="savingsDetailForm">
+                <label><span>새 저축 항목</span><input id="newSavingsDetail" type="text" maxlength="12" placeholder="예: 청약, 병원비" /></label>
+                <button class="ghost-button" id="addSavingsDetail" type="button">항목 추가</button>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </dialog>
@@ -880,7 +887,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261030-1"></script>
+    <script defer src="./app.js?v=20261030-2"></script>
     <script defer src="./investments.js?v=20261030-1"></script>
   </body>
 </html>

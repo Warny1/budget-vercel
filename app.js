@@ -2281,13 +2281,18 @@ function renderSavings(data = monthlyData()) {
     <details class="savings-account">
       <summary>
         <span class="savings-account-main"><strong>${escapeHtml(entry.detail)}</strong><b>${won.format(entry.balance)}</b></span>
-        <span class="savings-account-sub"><span>${escapeHtml(entry.type)}</span><span class="${entry.monthTotal < 0 ? "negative" : "positive"}">이번 달 ${formatSignedWon(entry.monthTotal)} · 펼치기</span></span>
+        <span class="savings-account-sub"><span>${escapeHtml(entry.type)}</span><span class="${entry.monthTotal < 0 ? "negative" : "positive"}">이번 달 ${formatSignedWon(entry.monthTotal)} · 기록 관리</span></span>
       </summary>
       <div class="savings-account-detail">
-        ${entry.rows.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((row) => `<div><span>${shortDateLabel(row.date)} · ${escapeHtml(row.memo || (row.amount < 0 ? "인출" : "저축"))}</span><strong class="${row.amount < 0 ? "negative" : "positive"}">${formatSignedWon(row.amount)}</strong></div>`).join("") || '<p class="settings-note">아직 입출금 기록이 없어요.</p>'}
+        ${entry.rows.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((row) => `
+          <div class="savings-account-record">
+            <span>${shortDateLabel(row.date)} · ${escapeHtml(row.memo || (row.amount < 0 ? "인출" : "저축"))}</span>
+            <strong class="${row.amount < 0 ? "negative" : "positive"}">${formatSignedWon(row.amount)}</strong>
+            <button class="savings-record-delete" data-delete-saving="${escapeHtml(row.id)}" type="button" aria-label="${escapeHtml(row.memo || entry.detail)} 기록 삭제">×</button>
+          </div>`).join("") || '<p class="settings-note">아직 입출금 기록이 없어요.</p>'}
         <div class="savings-account-actions">
-          <button class="text-button" data-savings-account-action="deposit" data-savings-account-type="${escapeHtml(entry.type)}" data-savings-account-detail="${escapeHtml(entry.detail)}" type="button">저축 기록</button>
-          <button class="text-button" data-savings-account-action="withdraw" data-savings-account-type="${escapeHtml(entry.type)}" data-savings-account-detail="${escapeHtml(entry.detail)}" type="button">인출 기록</button>
+          <button class="primary-button" data-savings-account-action="deposit" data-savings-account-type="${escapeHtml(entry.type)}" data-savings-account-detail="${escapeHtml(entry.detail)}" type="button">＋ 여기에 저축</button>
+          <button class="ghost-button" data-savings-account-action="withdraw" data-savings-account-type="${escapeHtml(entry.type)}" data-savings-account-detail="${escapeHtml(entry.detail)}" type="button">꺼내기</button>
         </div>
       </div>
     </details>`).join("") : '<p class="empty-card">아직 모아둔 곳이 없어요. 저축 기록을 추가해 주세요.</p>';
@@ -2301,7 +2306,7 @@ function renderSavings(data = monthlyData()) {
         <strong>${formatSignedWon(row.amount)}</strong>
         <small>${escapeHtml(row.type || SAVINGS_TYPES[0])} · ${escapeHtml(row.detail || "기본")}</small>
         <em>${escapeHtml(row.memo || (row.amount < 0 ? "저금 인출" : "저금"))}</em>
-        <button class="delete-button" data-delete-saving="${row.id}" type="button">삭제</button>
+        <button class="savings-record-delete" data-delete-saving="${row.id}" type="button" aria-label="저축 기록 삭제">×</button>
       </div>
     `).join("") : `<p class="empty-card">${escapeHtml(monthLabel(data.month))} 입출금 기록이 없어요.</p>`;
   activateSavingsView(activeSavingsView);

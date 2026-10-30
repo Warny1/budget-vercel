@@ -83,6 +83,7 @@ const sampleState = {
     savingsHiddenDefaultTypes: [],
     recurringRules: [],
     recurringSkips: [],
+    investmentPositions: [],
     allowanceLimits: DEFAULT_ALLOWANCE_LIMITS,
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
@@ -780,6 +781,24 @@ function normalizeState(source) {
     };
   }).filter((rule) => rule.amount > 0);
   next.settings.recurringSkips = [...new Set(next.settings.recurringSkips || [])].map(String);
+  const supportedInvestmentExchanges = ["KRX", "KOSDAQ", "NASDAQ", "NYSE", "NYSEARCA"];
+  next.settings.investmentPositions = (next.settings.investmentPositions || []).map((position) => {
+    const exchange = supportedInvestmentExchanges.includes(position.exchange) ? position.exchange : "KRX";
+    const currency = ["KRX", "KOSDAQ"].includes(exchange) ? "KRW" : "USD";
+    return {
+      id: position.id || newId("investment"),
+      exchange,
+      symbol: String(position.symbol || "").trim().toUpperCase(),
+      name: String(position.name || "").trim().slice(0, 24),
+      currency,
+      investedAmount: Math.max(Number(position.investedAmount || 0), 0),
+      averagePrice: Math.max(Number(position.averagePrice || 0), 0),
+      lastPrice: Number(position.lastPrice) > 0 ? Number(position.lastPrice) : null,
+      changePercent: Number.isFinite(Number(position.changePercent)) ? Number(position.changePercent) : null,
+      quoteDate: String(position.quoteDate || ""),
+      quotedAt: String(position.quotedAt || ""),
+    };
+  }).filter((position) => position.symbol && position.investedAmount > 0 && position.averagePrice > 0);
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국제(수)"];
@@ -2796,6 +2815,7 @@ function renderAll() {
   renderAnalysis();
   renderBudget();
   renderSettings();
+  if (typeof renderManualInvestments === "function") renderManualInvestments();
 }
 
 function setExpenseEditMode(active) {
@@ -3363,6 +3383,14 @@ function renderMonthStepper() {
   label.textContent = `${year}년 ${monthNo}월`;
 }
 
+function goToCurrentMonth() {
+  const monthPicker = $("#monthPicker");
+  if (!monthPicker) return;
+  monthPicker.value = currentMonthKey();
+  setDefaultDates();
+  renderAll();
+}
+
 function shiftCurrentMonth(offset) {
   const [year, month] = currentMonth().split("-").map(Number);
   const next = new Date(year, month - 1 + Number(offset || 0), 1);
@@ -3859,6 +3887,7 @@ on("#monthPicker", "change", () => {
   setDefaultDates();
   renderAll();
 });
+on("#monthStepperLabel", "click", goToCurrentMonth);
 on("#savingsType", "change", (event) => {
   activeSavingsType = SAVINGS_TYPES.includes(event.target.value) ? event.target.value : SAVINGS_TYPES[0];
   activeSavingsDetail = savingsDetailsForType(activeSavingsType)[0] || "전체";

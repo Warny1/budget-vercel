@@ -1,6 +1,8 @@
 const ALLOWED_EXCHANGES = new Set(["KRX", "KOSDAQ", "NASDAQ", "NYSE", "NYSEARCA"]);
 const quoteCache = new Map();
 const pendingQuotes = new Map();
+let fxCache = null;
+let pendingFx = null;
 const CACHE_MS = 20 * 60 * 60 * 1000;
 
 function quoteKey(symbol, exchange) { return `${symbol}:${exchange}`; }
@@ -15,6 +17,13 @@ function parseGoogleFinanceQuote(html, symbol, exchange, now = new Date()) {
   const price = Number(match[3]);
   if (!(price > 0)) throw new Error("현재가를 확인할 수 없습니다.");
   return { symbol, exchange, name: decodeGoogleText(match[1]), currency: match[2], price, change: Number(match[4]), changePercent: Number(match[5]), quotedAt: now.toISOString() };
+}
+
+function parseUsdKrwRate(html, now = new Date()) {
+  const match = html.match(/"USD \/ KRW",3,null,\[(-?\d+(?:\.\d+)?)/);
+  const usdKrw = Number(match?.[1]);
+  if (!(usdKrw > 0)) throw new Error("원/달러 환율을 확인할 수 없습니다.");
+  return { usdKrw, quotedAt: now.toISOString() };
 }
 
 function parseRequestedSymbols(value) {
@@ -48,6 +57,23 @@ async function fetchQuote(symbol, exchange, { fetchImpl = fetch, now = new Date(
   return request;
 }
 
+async function fetchUsdKrw({ fetchImpl = fetch, now = new Date() } = {}) {
+  if (fxCache && now.getTime() - fxCache.savedAt < CACHE_MS) return fxCache.rate;
+  if (pendingFx) return pendingFx;
+  pendingFx = (async () => {
+    const response = await fetchImpl("https://www.google.com/finance/quote/USD-KRW?hl=ko", {
+      headers: { Accept: "text/html,application/xhtml+xml", "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.7", "User-Agent": "Mozilla/5.0 (compatible; WonsuLedger/1.0; +https://saitama-bigmac.vercel.app)" },
+      redirect: "error",
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!response.ok) throw new Error(`환율 제공처 응답 오류 (${response.status})`);
+    const rate = parseUsdKrwRate(await response.text(), now);
+    fxCache = { savedAt: now.getTime(), rate };
+    return rate;
+  })().finally(() => { pendingFx = null; });
+  return pendingFx;
+}
+
 function createHandler({ fetchImpl = fetch, now = () => new Date() } = {}) {
   return async function handler(req, res) {
     res.setHeader("Cache-Control", "public, s-maxage=21600, stale-while-revalidate=86400");
@@ -56,18 +82,19 @@ function createHandler({ fetchImpl = fetch, now = () => new Date() } = {}) {
     let requested;
     try { requested = parseRequestedSymbols(req.query?.symbols); }
     catch (error) { return res.status(400).json({ error: error.message }); }
-    const results = await Promise.all(requested.map(async ({ symbol, exchange }) => {
+    const [results, fxResult] = await Promise.all([Promise.all(requested.map(async ({ symbol, exchange }) => {
       try { return { quote: await fetchQuote(symbol, exchange, { fetchImpl, now: now() }) }; }
       catch (error) { return { error: { symbol, exchange, message: error.message } }; }
-    }));
+    })), fetchUsdKrw({ fetchImpl, now: now() }).then((fx) => ({ fx })).catch((error) => ({ fxError: error.message }))]);
     const quotes = results.flatMap((result) => result.quote ? [result.quote] : []);
     const errors = results.flatMap((result) => result.error ? [result.error] : []);
     if (!quotes.length) return res.status(502).json({ error: "주식 시세를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.", errors });
-    return res.status(200).json({ quotes, errors });
+    return res.status(200).json({ quotes, errors, fx: fxResult.fx || null, fxError: fxResult.fxError || null });
   };
 }
 
 module.exports = createHandler();
 module.exports.createHandler = createHandler;
 module.exports.parseGoogleFinanceQuote = parseGoogleFinanceQuote;
+module.exports.parseUsdKrwRate = parseUsdKrwRate;
 module.exports.parseRequestedSymbols = parseRequestedSymbols;

@@ -3,6 +3,7 @@ let tossSessionKey = null;
 let tossRequest = null;
 let stockQuoteRequest = null;
 let editingInvestmentId = "";
+let activeInvestmentOwner = "all";
 
 const DOMESTIC_INVESTMENT_EXCHANGES = ["KRX", "KOSDAQ"];
 
@@ -52,6 +53,24 @@ function investmentPositions() {
   return state.settings.investmentPositions || [];
 }
 
+function visibleInvestmentPositions() {
+  return activeInvestmentOwner === "all"
+    ? investmentPositions()
+    : investmentPositions().filter((position) => position.owner === activeInvestmentOwner);
+}
+
+function investmentExchangeRate() {
+  const rate = Number(state.settings.investmentExchangeRate?.usdKrw);
+  return rate > 0 ? rate : null;
+}
+
+function convertedInvestmentMoney(amount, currency) {
+  if (!Number.isFinite(Number(amount))) return null;
+  if (currency === "KRW") return Number(amount);
+  const rate = investmentExchangeRate();
+  return rate ? Number(amount) * rate : null;
+}
+
 function positionMetrics(position) {
   const quantity = position.investedAmount / position.averagePrice;
   const value = position.lastPrice ? quantity * position.lastPrice : null;
@@ -69,8 +88,10 @@ function renderManualInvestmentTotals() {
   const totals = document.querySelector("#manualInvestmentTotals");
   if (!totals) return;
   totals.replaceChildren();
+  const positions = visibleInvestmentPositions();
+  if (!positions.length) return;
   const groups = new Map();
-  investmentPositions().forEach((position) => {
+  positions.forEach((position) => {
     const metrics = positionMetrics(position);
     const group = groups.get(position.currency) || { invested: 0, value: 0, quoted: 0 };
     group.invested += position.investedAmount;
@@ -80,6 +101,44 @@ function renderManualInvestmentTotals() {
     }
     groups.set(position.currency, group);
   });
+  let krwInvested = 0;
+  let krwValue = 0;
+  let investedConvertibleCount = 0;
+  let valueConvertibleCount = 0;
+  let quotedCount = 0;
+  positions.forEach((position) => {
+    const metrics = positionMetrics(position);
+    const invested = convertedInvestmentMoney(position.investedAmount, position.currency);
+    const value = convertedInvestmentMoney(metrics.value, position.currency);
+    if (invested !== null) { krwInvested += invested; investedConvertibleCount += 1; }
+    if (value !== null) { krwValue += value; valueConvertibleCount += 1; }
+    if (metrics.value !== null) quotedCount += 1;
+  });
+  const summary = document.createElement("section");
+  summary.className = "investment-total investment-krw-summary";
+  const summaryHeading = document.createElement("h4");
+  summaryHeading.textContent = `${activeInvestmentOwner === "all" ? "전체" : activeInvestmentOwner} 원화 환산`;
+  summary.append(summaryHeading);
+  const summaryRows = [
+    ["투자금", investedConvertibleCount === positions.length ? investmentMoney(krwInvested) : "환율 확인 전"],
+    ["현재 자산", valueConvertibleCount === positions.length && quotedCount === positions.length ? investmentMoney(krwValue) : "시세 확인 전"],
+    ["평가손익", investedConvertibleCount === positions.length && valueConvertibleCount === positions.length && quotedCount === positions.length ? `${investmentMoney(krwValue - krwInvested)} · ${investmentPercent(krwInvested ? ((krwValue - krwInvested) / krwInvested) * 100 : null)}` : "—"],
+  ];
+  summaryRows.forEach(([label, value], index) => {
+    const row = document.createElement("div");
+    const name = document.createElement("span");
+    const amount = document.createElement("strong");
+    name.textContent = label;
+    amount.textContent = value;
+    if (index === 2 && investedConvertibleCount === positions.length && valueConvertibleCount === positions.length) amount.className = profitClass(krwValue - krwInvested);
+    row.append(name, amount);
+    summary.append(row);
+  });
+  const fx = document.createElement("small");
+  const rate = investmentExchangeRate();
+  fx.textContent = rate ? `미국 주식은 1달러 = ${rate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}원 적용` : "미국 주식 환율은 시세 새로고침 시 반영돼요";
+  summary.append(fx);
+  totals.append(summary);
   groups.forEach((group, currency) => {
     const profit = group.quoted ? group.value - group.invested : null;
     const rate = profit === null || !group.invested ? null : (profit / group.invested) * 100;
@@ -88,13 +147,15 @@ function renderManualInvestmentTotals() {
     const heading = document.createElement("h4");
     heading.textContent = currency === "KRW" ? "국내 주식" : "미국 주식";
     card.append(heading);
-    [["투자금", investmentMoney(group.invested, currency)], ["현재 자산", group.quoted ? investmentMoney(group.value, currency) : "시세 확인 전"], ["평가손익", profit === null ? "—" : `${investmentMoney(profit, currency)} · ${investmentPercent(rate)}`]].forEach(([label, value], index) => {
+    const rows = [["투자금", investmentMoney(group.invested, currency)], ["현재 자산", group.quoted ? investmentMoney(group.value, currency) : "시세 확인 전"], ["평가손익", profit === null ? "—" : `${investmentMoney(profit, currency)} · ${investmentPercent(rate)}`]];
+    if (currency === "USD") rows.splice(2, 0, ["원화 환산", group.quoted && investmentExchangeRate() ? investmentMoney(group.value * investmentExchangeRate()) : "환율 확인 전"]);
+    rows.forEach(([label, value], index) => {
       const row = document.createElement("div");
       const name = document.createElement("span");
       const amount = document.createElement("strong");
       name.textContent = label;
       amount.textContent = value;
-      if (index === 2) amount.className = profitClass(profit);
+      if (label === "평가손익") amount.className = profitClass(profit);
       row.append(name, amount);
       card.append(row);
     });
@@ -106,14 +167,15 @@ function renderManualInvestmentHoldings() {
   const list = document.querySelector("#manualInvestmentHoldings");
   if (!list) return;
   list.replaceChildren();
-  if (!investmentPositions().length) {
+  const positions = visibleInvestmentPositions();
+  if (!positions.length) {
     const empty = document.createElement("div");
     empty.className = "manual-investment-empty";
-    empty.innerHTML = "<strong>등록된 주식이 없어요</strong><span>종목코드와 투자금, 평균 매수가를 입력해보세요.</span>";
+    empty.innerHTML = `<strong>${activeInvestmentOwner === "all" ? "등록된 주식이 없어요" : `${activeInvestmentOwner} 주식이 없어요`}</strong><span>종목코드와 투자금, 평균 매수가를 입력해보세요.</span>`;
     list.append(empty);
     return;
   }
-  investmentPositions().forEach((position) => {
+  positions.forEach((position) => {
     const metrics = positionMetrics(position);
     const card = document.createElement("article");
     card.className = "investment-position-card";
@@ -125,7 +187,10 @@ function renderManualInvestmentHoldings() {
     const market = document.createElement("span");
     market.className = "investment-market-badge";
     market.textContent = `${position.symbol} · ${position.exchange}`;
-    title.append(name, market);
+    const owner = document.createElement("span");
+    owner.className = `investment-owner-badge${position.owner === "미지정" ? " unassigned" : ""}`;
+    owner.textContent = position.owner;
+    title.append(name, owner, market);
     const meta = document.createElement("span");
     meta.className = "investment-position-meta";
     meta.textContent = `${metrics.quantity.toLocaleString("ko-KR", { maximumFractionDigits: 6 })}주 · 평균 ${investmentMoney(position.averagePrice, position.currency)} · 현재 ${investmentMoney(position.lastPrice, position.currency)}`;
@@ -136,7 +201,14 @@ function renderManualInvestmentHoldings() {
     current.textContent = metrics.value === null ? "시세 확인 전" : investmentMoney(metrics.value, position.currency);
     const change = document.createElement("span");
     change.textContent = metrics.profit === null ? "—" : `${investmentMoney(metrics.profit, position.currency)} · ${investmentPercent(metrics.rate)}`;
-    value.append(current, change);
+    value.append(current);
+    if (position.currency === "USD" && metrics.value !== null) {
+      const converted = document.createElement("small");
+      const krwValue = convertedInvestmentMoney(metrics.value, position.currency);
+      converted.textContent = krwValue === null ? "원화 환율 확인 전" : `약 ${investmentMoney(krwValue)}`;
+      value.append(converted);
+    }
+    value.append(change);
     const actions = document.createElement("div");
     actions.className = "investment-position-actions";
     const edit = document.createElement("button");
@@ -155,6 +227,15 @@ function renderManualInvestmentHoldings() {
 }
 
 function renderManualInvestments() {
+  const hasUnassigned = investmentPositions().some((position) => position.owner === "미지정");
+  const unassignedTab = document.querySelector('[data-investment-owner="미지정"]');
+  unassignedTab?.classList.toggle("hidden", !hasUnassigned);
+  if (activeInvestmentOwner === "미지정" && !hasUnassigned) activeInvestmentOwner = "all";
+  document.querySelectorAll("[data-investment-owner]").forEach((button) => {
+    const active = button.dataset.investmentOwner === activeInvestmentOwner;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
   renderManualInvestmentTotals();
   renderManualInvestmentHoldings();
   const exchange = document.querySelector("#newInvestmentExchange")?.value || "KRX";
@@ -182,7 +263,9 @@ async function refreshStockQuotes(force = false) {
     return;
   }
   const quoteDate = investmentQuoteDate();
-  const targets = force ? positions : positions.filter((position) => position.quoteDate !== quoteDate || !position.lastPrice);
+  const needsFx = positions.some((position) => position.currency === "USD") && state.settings.investmentExchangeRate?.quoteDate !== quoteDate;
+  let targets = force ? positions : positions.filter((position) => position.quoteDate !== quoteDate || !position.lastPrice);
+  if (!targets.length && needsFx) targets = [positions.find((position) => position.currency === "USD")];
   if (!targets.length) {
     const latest = positions.map((position) => position.quotedAt).filter(Boolean).sort().at(-1);
     if (status) status.textContent = `오늘 시세 반영 완료${latest ? ` · ${new Date(latest).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" })}` : ""}`;
@@ -204,10 +287,13 @@ async function refreshStockQuotes(force = false) {
         if (!quote) return position;
         return { ...position, name: position.name || quote.name, currency: quote.currency, lastPrice: quote.price, changePercent: quote.changePercent, quoteDate, quotedAt: quote.quotedAt };
       });
+      if (Number(data.fx?.usdKrw) > 0) {
+        state.settings.investmentExchangeRate = { usdKrw: Number(data.fx.usdKrw), quoteDate, quotedAt: data.fx.quotedAt || new Date().toISOString() };
+      }
       saveState();
       renderManualInvestments();
       const failed = data.errors?.length || 0;
-      if (status) status.textContent = `${data.quotes.length}개 종목 오늘 시세 반영${failed ? ` · ${failed}개 확인 실패` : ""} · ${new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" })}`;
+      if (status) status.textContent = `${data.quotes.length}개 종목 오늘 시세 반영${data.fx?.usdKrw ? " · 원/달러 환율 반영" : ""}${failed ? ` · ${failed}개 확인 실패` : ""} · ${new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" })}`;
     } catch (error) {
       if (status) status.textContent = `${error.message} 이전 시세가 있으면 그대로 표시해요.`;
     } finally {
@@ -221,6 +307,7 @@ async function refreshStockQuotes(force = false) {
 function saveInvestmentPosition(event) {
   event.preventDefault();
   const exchange = document.querySelector("#newInvestmentExchange").value;
+  const owner = document.querySelector("#newInvestmentOwner").value;
   const symbol = document.querySelector("#newInvestmentSymbol").value.trim().toUpperCase();
   const name = document.querySelector("#newInvestmentName").value.trim();
   const investedAmount = Number(document.querySelector("#newInvestmentAmount").value || 0);
@@ -235,7 +322,7 @@ function saveInvestmentPosition(event) {
   const existing = investmentPositions().find((position) => position.id === editingInvestmentId);
   const sameQuote = existing?.symbol === symbol && existing?.exchange === exchange;
   const next = {
-    id: existing?.id || newId("investment"), exchange, symbol, name,
+    id: existing?.id || newId("investment"), owner, exchange, symbol, name,
     currency: domestic ? "KRW" : "USD", investedAmount, averagePrice,
     lastPrice: sameQuote ? existing.lastPrice : null,
     changePercent: sameQuote ? existing.changePercent : null,
@@ -254,6 +341,7 @@ function startInvestmentEdit(id) {
   const position = investmentPositions().find((item) => item.id === id);
   if (!position) return;
   editingInvestmentId = id;
+  document.querySelector("#newInvestmentOwner").value = position.owner === "수연" ? "수연" : "원";
   document.querySelector("#newInvestmentExchange").value = position.exchange;
   document.querySelector("#newInvestmentSymbol").value = position.symbol;
   document.querySelector("#newInvestmentName").value = position.name;
@@ -328,6 +416,12 @@ function renderTossSnapshot(snapshot) {
   document.querySelector("#cancelInvestmentEdit").addEventListener("click", resetInvestmentForm);
   document.querySelector("#newInvestmentExchange").addEventListener("change", renderManualInvestments);
   document.querySelector("#refreshStockQuotes").addEventListener("click", () => refreshStockQuotes(true));
+  document.querySelector("#investmentOwnerTabs").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-investment-owner]");
+    if (!button) return;
+    activeInvestmentOwner = button.dataset.investmentOwner;
+    renderManualInvestments();
+  });
   document.querySelector("#manualInvestmentHoldings").addEventListener("click", (event) => {
     const editId = event.target.closest("[data-edit-investment]")?.dataset.editInvestment;
     const deleteId = event.target.closest("[data-delete-investment]")?.dataset.deleteInvestment;

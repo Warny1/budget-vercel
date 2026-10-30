@@ -84,6 +84,7 @@ const sampleState = {
     recurringRules: [],
     recurringSkips: [],
     investmentPositions: [],
+    investmentExchangeRate: null,
     allowanceLimits: DEFAULT_ALLOWANCE_LIMITS,
     cardTargets: DEFAULT_CARD_TARGETS,
     paymentItems: [
@@ -782,11 +783,13 @@ function normalizeState(source) {
   }).filter((rule) => rule.amount > 0);
   next.settings.recurringSkips = [...new Set(next.settings.recurringSkips || [])].map(String);
   const supportedInvestmentExchanges = ["KRX", "KOSDAQ", "NASDAQ", "NYSE", "NYSEARCA"];
+  const supportedInvestmentOwners = ["원", "수연"];
   next.settings.investmentPositions = (next.settings.investmentPositions || []).map((position) => {
     const exchange = supportedInvestmentExchanges.includes(position.exchange) ? position.exchange : "KRX";
     const currency = ["KRX", "KOSDAQ"].includes(exchange) ? "KRW" : "USD";
     return {
       id: position.id || newId("investment"),
+      owner: supportedInvestmentOwners.includes(position.owner) ? position.owner : "미지정",
       exchange,
       symbol: String(position.symbol || "").trim().toUpperCase(),
       name: String(position.name || "").trim().slice(0, 24),
@@ -799,6 +802,12 @@ function normalizeState(source) {
       quotedAt: String(position.quotedAt || ""),
     };
   }).filter((position) => position.symbol && position.investedAmount > 0 && position.averagePrice > 0);
+  const exchangeRate = next.settings.investmentExchangeRate || {};
+  next.settings.investmentExchangeRate = Number(exchangeRate.usdKrw) > 0 ? {
+    usdKrw: Number(exchangeRate.usdKrw),
+    quoteDate: String(exchangeRate.quoteDate || ""),
+    quotedAt: String(exchangeRate.quotedAt || ""),
+  } : null;
   next.settings.cardTargets = { ...DEFAULT_CARD_TARGETS, ...(next.settings.cardTargets || {}) };
   if (next.settings.cardTargets["국제(수)"] !== undefined) {
     next.settings.cardTargets["국민(수)"] = next.settings.cardTargets["국제(수)"];

@@ -1,9 +1,10 @@
 const assert = require("node:assert/strict");
-const { createHandler, parseGoogleFinanceQuote, parseRequestedSymbols } = require("../api/stock-quotes.js");
+const { createHandler, parseGoogleFinanceQuote, parseRequestedSymbols, parseUsdKrwRate } = require("../api/stock-quotes.js");
 
-const fixture = `AF_initDataCallback({key: 'ds:2', data:[[[["/m/example",["AAPL","NASDAQ"],"애플",0,"USD",[348.78,-0.13,-0.037,2,2,3],null,348.91]]]]});`;
+const fixture = `AF_initDataCallback({key: 'ds:2', data:[[[["/m/example",["AAPL","NASDAQ"],"애플",0,"USD",[348.78,-0.13,-0.037,2,2,3],null,348.91]]]]}); ["/g/example",null,"USD / KRW",3,null,[1432.55,0,0]]`;
 const quote = parseGoogleFinanceQuote(fixture, "AAPL", "NASDAQ", new Date("2026-10-30T01:00:00.000Z"));
 assert.deepEqual({ name: quote.name, currency: quote.currency, price: quote.price }, { name: "애플", currency: "USD", price: 348.78 });
+assert.equal(parseUsdKrwRate(fixture).usdKrw, 1432.55);
 assert.deepEqual(parseRequestedSymbols("005930:KRX,AAPL:NASDAQ"), [{ symbol: "005930", exchange: "KRX" }, { symbol: "AAPL", exchange: "NASDAQ" }]);
 assert.throws(() => parseRequestedSymbols("https://evil.example:KRX"));
 
@@ -18,6 +19,7 @@ function responseRecorder() {
   await handler({ method: "GET", query: { symbols: "AAPL:NASDAQ" } }, res);
   assert.equal(res.result.code, 200);
   assert.equal(res.result.body.quotes[0].price, 348.78);
+  assert.equal(res.result.body.fx.usdKrw, 1432.55);
   assert.match(res.result.headers["Cache-Control"], /s-maxage/);
-  console.log("Passed: stock quote parsing, symbol validation, handler response and cache headers.");
+  console.log("Passed: stock and FX parsing, symbol validation, handler response and cache headers.");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

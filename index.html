@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261030-2" />
+    <link rel="stylesheet" href="./styles.css?v=20261031-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -413,8 +413,15 @@
               <button class="ghost-button" id="refreshStockQuotes" type="button">오늘 시세 새로고침</button>
             </div>
             <p id="stockQuoteStatus" class="investment-status" role="status">종목을 등록하면 하루 한 번 시세를 확인해요.</p>
+            <div class="investment-owner-tabs" id="investmentOwnerTabs" role="tablist" aria-label="주식 소유자">
+              <button class="active" data-investment-owner="all" type="button" role="tab" aria-selected="true">전체</button>
+              <button data-investment-owner="원" type="button" role="tab" aria-selected="false">원</button>
+              <button data-investment-owner="수연" type="button" role="tab" aria-selected="false">수연</button>
+              <button class="hidden" data-investment-owner="미지정" type="button" role="tab" aria-selected="false">미지정</button>
+            </div>
             <form class="investment-entry-form" id="investmentEntryForm">
               <div class="investment-form-heading"><strong>보유 종목 등록</strong><span>투자금과 평균 매수가로 현재 자산을 계산해요</span></div>
+              <label><span>소유자</span><select id="newInvestmentOwner"><option value="원">원</option><option value="수연">수연</option></select></label>
               <label><span>거래소</span><select id="newInvestmentExchange"><option value="KRX">국내 · 코스피</option><option value="KOSDAQ">국내 · 코스닥</option><option value="NASDAQ">미국 · 나스닥</option><option value="NYSE">미국 · 뉴욕증권</option><option value="NYSEARCA">미국 · ETF</option></select></label>
               <label><span>종목코드</span><input id="newInvestmentSymbol" type="text" maxlength="12" autocapitalize="characters" placeholder="예: 005930 / AAPL" /></label>
               <label><span>표시 이름</span><input id="newInvestmentName" type="text" maxlength="24" placeholder="선택 · 예: 삼성전자" /></label>
@@ -887,7 +894,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261030-2"></script>
-    <script defer src="./investments.js?v=20261030-1"></script>
+    <script defer src="./app.js?v=20261031-1"></script>
+    <script defer src="./investments.js?v=20261031-1"></script>
   </body>
 </html>

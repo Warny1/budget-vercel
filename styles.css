@@ -5423,6 +5423,9 @@ th.amount {
 .investment-panel-title > div { display:grid; gap:3px; }
 .investment-panel-title h3 { margin:0; }
 .investment-status { margin:4px 0 14px; color:#526963; font-size:13px; }
+.investment-owner-tabs { display:flex; width:max-content; max-width:100%; gap:4px; margin:0 0 14px; padding:4px; border:1px solid #dce9e5; border-radius:14px; background:#f4f8f7; }
+.investment-owner-tabs button { min-width:58px; min-height:34px; padding:0 13px; border:0; border-radius:10px; background:transparent; color:#687a75; font-size:12px; font-weight:850; }
+.investment-owner-tabs button.active { background:#fff; color:#315f54; box-shadow:0 2px 8px rgba(44,85,76,.1); }
 .investment-entry-form { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:18px; border:1px solid #dce9e5; border-radius:18px; background:linear-gradient(145deg,#fbfefd,#f3f9f7); }
 .investment-form-heading { grid-column:1/-1; display:flex; align-items:baseline; gap:9px; }
 .investment-form-heading strong { font-size:15px; }
@@ -5436,6 +5439,9 @@ th.amount {
 .investment-note { margin:10px 2px 0; }
 .investment-totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; margin:18px 0; }
 .investment-total { padding:18px; background:linear-gradient(145deg,#eef8f5,#e7f1fb); border-radius:16px; }
+.investment-krw-summary { border:1px solid #cfe5dc; background:linear-gradient(145deg,#e4f5ed,#eef7ff); }
+.investment-krw-summary h4 { color:#285e50; }
+.investment-krw-summary small { display:block; margin-top:9px; color:#688079; font-size:10px; }
 .investment-total h4 { margin:0 0 12px; }
 .investment-total > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:5px 0; }
 .investment-total .positive,.investment-position-value.positive { color:#287b64; }
@@ -5451,10 +5457,13 @@ th.amount {
 .investment-position-title { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
 .investment-position-title strong { font-size:15px; }
 .investment-market-badge { padding:3px 7px; border-radius:999px; background:#e7f2ee; color:#397267; font-size:10px; font-weight:900; }
+.investment-owner-badge { padding:3px 7px; border-radius:999px; background:#fff0d9; color:#8b6425; font-size:10px; font-weight:900; }
+.investment-owner-badge.unassigned { background:#f1f1f1; color:#777; }
 .investment-position-meta { display:block; margin-top:6px; color:var(--muted); font-size:11px; }
 .investment-position-value { display:grid; justify-items:end; align-content:start; gap:3px; }
 .investment-position-value strong { font-size:16px; }
 .investment-position-value span { font-size:11px; font-weight:800; }
+.investment-position-value small { color:#55746b; font-size:11px; font-weight:850; }
 .investment-position-actions { grid-column:1/-1; display:flex; justify-content:flex-end; gap:6px; }
 .investment-position-actions button { min-height:30px; padding:0 10px; border:1px solid var(--line); border-radius:9px; background:#fff; color:#60716d; font-size:11px; font-weight:800; }
 .investment-position-actions .delete { color:#a65d54; }
@@ -5469,7 +5478,7 @@ th.amount {
   .investment-panel-title #refreshStockQuotes { min-height:36px; padding:0 10px; font-size:11px; }
   .investment-entry-form { grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px 9px; padding:15px 13px; }
   .investment-form-heading { display:grid; gap:2px; }
-  .investment-entry-form label:nth-of-type(2),.investment-entry-form label:nth-of-type(3),.investment-entry-form #saveInvestmentPosition,.investment-entry-form #cancelInvestmentEdit { grid-column:1/-1; }
+  .investment-entry-form label:nth-of-type(3),.investment-entry-form label:nth-of-type(4),.investment-entry-form #saveInvestmentPosition,.investment-entry-form #cancelInvestmentEdit { grid-column:1/-1; }
   .investment-position-card { padding:14px 13px; }
 }
 @media(max-width:380px){.investment-totals{grid-template-columns:1fr}.investment-holding{grid-template-columns:minmax(0,1fr)}.investment-holding > :nth-child(even){text-align:left}.investment-position-card{grid-template-columns:minmax(0,1fr)}.investment-position-value{justify-items:start}.investment-position-actions{grid-column:1}}

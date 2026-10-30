@@ -2268,6 +2268,8 @@ function renderSavings(data = monthlyData()) {
   const monthDeposit = sum(monthRows.filter((row) => Number(row.amount) > 0));
   const monthWithdrawal = Math.abs(sum(monthRows.filter((row) => Number(row.amount) < 0)));
   $("#savingsBalance").textContent = won.format(data.savingsBalance);
+  const savingsTabAmount = $("#assetSavingsTabAmount");
+  if (savingsTabAmount) savingsTabAmount.textContent = won.format(data.savingsBalance);
   $("#savingsBalanceCaption").textContent = `${monthLabel(data.month)}까지 기록한 저축 잔액`;
   $("#savingsMonthDeposit").textContent = won.format(monthDeposit);
   $("#savingsMonthWithdrawal").textContent = won.format(monthWithdrawal);

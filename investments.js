@@ -71,6 +71,25 @@ function convertedInvestmentMoney(amount, currency) {
   return rate ? Number(amount) * rate : null;
 }
 
+function renderInvestmentTabAmount() {
+  const amount = document.querySelector("#assetInvestmentTabAmount");
+  if (!amount) return;
+  const positions = investmentPositions();
+  if (!positions.length) {
+    amount.textContent = investmentMoney(0);
+    amount.title = "현재 주식 자산";
+    return;
+  }
+  const values = positions.map((position) => convertedInvestmentMoney(positionMetrics(position).value, position.currency));
+  if (values.every((value) => value !== null)) {
+    amount.textContent = investmentMoney(values.reduce((sum, value) => sum + value, 0));
+    amount.title = "현재 주식 자산 · 원화 환산";
+    return;
+  }
+  amount.textContent = "시세 확인 전";
+  amount.title = "투자 탭에서 오늘 시세를 확인해 주세요";
+}
+
 function positionMetrics(position) {
   const quantity = position.investedAmount / position.averagePrice;
   const value = position.lastPrice ? quantity * position.lastPrice : null;
@@ -236,6 +255,7 @@ function renderManualInvestments() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
+  renderInvestmentTabAmount();
   renderManualInvestmentTotals();
   renderManualInvestmentHoldings();
   const exchange = document.querySelector("#newInvestmentExchange")?.value || "KRX";
@@ -252,6 +272,8 @@ function resetInvestmentForm() {
   const saveButton = document.querySelector("#saveInvestmentPosition");
   if (saveButton) saveButton.textContent = "종목 저장";
   document.querySelector("#cancelInvestmentEdit")?.classList.add("hidden");
+  const details = document.querySelector("#investmentEntryDetails");
+  if (details) details.open = false;
   renderManualInvestments();
 }
 
@@ -349,6 +371,8 @@ function startInvestmentEdit(id) {
   document.querySelector("#newInvestmentAveragePrice").value = position.averagePrice;
   document.querySelector("#saveInvestmentPosition").textContent = "수정 저장";
   document.querySelector("#cancelInvestmentEdit").classList.remove("hidden");
+  const details = document.querySelector("#investmentEntryDetails");
+  if (details) details.open = true;
   renderManualInvestments();
   document.querySelector("#investmentEntryForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }

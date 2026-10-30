@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261031-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261031-2" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -404,8 +404,8 @@
             </div>
           </div>
           <div class="asset-view-tabs" aria-label="자산 구분">
-            <button class="primary-button" id="assetSavingsTab" type="button" aria-pressed="true">저축·청약</button>
-            <button class="ghost-button" id="assetInvestmentTab" type="button" aria-pressed="false">투자</button>
+            <button class="primary-button" id="assetSavingsTab" type="button" aria-pressed="true"><span>저축·청약</span><strong id="assetSavingsTabAmount">₩0</strong></button>
+            <button class="ghost-button" id="assetInvestmentTab" type="button" aria-pressed="false"><span>투자</span><strong id="assetInvestmentTabAmount">₩0</strong></button>
           </div>
           <section class="panel hidden" id="investmentPanel">
             <div class="panel-title investment-panel-title">
@@ -419,17 +419,20 @@
               <button data-investment-owner="수연" type="button" role="tab" aria-selected="false">수연</button>
               <button class="hidden" data-investment-owner="미지정" type="button" role="tab" aria-selected="false">미지정</button>
             </div>
-            <form class="investment-entry-form" id="investmentEntryForm">
-              <div class="investment-form-heading"><strong>보유 종목 등록</strong><span>투자금과 평균 매수가로 현재 자산을 계산해요</span></div>
-              <label><span>소유자</span><select id="newInvestmentOwner"><option value="원">원</option><option value="수연">수연</option></select></label>
-              <label><span>거래소</span><select id="newInvestmentExchange"><option value="KRX">국내 · 코스피</option><option value="KOSDAQ">국내 · 코스닥</option><option value="NASDAQ">미국 · 나스닥</option><option value="NYSE">미국 · 뉴욕증권</option><option value="NYSEARCA">미국 · ETF</option></select></label>
-              <label><span>종목코드</span><input id="newInvestmentSymbol" type="text" maxlength="12" autocapitalize="characters" placeholder="예: 005930 / AAPL" /></label>
-              <label><span>표시 이름</span><input id="newInvestmentName" type="text" maxlength="24" placeholder="선택 · 예: 삼성전자" /></label>
-              <label><span>총 투자금 <small id="investmentCurrencyHint">원</small></span><input id="newInvestmentAmount" type="number" min="0" step="0.01" placeholder="처음 넣은 총 금액" /></label>
-              <label><span>평균 매수가 <small id="investmentPriceCurrencyHint">원</small></span><input id="newInvestmentAveragePrice" type="number" min="0" step="0.01" placeholder="주당 평균 매수가" /></label>
-              <button class="primary-button" id="saveInvestmentPosition" type="submit">종목 저장</button>
-              <button class="ghost-button hidden" id="cancelInvestmentEdit" type="button">수정 취소</button>
-            </form>
+            <details class="investment-entry-details" id="investmentEntryDetails">
+              <summary><strong>＋ 보유 종목 등록</strong><span>눌러서 국내·미국 주식을 추가해요</span></summary>
+              <form class="investment-entry-form" id="investmentEntryForm">
+                <div class="investment-form-heading"><strong>보유 종목 등록</strong><span>투자금과 평균 매수가로 현재 자산을 계산해요</span></div>
+                <label><span>소유자</span><select id="newInvestmentOwner"><option value="원">원</option><option value="수연">수연</option></select></label>
+                <label><span>거래소</span><select id="newInvestmentExchange"><option value="KRX">국내 · 코스피</option><option value="KOSDAQ">국내 · 코스닥</option><option value="NASDAQ">미국 · 나스닥</option><option value="NYSE">미국 · 뉴욕증권</option><option value="NYSEARCA">미국 · ETF</option></select></label>
+                <label><span>종목코드</span><input id="newInvestmentSymbol" type="text" maxlength="12" autocapitalize="characters" placeholder="예: 005930 / AAPL" /></label>
+                <label><span>표시 이름</span><input id="newInvestmentName" type="text" maxlength="24" placeholder="선택 · 예: 삼성전자" /></label>
+                <label><span>총 투자금 <small id="investmentCurrencyHint">원</small></span><input id="newInvestmentAmount" type="number" min="0" step="0.01" placeholder="처음 넣은 총 금액" /></label>
+                <label><span>평균 매수가 <small id="investmentPriceCurrencyHint">원</small></span><input id="newInvestmentAveragePrice" type="number" min="0" step="0.01" placeholder="주당 평균 매수가" /></label>
+                <button class="primary-button" id="saveInvestmentPosition" type="submit">종목 저장</button>
+                <button class="ghost-button hidden" id="cancelInvestmentEdit" type="button">수정 취소</button>
+              </form>
+            </details>
             <p class="settings-note investment-note">현재 자산과 평가손익은 생활비에 포함되지 않아요. 시세 제공처 사정에 따라 지연될 수 있습니다.</p>
             <div id="manualInvestmentTotals" class="investment-totals"></div>
             <div id="manualInvestmentHoldings" class="manual-investment-holdings"></div>
@@ -894,7 +897,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261031-1"></script>
-    <script defer src="./investments.js?v=20261031-1"></script>
+    <script defer src="./app.js?v=20261031-2"></script>
+    <script defer src="./investments.js?v=20261031-2"></script>
   </body>
 </html>

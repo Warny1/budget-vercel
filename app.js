@@ -3397,22 +3397,62 @@ function renderMonthStepper() {
   if (!label) return;
   const [year, monthNo] = currentMonth().split("-").map(Number);
   label.textContent = `${year}년 ${monthNo}월`;
+  label.setAttribute("aria-label", `${year}년 ${monthNo}월 · 조회할 달 선택`);
+  $$('[data-month-shift]').forEach((button) => {
+    const targetMonth = monthKeyByOffset(currentMonth(), Number(button.dataset.monthShift || 0));
+    button.title = monthLabel(targetMonth);
+    button.setAttribute("aria-label", `${monthLabel(targetMonth)}로 이동`);
+  });
+}
+
+function monthKeyByOffset(monthValue, offset) {
+  const [year, month] = String(monthValue || currentMonthKey()).split("-").map(Number);
+  const next = new Date(year, month - 1 + Number(offset || 0), 1);
+  return `${next.getFullYear()}-${pad2(next.getMonth() + 1)}`;
+}
+
+function selectLedgerMonth(monthValue) {
+  if (!/^\d{4}-\d{2}$/.test(String(monthValue || ""))) return;
+  $("#monthPicker").value = monthValue;
+  setDefaultDates();
+  renderAll();
+  closePickerDialog("monthJumpDialog");
+}
+
+function renderMonthQuickChoices() {
+  const choices = $("#monthQuickChoices");
+  if (!choices) return;
+  choices.replaceChildren();
+  [-2, -1, 0, 1, 2].forEach((offset) => {
+    const month = monthKeyByOffset(currentMonth(), offset);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.jumpMonth = month;
+    button.className = offset === 0 ? "active" : "";
+    const caption = document.createElement("span");
+    caption.textContent = offset === -1 ? "이전 달" : offset === 0 ? "보고 있는 달" : offset === 1 ? "다음 달" : offset < 0 ? "더 이전" : "더 다음";
+    const value = document.createElement("strong");
+    value.textContent = monthLabel(month);
+    button.append(caption, value);
+    choices.append(button);
+  });
+}
+
+function openMonthJumpDialog() {
+  const dialog = $("#monthJumpDialog");
+  const picker = $("#monthJumpPicker");
+  if (!dialog) return;
+  renderMonthQuickChoices();
+  if (picker) picker.value = currentMonth();
+  if (dialog.showModal) dialog.showModal();
 }
 
 function goToCurrentMonth() {
-  const monthPicker = $("#monthPicker");
-  if (!monthPicker) return;
-  monthPicker.value = currentMonthKey();
-  setDefaultDates();
-  renderAll();
+  selectLedgerMonth(currentMonthKey());
 }
 
 function shiftCurrentMonth(offset) {
-  const [year, month] = currentMonth().split("-").map(Number);
-  const next = new Date(year, month - 1 + Number(offset || 0), 1);
-  $("#monthPicker").value = `${next.getFullYear()}-${pad2(next.getMonth() + 1)}`;
-  setDefaultDates();
-  renderAll();
+  selectLedgerMonth(monthKeyByOffset(currentMonth(), offset));
 }
 
 function setMenuOpen(open) {
@@ -3727,6 +3767,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const monthJump = closestTarget(event, "[data-jump-month]");
+  if (monthJump) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    selectLedgerMonth(monthJump.dataset.jumpMonth);
+    return;
+  }
+
   const switchButton = closestTarget(event, "[data-expense-view]");
   if (switchButton) {
     event.stopImmediatePropagation();
@@ -3903,7 +3951,13 @@ on("#monthPicker", "change", () => {
   setDefaultDates();
   renderAll();
 });
-on("#monthStepperLabel", "click", goToCurrentMonth);
+on("#monthStepperLabel", "click", openMonthJumpDialog);
+on("#closeMonthJumpDialog", "click", () => closePickerDialog("monthJumpDialog"));
+on("#monthJumpDialog", "click", (event) => {
+  if (event.target === $("#monthJumpDialog")) closePickerDialog("monthJumpDialog");
+});
+on("#monthJumpPicker", "change", (event) => selectLedgerMonth(event.target.value));
+on("#jumpCurrentMonth", "click", goToCurrentMonth);
 on("#savingsType", "change", (event) => {
   activeSavingsType = SAVINGS_TYPES.includes(event.target.value) ? event.target.value : SAVINGS_TYPES[0];
   activeSavingsDetail = savingsDetailsForType(activeSavingsType)[0] || "전체";

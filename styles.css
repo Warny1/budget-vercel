@@ -6205,6 +6205,40 @@ th.amount {
   }
 }
 
+/* Fast month navigation across every ledger view. */
+.month-jump-dialog .category-dialog-sheet { width:min(460px,calc(100vw - 24px)); }
+.month-jump-dialog .category-dialog-header > div { display:grid; gap:3px; }
+.month-jump-dialog .category-dialog-header span { color:var(--muted); font-size:11px; }
+.month-quick-choices { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; margin:12px 0; }
+.month-quick-choices button { display:grid; gap:5px; min-width:0; min-height:68px; padding:10px 5px; border:1px solid var(--line); border-radius:13px; background:#fff; color:var(--ink); text-align:center; }
+.month-quick-choices button.active { border-color:#7eb39f; background:#e8f5ee; color:#315f50; box-shadow:0 5px 14px rgba(64,112,94,.1); }
+.month-quick-choices span { color:var(--muted); font-size:9px; font-weight:800; }
+.month-quick-choices strong { overflow:hidden; font-size:11px; line-height:1.3; text-overflow:ellipsis; }
+.month-jump-actions { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; }
+.month-jump-actions label { display:grid; gap:5px; }
+.month-jump-actions label span { color:var(--muted); font-size:10px; font-weight:850; }
+.month-jump-actions input { width:100%; height:42px; padding:0 11px; border:1px solid var(--line); border-radius:11px; background:#fff; color:var(--ink); }
+.month-jump-actions button { height:42px; }
+
+@media (max-width:760px) {
+  .sidebar { grid-template-columns:38px 32px minmax(0,1fr) 32px 38px; gap:6px; }
+  .brand { grid-column:1; }
+  .month-shift-button { display:grid; grid-row:1; place-items:center; width:32px; height:38px; min-height:38px; padding:0; border:0; border-radius:11px; background:#f2f6f4; box-shadow:none; color:#4d675e; font-size:21px; }
+  .month-shift-button[data-month-shift="-1"] { grid-column:2; }
+  .month-stepper-label { grid-column:3; min-width:0; }
+  .month-shift-button[data-month-shift="1"] { grid-column:4; }
+  .menu-toggle-button { grid-column:5; }
+  .month-quick-choices { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .month-quick-choices button:nth-child(1),.month-quick-choices button:nth-child(5) { display:none; }
+  .month-jump-actions { grid-template-columns:1fr; }
+}
+
+@media (max-width:360px) {
+  .sidebar { grid-template-columns:32px 28px minmax(0,1fr) 28px 34px; gap:4px; }
+  .month-shift-button { width:28px; height:36px; min-height:36px; }
+  .month-stepper-label { font-size:13px; }
+}
+
 /* iOS Safari zooms focused form controls below 16px. Keep page scale stable while typing. */
 @media (max-width: 760px) {
   input:not([type="checkbox"]):not([type="radio"]),

@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261031-2" />
+    <link rel="stylesheet" href="./styles.css?v=20261101-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -32,7 +32,7 @@
           <button class="menu-toggle-button" id="menuToggle" type="button" aria-expanded="false">메뉴</button>
           <span class="mobile-sync-indicator" id="mobileSyncIndicator" aria-label="공유 동기화 상태">✓</span>
           <button class="month-shift-button" data-month-shift="-1" type="button" aria-label="이전 달">‹</button>
-          <button class="month-stepper-label" id="monthStepperLabel" type="button" title="이번 달로 돌아가기" aria-label="이번 달로 돌아가기">이번 달</button>
+          <button class="month-stepper-label" id="monthStepperLabel" type="button" title="조회할 달 선택" aria-label="조회할 달 선택" aria-haspopup="dialog">이번 달</button>
           <button class="month-shift-button" data-month-shift="1" type="button" aria-label="다음 달">›</button>
         </div>
         <nav class="nav-tabs" aria-label="화면 전환">
@@ -779,6 +779,19 @@
         </section>
       </div>
     </div>
+    <dialog class="category-dialog month-jump-dialog" id="monthJumpDialog">
+      <div class="category-dialog-sheet">
+        <div class="category-dialog-header">
+          <div><strong>조회할 달 선택</strong><span>선택한 달이 모든 메뉴에 적용돼요</span></div>
+          <button class="dialog-close-button" id="closeMonthJumpDialog" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="month-quick-choices" id="monthQuickChoices"></div>
+        <div class="month-jump-actions">
+          <label><span>원하는 연·월</span><input id="monthJumpPicker" type="month" /></label>
+          <button class="ghost-button" id="jumpCurrentMonth" type="button">이번 달로 이동</button>
+        </div>
+      </div>
+    </dialog>
     <dialog class="category-dialog" id="categoryDialog">
       <div class="category-dialog-sheet">
         <div class="category-dialog-header">
@@ -897,7 +910,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261031-2"></script>
+    <script defer src="./app.js?v=20261101-1"></script>
     <script defer src="./investments.js?v=20261031-2"></script>
   </body>
 </html>

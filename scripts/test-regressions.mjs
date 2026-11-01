@@ -21,8 +21,10 @@ const ctx = vm.createContext({
   ALLOWANCE_CARD_WON: '원 용돈카드', ALLOWANCE_CARD_SUYEON: '수연 용돈카드', CANCELLATION_CATEGORY: '취소',
   alert: noop, $: id => ({value: fields[id] || '', getAttribute: () => 'false'}),
 });
-const names = ['clone','valuesEqual','mergeStateValue','mergeBudgetStates','inMonth','sum','isProxyExpense','isUnconfirmedRecurringExpense','allowanceSourceFor','isCancellationExpense','expenseValue','expenseSum','monthlySettlement','recurringOccurrenceKey','applyRecurringRules','skipRecurringRow','addExpense','addIncome','cloudTimeLabel','stateSyncStats','renderCloudDiagnostics','cloudCheckpointKey','persistCloudCheckpoint','loadCloudState','saveCloudState','refreshCloudState'];
+const names = ['clone','valuesEqual','mergeStateValue','mergeBudgetStates','pad2','monthKeyByOffset','inMonth','sum','isProxyExpense','isUnconfirmedRecurringExpense','allowanceSourceFor','isCancellationExpense','expenseValue','expenseSum','monthlySettlement','recurringOccurrenceKey','applyRecurringRules','skipRecurringRow','addExpense','addIncome','cloudTimeLabel','stateSyncStats','renderCloudDiagnostics','cloudCheckpointKey','persistCloudCheckpoint','loadCloudState','saveCloudState','refreshCloudState'];
 vm.runInContext(names.map(extract).join('\n'),ctx);
+assert.equal(ctx.monthKeyByOffset('2026-01', -1), '2025-12');
+assert.equal(ctx.monthKeyByOffset('2026-12', 1), '2027-01');
 ctx.sampleState = {expenses:[],incomes:[],savings:[],settings:{}};
 const fresh = () => ({expenses:[],incomes:[],savings:[],settings:{recurringRules:[{id:'r',kind:'expense',day:5,amount:100,startMonth:'2026-10'}],recurringSkips:[]}});
 ctx.state=fresh();

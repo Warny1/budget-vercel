@@ -1294,8 +1294,7 @@ function removeRecurringRule(id) {
   renderSettings();
 }
 
-function monthlyData() {
-  const month = currentMonth();
+function monthlyData(month = currentMonth()) {
   const expenses = state.expenses.filter((row) => inMonth(row, month));
   const householdExpenses = expenses.filter((row) => !isProxyExpense(row));
   const incomes = state.incomes.filter((row) => inMonth(row, month));
@@ -1334,6 +1333,121 @@ function monthlyData() {
     topCategory,
     cardUsage: (groupTotals["카드(원)"] || 0) + (groupTotals["카드(수)"] || 0),
   };
+}
+
+function monthlyCloseReport(month = currentMonth()) {
+  const data = monthlyData(month);
+  const previous = monthlyData(monthKeyByOffset(month, -1));
+  const settlement = monthlySettlement(month);
+  const cardTargets = cardTargetEntries(data);
+  const topCategories = Object.entries(data.categoryTotals)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  const nextMonth = monthKeyByOffset(month, 1);
+  const nextFixedRules = (state.settings.recurringRules || []).filter((rule) => rule.active !== false
+    && rule.kind === "expense"
+    && nextMonth >= (rule.startMonth || "2026-10")
+    && (!rule.endMonth || nextMonth <= rule.endMonth));
+  const savingsRate = data.incomeTotal > 0 ? Math.round((data.savingsDepositTotal / data.incomeTotal) * 100) : null;
+  const expenseChange = data.expenseTotal - previous.expenseTotal;
+  return {
+    data,
+    previous,
+    settlement,
+    cardTargets,
+    topCategories,
+    nextMonth,
+    nextFixedRules,
+    nextFixedTotal: sum(nextFixedRules),
+    savingsRate,
+    expenseChange,
+    completed: month < currentMonthKey(),
+    hasRecords: data.expenses.length + data.incomes.length + data.savings.length > 0,
+  };
+}
+
+function monthlyCloseSummary(report) {
+  const monthNo = Number(report.data.month.slice(5, 7));
+  if (!report.previous.expenseTotal) {
+    return `${monthNo}월에 ${won.format(report.data.expenseTotal)} 쓰고 ${won.format(report.data.savingsDepositTotal)} 저축했어요.`;
+  }
+  const difference = Math.abs(report.expenseChange);
+  const spendingText = report.expenseChange === 0
+    ? "지난달과 같은 금액을 쓰고"
+    : `지난달보다 ${won.format(difference)} ${report.expenseChange > 0 ? "더 쓰고" : "덜 쓰고"}`;
+  return `${monthNo}월은 ${spendingText} ${won.format(report.data.savingsDepositTotal)} 저축했어요.`;
+}
+
+function renderMonthlyCloseCard(data = monthlyData()) {
+  const card = $("#monthCloseReportCard");
+  if (!card) return;
+  const report = monthlyCloseReport(data.month);
+  const visible = report.completed && report.hasRecords;
+  card.classList.toggle("hidden", !visible);
+  if (!visible) return;
+  $("#monthCloseReportTitle").textContent = `${monthLabel(data.month)} 마감 리포트`;
+  $("#monthCloseReportSummary").textContent = monthlyCloseSummary(report);
+  const metrics = [
+    ["총지출", won.format(data.expenseTotal)],
+    ["저축률", report.savingsRate === null ? "수입 확인 필요" : `${report.savingsRate}%`],
+    ["정산", report.settlement.hasSalary ? won.format(report.settlement.toSend) : "급여 확인 필요"],
+  ];
+  $("#monthCloseReportMetrics").innerHTML = metrics.map(([label, value]) => `<span><small>${label}</small><b>${value}</b></span>`).join("");
+}
+
+function monthlyCloseReportHtml(report) {
+  const { data, previous, settlement, cardTargets, topCategories } = report;
+  const monthFlow = data.incomeTotal - data.expenseTotal - data.savingsDepositTotal;
+  const sourceRows = [
+    ["공용", data.sourceTotals["공용"] || 0],
+    ["원 용돈", data.sourceTotals["원 용돈"] || 0],
+    ["수연 용돈", data.sourceTotals["수연 용돈"] || 0],
+  ];
+  const comparisonClass = report.expenseChange > 0 ? "negative" : report.expenseChange < 0 ? "positive" : "";
+  return `
+    <section class="month-close-detail-hero">
+      <span>${escapeHtml(monthLabel(data.month))} 자동 정리</span>
+      <strong>${escapeHtml(monthlyCloseSummary(report))}</strong>
+    </section>
+    <section class="month-close-detail-grid">
+      <div><span>수입</span><strong>${won.format(data.incomeTotal)}</strong></div>
+      <div><span>지출</span><strong>${won.format(data.expenseTotal)}</strong></div>
+      <div><span>저축</span><strong>${won.format(data.savingsDepositTotal)}</strong></div>
+      <div><span>이번 달 흐름</span><strong class="${monthFlow < 0 ? "negative" : "positive"}">${formatSignedWon(monthFlow)}</strong></div>
+    </section>
+    <section class="month-close-section">
+      <div class="month-close-section-title"><strong>지난달과 비교</strong><span>${escapeHtml(monthLabel(previous.month))}</span></div>
+      <div class="month-close-comparison">
+        <span>지난달 ${won.format(previous.expenseTotal)}</span>
+        <strong class="${comparisonClass}">${report.expenseChange === 0 ? "변화 없음" : `${report.expenseChange > 0 ? "+" : "−"}${won.format(Math.abs(report.expenseChange))}`}</strong>
+        <span>이번 달 ${won.format(data.expenseTotal)}</span>
+      </div>
+    </section>
+    <section class="month-close-section">
+      <div class="month-close-section-title"><strong>많이 쓴 곳</strong><span>상위 3개</span></div>
+      <div class="month-close-ranked">${topCategories.length ? topCategories.map(([name, value], index) => `<div><i>${index + 1}</i><span>${escapeHtml(name)}</span><strong>${won.format(value)}</strong><small>${data.expenseTotal > 0 ? `${Math.round((value / data.expenseTotal) * 100)}%` : "0%"}</small></div>`).join("") : '<p class="settings-note">분류할 지출이 없어요.</p>'}</div>
+    </section>
+    <section class="month-close-section">
+      <div class="month-close-section-title"><strong>누가 얼마나 썼는지</strong><span>공용·개인</span></div>
+      <div class="month-close-source-grid">${sourceRows.map(([name, value]) => `<div><span>${escapeHtml(name)}</span><strong>${won.format(value)}</strong></div>`).join("")}</div>
+    </section>
+    <section class="month-close-section">
+      <div class="month-close-section-title"><strong>저축과 정산</strong><span>마감 결과</span></div>
+      <div class="month-close-source-grid">
+        <div><span>저축률</span><strong>${report.savingsRate === null ? "수입 입력 필요" : `${report.savingsRate}%`}</strong></div>
+        <div><span>수연이에게 보낼 금액</span><strong>${settlement.hasSalary ? won.format(settlement.toSend) : "급여 입력 필요"}</strong></div>
+      </div>
+    </section>
+    <section class="month-close-section">
+      <div class="month-close-section-title"><strong>카드 실적</strong><span>${cardTargets.length}개</span></div>
+      <div class="month-close-card-list">${cardTargets.length ? cardTargets.map((entry) => `<div><span>${escapeHtml(entry.name)}</span><strong>${won.format(entry.used)}</strong><small class="${entry.remaining ? "" : "achieved"}">${entry.primary || entry.secondary ? entry.remaining ? `${won.format(entry.remaining)} 남음` : "목표 달성" : "목표 없음"}</small></div>`).join("") : '<p class="settings-note">카드 실적 정보가 없어요.</p>'}</div>
+    </section>
+    <section class="month-close-next">
+      <span>${escapeHtml(monthLabel(report.nextMonth))} 예정 고정비</span>
+      <strong>${won.format(report.nextFixedTotal)}</strong>
+      <small>${report.nextFixedRules.length ? `${report.nextFixedRules.length}건의 고정 지출이 예정돼 있어요.` : "등록된 다음 달 고정 지출이 없어요."}</small>
+    </section>`;
 }
 
 function dashboardInsight(data, targetEntries) {
@@ -1728,6 +1842,7 @@ function renderSummary() {
       <strong>${value}</strong>
     </button>
   `).join("");
+  renderMonthlyCloseCard(data);
   renderDashboardDrilldown(data, targetEntries);
 }
 
@@ -2627,6 +2742,10 @@ function openDashboardDetailDialog(type) {
     const entries = budgetEntries(data);
     title.textContent = "예산 현황";
     body.innerHTML = `<section class="budget-list detail-budget-list">${budgetRowsHtml(entries, false)}</section>`;
+  } else if (type === "month-close") {
+    const report = monthlyCloseReport(data.month);
+    title.textContent = `${monthLabel(data.month)} 마감 리포트`;
+    body.innerHTML = monthlyCloseReportHtml(report);
   } else {
     return;
   }

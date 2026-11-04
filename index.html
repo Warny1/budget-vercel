@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261101-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261105-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -81,6 +81,12 @@
 
           <div id="homeOverviewPanel" role="tabpanel">
             <div class="summary-grid" id="summaryCards"></div>
+            <button class="panel month-close-card hidden" id="monthCloseReportCard" data-dashboard-detail="month-close" type="button">
+              <span class="month-close-badge">자동 마감</span>
+              <span class="month-close-head"><strong id="monthCloseReportTitle">월 마감 리포트</strong><i aria-hidden="true">›</i></span>
+              <span class="month-close-summary" id="monthCloseReportSummary"></span>
+              <span class="month-close-metrics" id="monthCloseReportMetrics"></span>
+            </button>
             <section class="panel home-recent-card">
               <div class="panel-title">
                 <h3>최근 기록</h3>
@@ -910,7 +916,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261101-1"></script>
+    <script defer src="./app.js?v=20261105-1"></script>
     <script defer src="./investments.js?v=20261031-2"></script>
   </body>
 </html>

@@ -97,7 +97,10 @@ Object.assign(fields, {
 ctx.addExpense();
 assert.equal(ctx.state.expenses.length, 3);
 assert.equal(ctx.state.expenses[1].date, '2026-11-30');
-assert.equal(ctx.monthlySettlement('2026-11').cardTotal, 3333);
+assert.equal(ctx.monthlySettlement('2026-10').cardTotal, 3333);
+assert.equal(ctx.monthlySettlement('2026-11').cardTotal, 0);
+assert.equal(ctx.monthlySettlement('2026-11').laterInstallments[0].amount, 3333);
+assert.equal(ctx.expenseSum(ctx.state.expenses.filter(row => ctx.inMonth(row, '2026-11'))), 3333);
 ctx.editingExpenseId = ctx.state.expenses[1].id;
 Object.assign(fields, { '#expenseAmount':'10001', '#expenseInstallmentMonths':'2' });
 ctx.addExpense();

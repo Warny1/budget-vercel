@@ -1773,7 +1773,9 @@ function monthlySettlement(month = currentMonth()) {
   const legacyAllowanceExpenses = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row) && row.source === "용돈 사용");
   const eligible = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row)
     && allowanceSourceFor(row.source) !== "원 용돈" && row.source !== "용돈 사용");
-  const cards = eligible.filter((row) => row.method === "카드(원)");
+  const eligibleCards = eligible.filter((row) => row.method === "카드(원)");
+  const laterInstallments = eligibleCards.filter((row) => row.installment?.number > 1);
+  const cards = eligibleCards.filter((row) => !row.installment || row.installment.number === 1);
   const transfers = eligible.filter((row) => row.method === "계좌이체");
   const salary = sum(salaries);
   const cardTotal = expenseSum(cards);
@@ -1794,6 +1796,7 @@ function monthlySettlement(month = currentMonth()) {
     proxyExpenses,
     wonAllowanceExpenses,
     legacyAllowanceExpenses,
+    laterInstallments,
     unassignedAllowance: legacyAllowanceExpenses.length,
   };
 }
@@ -1808,6 +1811,7 @@ function renderSettlement(data = monthlySettlement()) {
     ["원 용돈", data.wonAllowanceExpenses],
     ["대납", data.proxyExpenses],
     ["소유자 미지정 용돈", data.legacyAllowanceExpenses],
+    ["2회차 이후 할부 (월별 지출에는 반영)", data.laterInstallments],
   ].filter(([, rows]) => rows.length);
   $("#settlementMonth").textContent = monthLabel(data.month);
   $("#settlementAmount").textContent = data.hasSalary ? won.format(data.toSend) : "급여 입력 필요";

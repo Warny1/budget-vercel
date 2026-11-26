@@ -1713,6 +1713,7 @@ function updatePaymentOptions(preferredPayment) {
   $("#expenseCard").disabled = items.length === 0;
   updateExpenseGroup();
   renderPaymentPickers();
+  renderExpenseInstallmentField();
 }
 
 function updateExpenseGroup() {
@@ -1726,10 +1727,40 @@ function setExpenseCancelToggle(active) {
   if (!button) return;
   button.classList.toggle("active", active);
   button.setAttribute("aria-pressed", active ? "true" : "false");
+  renderExpenseInstallmentField();
 }
 
 function toggleExpenseCancel() {
+  if (state.expenses.some((row) => row.id === editingExpenseId && row.installment)) return;
   setExpenseCancelToggle($("#expenseCancelToggle")?.getAttribute("aria-pressed") !== "true");
+}
+
+function renderExpenseInstallmentField() {
+  const field = $("#expenseInstallmentField");
+  if (!field) return;
+  const select = $("#expenseInstallmentMonths");
+  const editingRow = state.expenses.find((row) => row.id === editingExpenseId);
+  const editingPlan = editingRow?.installment;
+  $("#expenseCancelToggle").disabled = Boolean(editingPlan);
+  const available = !editingRow?.recurringRuleId && ["카드(원)", "카드(수)"].includes($("#expenseMethod").value)
+    && $("#expenseCancelToggle").getAttribute("aria-pressed") !== "true";
+  field.classList.toggle("hidden", !available && !editingPlan);
+  select.disabled = !available;
+  if (!available) select.value = "1";
+  const hint = $("#expenseInstallmentHint");
+  const months = Number(select.value);
+  const amount = Number($("#expenseAmount").value);
+  const messages = [];
+  if (months > 1) {
+    messages.push("입력한 총액을 결제월부터 수수료 없이 나눠 기록해요.");
+    if (Number.isSafeInteger(amount) && amount >= months) {
+      const monthly = Math.floor(amount / months);
+      messages.push(`매월 ${won.format(monthly)}${amount % months ? ` · 마지막 달 ${won.format(monthly + amount % months)}` : ""}`);
+    }
+  }
+  if (editingPlan) messages.push("저장하면 연결된 모든 회차가 함께 수정돼요.");
+  hint.textContent = messages.join(" ");
+  hint.classList.toggle("hidden", !messages.length);
 }
 
 function monthlySettlement(month = currentMonth()) {
@@ -2126,7 +2157,7 @@ function renderExpenseRow(row) {
     <tr class="${isCancellationExpense(row) ? "cancellation-row" : ""}">
       <td>${row.date}</td>
       <td>${escapeHtml(row.category)}</td>
-      <td class="amount">${formatExpenseAmount(row)}</td>
+      <td class="amount">${formatExpenseAmount(row)}${row.installment ? `<small class="expense-installment-badge">${Number(row.installment.number)}/${Number(row.installment.months)}회 할부</small>` : ""}</td>
       <td>${escapeHtml(row.method)}</td>
       <td class="payment-cell">
         <span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span>
@@ -3019,14 +3050,16 @@ function startExpenseEdit(id) {
   const row = state.expenses.find((item) => item.id === id);
   if (!row) return;
   editingExpenseId = id;
-  $("#expenseDate").value = row.date;
+  $("#expenseDate").value = row.installment?.purchaseDate || row.date;
   $("#expenseCategory").value = row.category;
   renderCategoryPicker();
-  $("#expenseAmount").value = row.amount;
+  $("#expenseAmount").value = row.installment?.total || row.amount;
   $("#expenseMethod").value = row.method;
   updatePaymentOptions(row.payment);
   $("#expenseCard").value = row.payment;
   setExpenseCancelToggle(isCancellationExpense(row));
+  $("#expenseInstallmentMonths").value = String(row.installment?.months || 1);
+  renderExpenseInstallmentField();
   $("#expenseSource").value = row.source || "공용";
   renderExpenseSourceSegment();
   $("#expenseMemo").value = row.memo || "";
@@ -3067,13 +3100,36 @@ function startEventEdit(id) {
   $("#eventTitle").focus();
 }
 
+function installmentExpenseRows(row, months) {
+  const { id, date, amount } = row;
+  const monthly = Math.floor(amount / months);
+  const day = Number(date.slice(8, 10));
+  return Array.from({ length: months }, (_, index) => {
+    const month = monthKeyByOffset(date.slice(0, 7), index);
+    const [year, monthNumber] = month.split("-").map(Number);
+    const last = index === months - 1;
+    return {
+      ...row,
+      id: index ? `${id}-installment-${index + 1}` : id,
+      date: `${month}-${pad2(Math.min(day, daysInMonth(year, monthNumber)))}`,
+      amount: monthly + (last ? amount % months : 0),
+      installment: { id, purchaseDate: date, total: amount, months, number: index + 1 },
+    };
+  });
+}
+
 function addExpense() {
   const previous = state.expenses.find((row) => row.id === editingExpenseId);
+  if (editingExpenseId && !previous) {
+    alert("수정할 지출이 이미 삭제됐어요.");
+    resetExpenseForm();
+    return;
+  }
   const payment = $("#expenseCard").value;
   const paymentItem = getPaymentItem(payment);
   const nextRow = {
     ...previous,
-    id: editingExpenseId || newId("expense"),
+    id: previous?.installment?.id || editingExpenseId || newId("expense"),
     date: $("#expenseDate").value,
     category: $("#expenseCategory").value,
     amount: Number($("#expenseAmount").value),
@@ -3084,7 +3140,21 @@ function addExpense() {
     memo: $("#expenseMemo").value.trim(),
     ...(previous?.recurringRuleId ? { recurringConfirmed: true } : {}),
   };
-  if (editingExpenseId) {
+  const canSplit = !previous?.recurringRuleId
+    && ["카드(원)", "카드(수)"].includes(nextRow.method) && !isCancellationExpense(nextRow);
+  const months = canSplit ? Number($("#expenseInstallmentMonths")?.value || 1) : 1;
+  if (months > 1 && (!Number.isInteger(months) || months > 36 || !Number.isSafeInteger(nextRow.amount) || nextRow.amount < months)) {
+    alert("할부 개월 수와 결제 총액을 확인해 주세요.");
+    return;
+  }
+  delete nextRow.installment;
+  if (months > 1 || previous?.installment) {
+    if (!nextRow.date || !(nextRow.amount > 0)) return;
+    const rows = months > 1 ? installmentExpenseRows(nextRow, months) : [nextRow];
+    state.expenses = state.expenses.filter((row) => row.id !== editingExpenseId
+      && (!previous?.installment || row.installment?.id !== previous.installment.id));
+    state.expenses.push(...rows);
+  } else if (editingExpenseId) {
     state.expenses = state.expenses.map((row) => row.id === editingExpenseId ? nextRow : row);
   } else {
     const matchingPlanned = state.expenses.find((row) => isUnconfirmedRecurringExpense(row)
@@ -3105,6 +3175,21 @@ function addExpense() {
   }
   saveState();
   resetExpenseForm(nextRow.date, nextRow.method, nextRow.payment, nextRow.category, nextRow.source);
+  renderAll();
+}
+
+function clearMonthlyExpenses() {
+  const monthlyRows = state.expenses.filter((row) => inMonth(row, currentMonth()));
+  const installmentIds = new Set(monthlyRows.flatMap((row) => row.installment ? [row.installment.id] : []));
+  const message = installmentIds.size
+    ? "현재 조회월의 지출과 연결된 다른 달의 할부 회차도 모두 삭제할까요?"
+    : "현재 조회월의 지출 내역을 모두 삭제할까요?";
+  if (!confirm(message)) return;
+  const monthlyIds = new Set(monthlyRows.map((row) => row.id));
+  monthlyRows.forEach(skipRecurringRow);
+  state.expenses = state.expenses.filter((row) => !monthlyIds.has(row.id) && !installmentIds.has(row.installment?.id));
+  resetExpenseForm();
+  saveState();
   renderAll();
 }
 
@@ -3619,6 +3704,12 @@ function activateSettingsTab(tabName) {
 
 function boot() {
   const today = new Date();
+  const installmentSelect = $("#expenseInstallmentMonths");
+  if (installmentSelect.options.length === 1) {
+    for (let months = 2; months <= 36; months += 1) {
+      installmentSelect.add(new Option(`${months}개월`, String(months)));
+    }
+  }
   const defaultMonth = currentMonthKey();
   $("#todayLabel").textContent = today.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
   $("#monthPicker").value = defaultMonth;
@@ -3966,15 +4057,7 @@ document.addEventListener("click", (event) => {
       renderSelectors();
     },
     cancelEventEdit: resetEventForm,
-    clearExpenses: () => {
-      if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
-      const month = currentMonth();
-      state.expenses.filter((row) => inMonth(row, month)).forEach(skipRecurringRow);
-      state.expenses = state.expenses.filter((row) => !inMonth(row, month));
-      resetExpenseForm();
-      saveState();
-      renderAll();
-    },
+    clearExpenses: clearMonthlyExpenses,
     clearIncomes: () => {
       if (!confirm("현재 조회월의 수입 내역을 모두 삭제할까요?")) return;
       const month = currentMonth();
@@ -4189,15 +4272,7 @@ on("#cancelIncomeEdit", "click", () => {
   resetIncomeForm();
   renderSelectors();
 });
-on("#clearExpenses", "click", () => {
-  if (!confirm("현재 조회월의 지출 내역을 모두 삭제할까요?")) return;
-  const month = currentMonth();
-  state.expenses.filter((row) => inMonth(row, month)).forEach(skipRecurringRow);
-  state.expenses = state.expenses.filter((row) => !inMonth(row, month));
-  resetExpenseForm();
-  saveState();
-  renderAll();
-});
+on("#clearExpenses", "click", clearMonthlyExpenses);
 on("#clearIncomes", "click", () => {
   if (!confirm("현재 조회월의 수입 내역을 모두 삭제할까요?")) return;
   const month = currentMonth();
@@ -4334,8 +4409,10 @@ document.addEventListener("click", (event) => {
   }
   if (expenseId) {
     const expenseRow = state.expenses.find((row) => row.id === expenseId);
+    const plan = expenseRow?.installment;
+    if (plan && !confirm(`이 할부의 전체 ${plan.months}회 기록을 삭제할까요?`)) return;
     skipRecurringRow(expenseRow);
-    state.expenses = state.expenses.filter((row) => row.id !== expenseId);
+    state.expenses = state.expenses.filter((row) => row.id !== expenseId && (!plan || row.installment?.id !== plan.id));
   }
   if (incomeId) {
     const incomeRow = state.incomes.find((row) => row.id === incomeId);
@@ -4412,6 +4489,8 @@ document.addEventListener("change", (event) => {
 on("#expenseMethod", "change", () => {
   updatePaymentOptions();
 });
+on("#expenseInstallmentMonths", "change", renderExpenseInstallmentField);
+on("#expenseAmount", "input", renderExpenseInstallmentField);
 on("#expenseCard", "change", () => {
   const item = getPaymentItem($("#expenseCard").value);
   if (item) $("#expenseMethod").value = item.method;

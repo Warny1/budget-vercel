@@ -6510,3 +6510,19 @@ th.amount {
     font-size: 12px;
   }
 }
+.expense-installment {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.expense-installment label { font-size: .875rem; font-weight: 750; }
+.expense-installment small { font-size: .8125rem; color: var(--muted); }
+.expense-installment-badge {
+  display: block;
+  color: #426c60;
+  font-size: .75rem;
+  white-space: nowrap;
+}

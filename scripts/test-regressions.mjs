@@ -24,6 +24,12 @@ const ctx = vm.createContext({
 });
 const names = ['clone','valuesEqual','mergeStateValue','mergeBudgetStates','pad2','monthKeyByOffset','monthlyCloseSummary','inMonth','sum','isProxyExpense','isUnconfirmedRecurringExpense','allowanceSourceFor','isCancellationExpense','expenseValue','expenseSum','monthlySettlement','recurringOccurrenceKey','applyRecurringRules','skipRecurringRow','addExpense','addIncome','cloudTimeLabel','stateSyncStats','renderCloudDiagnostics','cloudCheckpointKey','persistCloudCheckpoint','loadCloudState','saveCloudState','refreshCloudState'];
 vm.runInContext(names.map(extract).join('\n'),ctx);
+vm.runInContext(['daysInMonth', 'installmentExpenseRows', 'clearMonthlyExpenses'].map(extract).join('\n'), ctx);
+const plan = ctx.installmentExpenseRows({ id:'plan', date:'2026-12-31', amount:10000 }, 3);
+assert.deepEqual(Array.from(plan, row => [row.date, row.amount]), [
+  ['2026-12-31', 3333], ['2027-01-31', 3333], ['2027-02-28', 3334],
+]);
+assert.equal(plan[2].installment.id, 'plan');
 assert.equal(ctx.monthKeyByOffset('2026-01', -1), '2025-12');
 assert.equal(ctx.monthKeyByOffset('2026-12', 1), '2027-01');
 assert.match(ctx.monthlyCloseSummary({data:{month:'2026-10',expenseTotal:800000,savingsDepositTotal:300000},previous:{expenseTotal:1000000},expenseChange:-200000}), /₩200,000 덜 쓰고.*₩300,000 저축/);
@@ -81,3 +87,28 @@ await ctx.loadCloudState();assert.deepEqual(Array.from(ctx.state.expenses,r=>r.i
 ctx.cloudClient.from=()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:null})})})});
 const before=writes;await ctx.loadCloudState();await ctx.saveCloudState(true);assert.equal(writes,before);assert.equal(ctx.cloudLoaded,false);
 console.log('Passed: recurring dates/idempotency/edit/delete, settlement inclusion/exclusion/cancellation, linked withdrawal edit, cloud preservation/reload/deletion/missing account.');
+
+ctx.state = { expenses: [], incomes: [], settings: { recurringSkips: [] } };
+ctx.editingExpenseId = null;
+Object.assign(fields, {
+  '#expenseDate':'2026-10-31', '#expenseAmount':'10000', '#expenseMethod':'카드(원)',
+  '#expenseCard':'국민(원)', '#expenseInstallmentMonths':'3', '#expenseSource':'공용',
+});
+ctx.addExpense();
+assert.equal(ctx.state.expenses.length, 3);
+assert.equal(ctx.state.expenses[1].date, '2026-11-30');
+assert.equal(ctx.monthlySettlement('2026-11').cardTotal, 3333);
+ctx.editingExpenseId = ctx.state.expenses[1].id;
+Object.assign(fields, { '#expenseAmount':'10001', '#expenseInstallmentMonths':'2' });
+ctx.addExpense();
+assert.deepEqual(Array.from(ctx.state.expenses, row => row.amount), [5000, 5001]);
+ctx.confirm = () => false;
+ctx.clearMonthlyExpenses();
+assert.equal(ctx.state.expenses.length, 2);
+ctx.confirm = message => {
+  assert.match(message, /다른 달/);
+  return true;
+};
+ctx.clearMonthlyExpenses();
+assert.equal(ctx.state.expenses.length, 0);
+console.log('Passed: installment rounding, dates, monthly settlement, series editing and deletion.');

@@ -12,7 +12,7 @@
     <link rel="icon" href="./app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./app-logo.png" />
     <link rel="preload" href="./app-logo.png" as="image" />
-    <link rel="stylesheet" href="./styles.css?v=20261105-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261126-1" />
     <script defer src="./config.js?v=20260621-20"></script>
   </head>
   <body>
@@ -238,6 +238,11 @@
             </select>
             <div class="source-segment" id="expenseSourceSegment" aria-label="지출 구분"></div>
             <input id="expenseMemo" type="text" placeholder="메모" />
+            <div id="expenseInstallmentField" class="expense-installment hidden">
+              <label for="expenseInstallmentMonths">결제 방식</label>
+              <select id="expenseInstallmentMonths" aria-describedby="expenseInstallmentHint"><option value="1">일시불</option></select>
+              <small id="expenseInstallmentHint" class="hidden" aria-live="polite"></small>
+            </div>
           </form>
           <div class="date-tools" aria-label="지출 날짜 빠른 선택">
             <button class="ghost-button icon-date-button" data-date-target="expenseDate" data-date-action="prev" type="button">◀</button>
@@ -916,7 +921,7 @@
         </div>
       </div>
     </dialog>
-    <script defer src="./app.js?v=20261105-1"></script>
+    <script defer src="./app.js?v=20261126-1"></script>
     <script defer src="./investments.js?v=20261031-2"></script>
   </body>
 </html>

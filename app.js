@@ -1069,6 +1069,18 @@ function expenseSum(rows) {
   return rows.reduce((total, row) => total + expenseValue(row), 0);
 }
 
+function cardUsageSum(rows) {
+  return rows.reduce((total, row) => {
+    if (!row.installment) return total + expenseValue(row);
+    if (row.installment.number !== 1) return total;
+    return total + Number(row.installment.total);
+  }, 0);
+}
+
+function installmentLabel(installment) {
+  return `${Number(installment.number)}/${Number(installment.months)}회 할부`;
+}
+
 function formatSignedWon(value) {
   return `${value > 0 ? "+" : ""}${won.format(value)}`;
 }
@@ -1095,7 +1107,7 @@ function cardTargetEntries(data = monthlyData()) {
       const target = normalizeCardTarget(state.settings.cardTargets?.[name]);
       const primary = target.primary;
       const secondary = target.secondary;
-      const used = expenseSum(data.expenses.filter((row) => row.payment === name));
+      const used = cardUsageSum(data.expenses.filter((row) => row.payment === name));
       const activeTarget = used < primary || secondary <= primary ? primary : secondary;
       const phase = used < primary || secondary <= primary ? "1차" : "2차";
       const remaining = Math.max(activeTarget - used, 0);
@@ -1331,7 +1343,7 @@ function monthlyData(month = currentMonth()) {
     categoryTotals,
     sourceTotals,
     topCategory,
-    cardUsage: (groupTotals["카드(원)"] || 0) + (groupTotals["카드(수)"] || 0),
+    cardUsage: cardUsageSum(expenses.filter((row) => ["카드(원)", "카드(수)"].includes(paymentGroup(row)))),
   };
 }
 
@@ -1752,7 +1764,7 @@ function renderExpenseInstallmentField() {
   const amount = Number($("#expenseAmount").value);
   const messages = [];
   if (months > 1) {
-    messages.push("입력한 총액을 결제월부터 수수료 없이 나눠 기록해요.");
+    messages.push("결제월 카드 사용액에는 총액을, 월별 지출에는 각 회차 금액을 기록해요.");
     if (Number.isSafeInteger(amount) && amount >= months) {
       const monthly = Math.floor(amount / months);
       messages.push(`매월 ${won.format(monthly)}${amount % months ? ` · 마지막 달 ${won.format(monthly + amount % months)}` : ""}`);
@@ -1773,9 +1785,7 @@ function monthlySettlement(month = currentMonth()) {
   const legacyAllowanceExpenses = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row) && row.source === "용돈 사용");
   const eligible = ownPayments.filter((row) => !isUnconfirmedRecurringExpense(row) && !isProxyExpense(row)
     && allowanceSourceFor(row.source) !== "원 용돈" && row.source !== "용돈 사용");
-  const eligibleCards = eligible.filter((row) => row.method === "카드(원)");
-  const laterInstallments = eligibleCards.filter((row) => row.installment?.number > 1);
-  const cards = eligibleCards.filter((row) => !row.installment || row.installment.number === 1);
+  const cards = eligible.filter((row) => row.method === "카드(원)");
   const transfers = eligible.filter((row) => row.method === "계좌이체");
   const salary = sum(salaries);
   const cardTotal = expenseSum(cards);
@@ -1796,7 +1806,6 @@ function monthlySettlement(month = currentMonth()) {
     proxyExpenses,
     wonAllowanceExpenses,
     legacyAllowanceExpenses,
-    laterInstallments,
     unassignedAllowance: legacyAllowanceExpenses.length,
   };
 }
@@ -1805,13 +1814,13 @@ function renderSettlement(data = monthlySettlement()) {
   const panel = $("#settlementDetails");
   if (!panel) return;
   const groups = byKey(data.cards, (row) => row.payment, expenseValue);
+  const installments = data.cards.filter((row) => row.installment);
   const includedRows = [...data.cards, ...data.transfers].sort((a, b) => b.date.localeCompare(a.date));
   const excludedGroups = [
     ["고정금 예정", data.plannedExpenses],
     ["원 용돈", data.wonAllowanceExpenses],
     ["대납", data.proxyExpenses],
     ["소유자 미지정 용돈", data.legacyAllowanceExpenses],
-    ["2회차 이후 할부 (월별 지출에는 반영)", data.laterInstallments],
   ].filter(([, rows]) => rows.length);
   $("#settlementMonth").textContent = monthLabel(data.month);
   $("#settlementAmount").textContent = data.hasSalary ? won.format(data.toSend) : "급여 입력 필요";
@@ -1824,7 +1833,7 @@ function renderSettlement(data = monthlySettlement()) {
   $("#settlementBody").innerHTML = `
     <dl class="settlement-amounts">
       <div><dt>원 월급</dt><dd>${won.format(data.salary)}</dd></div>
-      <div><dt>원 카드값</dt><dd>− ${won.format(data.cardTotal)}</dd></div>
+      <div><dt>원 카드값${installments.length ? `<small class="settlement-installment-note">이달 할부금 ${won.format(expenseSum(installments))} 포함</small>` : ""}</dt><dd>− ${won.format(data.cardTotal)}</dd></div>
       <div><dt>원 계좌이체</dt><dd>− ${won.format(data.transferTotal)}</dd></div>
       <div><dt>계산 결과</dt><dd>${data.hasSalary ? won.format(data.net) : "급여 입력 필요"}</dd></div>
     </dl>
@@ -1838,7 +1847,11 @@ function renderSettlement(data = monthlySettlement()) {
     </details>
     <details class="settlement-detail-group" open>
       <summary>차감에 포함한 지출 ${includedRows.length}건</summary>
-      <div class="settlement-items">${includedRows.map((row) => `<div><span>${escapeHtml(row.date)} · ${escapeHtml(row.payment)} · ${escapeHtml(row.memo || row.category)}${row.source && row.source !== "공용" ? ` · ${escapeHtml(row.source)}` : ""}</span><strong>${won.format(expenseValue(row))}</strong></div>`).join("") || '<p class="settings-note">포함된 내역이 없습니다.</p>'}</div>
+      <div class="settlement-items">${includedRows.map((row) => {
+        const source = row.source && row.source !== "공용" ? ` · ${escapeHtml(row.source)}` : "";
+        const installment = row.installment ? `<small class="settlement-installment-note">${installmentLabel(row.installment)}</small>` : "";
+        return `<div><span>${escapeHtml(row.date)} · ${escapeHtml(row.payment)} · ${escapeHtml(row.memo || row.category)}${source}${installment}</span><strong>${won.format(expenseValue(row))}</strong></div>`;
+      }).join("") || '<p class="settings-note">포함된 내역이 없습니다.</p>'}</div>
     </details>
     <details class="settlement-detail-group">
       <summary>계산에서 제외한 내역 ${excludedGroups.reduce((count, [, rows]) => count + rows.length, 0)}건</summary>
@@ -2093,6 +2106,9 @@ function renderExpenses() {
 }
 
 function cardExpenseSummary(rows) {
+  if (rows.some((row) => row.installment)) {
+    return `카드 사용 ${won.format(cardUsageSum(rows))} · 월 지출 ${won.format(expenseSum(rows))}`;
+  }
   const withoutAllowance = rows.filter((row) => !allowanceSourceFor(row.source) && !isProxyExpense(row));
   return `${won.format(expenseSum(rows))} (${won.format(expenseSum(withoutAllowance))}) · ${rows.length}건`;
 }
@@ -2154,6 +2170,8 @@ function renderExpenseRows(rows) {
 }
 
 function renderExpenseRow(row) {
+  const installment = row.installment;
+  const installmentUsage = installment?.number === 1 ? ` · 카드 사용 ${won.format(installment.total)}` : "";
   const sourceBadge = row.source && row.source !== "공용"
     ? `<span class="soft-badge source-badge source-allowance">${escapeHtml(allowanceSourceTitle(row.source))}</span>`
     : "";
@@ -2161,7 +2179,7 @@ function renderExpenseRow(row) {
     <tr class="${isCancellationExpense(row) ? "cancellation-row" : ""}">
       <td>${row.date}</td>
       <td>${escapeHtml(row.category)}</td>
-      <td class="amount">${formatExpenseAmount(row)}${row.installment ? `<small class="expense-installment-badge">${Number(row.installment.number)}/${Number(row.installment.months)}회 할부</small>` : ""}</td>
+      <td class="amount">${formatExpenseAmount(row)}${installment ? `<small class="expense-installment-badge">${installmentLabel(installment)}${installmentUsage}</small>` : ""}</td>
       <td>${escapeHtml(row.method)}</td>
       <td class="payment-cell">
         <span class="soft-badge payment-badge" style="background:${paymentColor(row)}">${escapeHtml(row.payment)}</span>

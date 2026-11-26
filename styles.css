@@ -5416,6 +5416,7 @@ th.amount {
 .settlement-items { max-height: 340px; overflow: auto; font-size: 13px; }
 .settlement-items span { overflow-wrap: anywhere; }
 .settlement-items strong { white-space: nowrap; }
+.settlement-installment-note { display: block; margin-top: 3px; color: var(--muted); font-size: .8125rem; }
 
 /* Separate investment valuation from household savings/cash flow. */
 .asset-view-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
@@ -6524,5 +6525,4 @@ th.amount {
   display: block;
   color: #426c60;
   font-size: .75rem;
-  white-space: nowrap;
 }

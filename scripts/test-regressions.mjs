@@ -25,11 +25,18 @@ const ctx = vm.createContext({
 const names = ['clone','valuesEqual','mergeStateValue','mergeBudgetStates','pad2','monthKeyByOffset','monthlyCloseSummary','inMonth','sum','isProxyExpense','isUnconfirmedRecurringExpense','allowanceSourceFor','isCancellationExpense','expenseValue','expenseSum','monthlySettlement','recurringOccurrenceKey','applyRecurringRules','skipRecurringRow','addExpense','addIncome','cloudTimeLabel','stateSyncStats','renderCloudDiagnostics','cloudCheckpointKey','persistCloudCheckpoint','loadCloudState','saveCloudState','refreshCloudState'];
 vm.runInContext(names.map(extract).join('\n'),ctx);
 vm.runInContext(['daysInMonth', 'installmentExpenseRows', 'clearMonthlyExpenses'].map(extract).join('\n'), ctx);
+vm.runInContext(['normalizeCardTarget', 'cardUsageSum', 'cardTargetEntries'].map(extract).join('\n'), ctx);
 const plan = ctx.installmentExpenseRows({ id:'plan', date:'2026-12-31', amount:10000 }, 3);
 assert.deepEqual(Array.from(plan, row => [row.date, row.amount]), [
   ['2026-12-31', 3333], ['2027-01-31', 3333], ['2027-02-28', 3334],
 ]);
 assert.equal(plan[2].installment.id, 'plan');
+const samsungPlan = ctx.installmentExpenseRows({
+  id: 'samsung', date: '2026-11-26', amount: 1500000, payment: '삼성(원)', method: '카드(원)',
+}, 3);
+ctx.state = { settings: { cardTargets: { '삼성(원)': 300000 }, paymentItems: [] } };
+assert.deepEqual(Array.from(samsungPlan, row => ctx.cardTargetEntries({ expenses: [row] })[0].used), [1500000, 0, 0]);
+assert.deepEqual(Array.from(samsungPlan, row => ctx.expenseSum([row])), [500000, 500000, 500000]);
 assert.equal(ctx.monthKeyByOffset('2026-01', -1), '2025-12');
 assert.equal(ctx.monthKeyByOffset('2026-12', 1), '2027-01');
 assert.match(ctx.monthlyCloseSummary({data:{month:'2026-10',expenseTotal:800000,savingsDepositTotal:300000},previous:{expenseTotal:1000000},expenseChange:-200000}), /₩200,000 덜 쓰고.*₩300,000 저축/);
@@ -98,8 +105,8 @@ ctx.addExpense();
 assert.equal(ctx.state.expenses.length, 3);
 assert.equal(ctx.state.expenses[1].date, '2026-11-30');
 assert.equal(ctx.monthlySettlement('2026-10').cardTotal, 3333);
-assert.equal(ctx.monthlySettlement('2026-11').cardTotal, 0);
-assert.equal(ctx.monthlySettlement('2026-11').laterInstallments[0].amount, 3333);
+assert.equal(ctx.monthlySettlement('2026-11').cardTotal, 3333);
+assert.equal(ctx.monthlySettlement('2026-12').cardTotal, 3334);
 assert.equal(ctx.expenseSum(ctx.state.expenses.filter(row => ctx.inMonth(row, '2026-11'))), 3333);
 ctx.editingExpenseId = ctx.state.expenses[1].id;
 Object.assign(fields, { '#expenseAmount':'10001', '#expenseInstallmentMonths':'2' });
